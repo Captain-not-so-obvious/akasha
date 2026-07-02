@@ -1,0 +1,63 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Outfit:wght@300;400;600&display=swap');
+
+@theme {
+  --color-floresta-negra: #283618;
+  --color-folha-oliva: #606c38;
+  --color-seda-milharal: #fefae0;
+  --color-caramelo-claro: #dda15e;
+  --color-cobre: #bc6c25;
+
+  --font-cinzel: 'Cinzel', serif;
+  --font-outfit: 'Outfit', sans-serif;
+}
+
+:root {
+  --color-floresta-negra: #283618;
+  --color-folha-oliva: #606c38;
+  --color-seda-milharal: #fefae0;
+  --color-caramelo-claro: #dda15e;
+  --color-cobre: #bc6c25;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--color-floresta-negra);
+  color: var(--color-seda-milharal);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 
+  Regra D-Pad para Android TV
+  Remove o outline padrão feio do navegador para que possamos usar estilos customizados de focus.
+*/
+:focus, :focus-visible {
+  outline: none;
+}
+
+/* 
+  Estética Principal: Liquid Glass (Glassmorfismo)
+*/
+.glass-panel {
+  background: rgba(254, 250, 224, 0.08); 
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(254, 250, 224, 0.15);
+  box-shadow: 0 12px 40px 0 rgba(40, 54, 24, 0.5); 
+  border-radius: 16px;
+}
+
+/* 
+  Foco para Android TV 
+*/
+.tv-focus-glow:focus, .tv-focus-glow:focus-visible {
+  transform: scale(1.08);
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out;
+  border-color: var(--color-caramelo-claro); 
+  box-shadow: 0 0 24px rgba(221, 161, 94, 0.5), 
+              0 16px 40px rgba(40, 54, 24, 0.8);
+  z-index: 10;
+}

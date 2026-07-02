@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Para o pooler do Supabase (pgBouncer), é necessário o directUrl
+  // para que as migrations funcionem corretamente
+  directUrl = env("DIRECT_URL")
+}
+
+model Profile {
+  id        String     @id @db.Uuid
+  username  String?    @unique
+  avatarUrl String?    @map("avatar_url")
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at")
+  wishlists Wishlist[]
+
+  @@map("profiles")
+}
+
+enum MediaType {
+  movie
+  tv
+}
+
+enum WatchStatus {
+  plan_to_watch
+  watching
+  completed
+  dropped
+}
+
+model Wishlist {
+  id         Int         @id @default(autoincrement())
+  userId     String      @map("user_id") @db.Uuid
+  tmdbId     Int         @map("tmdb_id")
+  mediaType  MediaType   @map("media_type")
+  status     WatchStatus @default(plan_to_watch)
+  userRating Int?        @map("user_rating") // 1-5, validado via Zod no backend
+  notes      String?
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @default(now()) @updatedAt @map("updated_at")
+  profile    Profile     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tmdbId, mediaType]) // Evita duplicatas por usuário
+  @@map("wishlist")
+}
