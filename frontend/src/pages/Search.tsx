@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { SearchBar } from '../components/search/SearchBar';
 import { MovieCard } from '../components/search/MovieCard';
 import { useSearch } from '../hooks/useSearch';
+import { useWishlist } from '../hooks/useWishlist';
+import { MediaDetailsModal } from '../components/ui/MediaDetailsModal';
 import type { MediaType, MediaDetails } from '../types/media';
 
 /**
@@ -19,6 +21,7 @@ export const SearchPage: React.FC = () => {
   const [selectedMedia, setSelectedMedia] = useState<MediaDetails | null>(null);
 
   const { results, totalResults, isLoading, error } = useSearch(query, mediaType);
+  const { addToList } = useWishlist();
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -50,13 +53,19 @@ export const SearchPage: React.FC = () => {
         onSelectMedia={setSelectedMedia}
       />
 
-      {/* Modal de detalhes — placeholder para 3.3.5 */}
-      {selectedMedia && (
-        <MediaDetailOverlay
-          media={selectedMedia}
-          onClose={() => setSelectedMedia(null)}
-        />
-      )}
+      {/* Modal de detalhes — feature 3.3.5 */}
+      <MediaDetailsModal
+        isOpen={selectedMedia !== null}
+        media={selectedMedia}
+        onClose={() => setSelectedMedia(null)}
+        onAdd={(media) => {
+          addToList({
+            tmdbId: media.id,
+            mediaType: media.mediaType,
+            status: 'plan_to_watch',
+          });
+        }}
+      />
     </div>
   );
 };
@@ -194,65 +203,3 @@ function LoadingGrid() {
   );
 }
 
-// Placeholder para o Modal de detalhes (item 3.3.5 do roadmap)
-interface MediaDetailOverlayProps {
-  media: MediaDetails;
-  onClose: () => void;
-}
-
-function MediaDetailOverlay({ media, onClose }: MediaDetailOverlayProps) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Detalhes de ${media.title}`}
-      onClick={onClose}
-    >
-      <div
-        className="glass-panel w-full max-w-lg p-6 flex flex-col gap-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start gap-4">
-          {media.posterUrl && (
-            <img
-              src={media.posterUrl}
-              alt={`Pôster de ${media.title}`}
-              className="w-24 rounded-lg object-cover flex-shrink-0"
-            />
-          )}
-          <div className="flex flex-col gap-1">
-            <h3 className="font-cinzel font-bold text-xl text-[var(--color-caramelo-claro)]">
-              {media.title}
-            </h3>
-            <p className="font-outfit text-xs text-[var(--color-seda-milharal)] opacity-60">
-              {media.releaseDate ? new Date(media.releaseDate).getFullYear() : 'Ano desconhecido'} • {media.mediaType === 'movie' ? 'Filme' : 'Série'}
-              {media.voteAverage ? ` • ⭐ ${media.voteAverage.toFixed(1)}` : ''}
-            </p>
-          </div>
-        </div>
-
-        <p className="font-outfit text-sm text-[var(--color-seda-milharal)] opacity-80 leading-relaxed line-clamp-4">
-          {media.overview}
-        </p>
-
-        <div className="flex gap-3 justify-end mt-2">
-          <button
-            onClick={onClose}
-            tabIndex={0}
-            className="tv-focus-glow font-outfit text-sm px-4 py-2 rounded-lg bg-white/10 text-[var(--color-seda-milharal)] hover:bg-white/20 transition cursor-pointer"
-          >
-            Fechar
-          </button>
-          <button
-            tabIndex={0}
-            className="tv-focus-glow font-outfit text-sm px-5 py-2 rounded-lg bg-[var(--color-caramelo-claro)] text-[var(--color-floresta-negra)] font-semibold hover:bg-[var(--color-cobre)] transition cursor-pointer"
-            onClick={onClose}
-          >
-            + Adicionar à Biblioteca
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}

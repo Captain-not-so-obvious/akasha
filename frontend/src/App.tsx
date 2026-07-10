@@ -3,7 +3,8 @@ import { AuthProvider } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
 import { SearchPage } from './pages/Search';
-import { GlassPanel } from './components/ui/GlassPanel';
+import { Library } from './pages/Library';
+import { Profile } from './pages/Profile';
 import { useAuth } from './hooks/useAuth';
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -53,20 +54,7 @@ function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Home() {
-  const { user } = useAuth();
 
-  return (
-    <GlassPanel className="p-8 h-full min-h-[500px] flex flex-col items-center justify-center text-center">
-      <h2 className="text-5xl font-cinzel font-bold mb-4 text-[var(--color-seda-milharal)]">
-        Bem-vindo ao <span className='text-[var(--color-caramelo-claro)]'>Akasha</span>
-      </h2>
-      <p className="text-xl font-outfit opacity-80 mb-10 max-w-2xl">
-        Olá, {user?.user_metadata?.full_name || user?.email || 'Viajante'}! Sua biblioteca pessoal de filmes e séries está pronta.
-      </p>
-    </GlassPanel>
-  );
-}
 
 export default function App() {
   return (
@@ -82,7 +70,17 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Layout>
-                  <Home />
+                  <Library />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Profile />
                 </Layout>
               </ProtectedRoute>
             }

@@ -86,28 +86,28 @@
 | 3.3.2 | Componente `SearchBar` com toggle Filmes/Séries | 🟢 | 3.1.2 | **Done** |
 | 3.3.3 | Componente `MovieCard`: pôster, título, ano — com foco TV animado | 🟡 | 3.1.3, 3.1.5 | **Done** |
 | 3.3.4 | Grid de resultados de busca com estado de loading e vazio | 🟡 | 3.3.2, 3.3.3 | **Done** |
-| 3.3.5 | Modal/Drawer de detalhes da mídia (backdrop, sinopse, botão "Adicionar") | 🟡 | 3.3.3 | Pendente |
+| 3.3.5 | Modal/Drawer de detalhes da mídia (backdrop, sinopse, botão "Adicionar") | 🟡 | 3.3.3 | **Done** |
 
 ### 3.4 — Biblioteca (Wishlist)
 
 | # | Feature | Complexidade | Dependência | Status |
 |---|---|---|---|---|
-| 3.4.1 | Hook `useWishlist()`: CRUD completo contra o backend | 🟡 | 3.2.5, Fase 2 | Pendente |
-| 3.4.2 | Tela da Biblioteca com 3 abas: **Assistindo / Concluídos / Quero Ver** | 🟡 | 3.4.1, 3.1.4 | Pendente |
-| 3.4.3 | Ação "Adicionar à Biblioteca" a partir dos resultados de busca | 🟢 | 3.4.1, 3.3.5 | Pendente |
-| 3.4.4 | Componente `StatusBadge`: chip visual com cor por status | 🟢 | 3.1.2 | Pendente |
-| 3.4.5 | Ação "Mover para Concluído" com trigger do modal de avaliação | 🟡 | 3.4.1, 3.4.6 | Pendente |
-| 3.4.6 | Componente `RatingModal`: 5 estrelas interativas (clicáveis + foco D-Pad) | 🟡 | 3.1.5 | Pendente |
-| 3.4.7 | Ação "Remover da Biblioteca" com confirmação | 🟢 | 3.4.1 | Pendente |
-| 3.4.8 | Componente `RatingStars`: exibição read-only das estrelas (1–5) | 🟢 | 3.1.2 | Pendente |
-| 3.4.9 | Testes de componente: `RatingModal`, `useWishlist` mock de API | 🔴 | 3.4.6, 3.4.1 | Pendente |
+| 3.4.1 | Hook `useWishlist()`: CRUD completo contra o backend | 🟡 | 3.2.5, Fase 2 | **Done** |
+| 3.4.2 | Tela da Biblioteca com 3 abas: **Assistindo / Concluídos / Quero Ver** | 🟡 | 3.4.1, 3.1.4 | **Done** |
+| 3.4.3 | Ação "Adicionar à Biblioteca" a partir dos resultados de busca | 🟢 | 3.4.1, 3.3.5 | **Done** |
+| 3.4.4 | Componente `StatusBadge`: chip visual com cor por status | 🟢 | 3.1.2 | **Done** |
+| 3.4.5 | Ação "Mover para Concluído" com trigger do modal de avaliação | 🟡 | 3.4.1, 3.4.6 | **Done** |
+| 3.4.6 | Componente `RatingModal`: 5 estrelas interativas (clicáveis + foco D-Pad) | 🟡 | 3.1.5 | **Done** |
+| 3.4.7 | Ação "Remover da Biblioteca" com confirmação | 🟢 | 3.4.1 | **Done** |
+| 3.4.8 | Componente `RatingStars`: exibição read-only das estrelas (1–5) | 🟢 | 3.1.2 | **Done** |
+| 3.4.9 | Testes de componente: `RatingModal`, `useWishlist` mock de API | 🔴 | 3.4.6, 3.4.1 | **Done** |
 
 ### 3.5 — Página de Perfil
 
 | # | Feature | Complexidade | Dependência | Status |
 |---|---|---|---|---|
-| 3.5.1 | Tela de Perfil: avatar, username, estatísticas (total, concluídos, nota média) | 🟡 | 3.4.1, 3.2.2 | Pendente |
-| 3.5.2 | Botão de logout | 🟢 | 3.2.2 | Pendente |
+| 3.5.1 | Tela de Perfil: avatar, username, estatísticas (total, concluídos, nota média) | 🟡 | 3.4.1, 3.2.2 | **Done** |
+| 3.5.2 | Botão de logout | 🟢 | 3.2.2 | **Done** |
 
 ---
 
