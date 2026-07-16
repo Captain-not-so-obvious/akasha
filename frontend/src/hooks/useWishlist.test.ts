@@ -1,5 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Mock } from 'vitest';
 import { useWishlist } from './useWishlist';
 
 // Mock getAuthToken
@@ -10,7 +11,7 @@ vi.mock('../utils/auth', () => ({
 describe('useWishlist', () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    global.fetch = vi.fn() as Mock;
+    globalThis.fetch = vi.fn() as Mock;
   });
 
   it('deve retornar os itens iniciais corretamente', () => {
@@ -21,13 +22,13 @@ describe('useWishlist', () => {
 
   it('fetchWishlist deve lidar com os requests com sucesso', async () => {
     // Mock do /wishlist
-    (global.fetch as Mock).mockResolvedValueOnce({
+    (globalThis.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve([{ id: 1, tmdbId: 10, mediaType: 'movie', status: 'plan_to_watch' }])
     });
 
     // Mock do /tmdb/:type/:id
-    (global.fetch as Mock).mockResolvedValueOnce({
+    (globalThis.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({ id: 10, title: 'Fake Movie' })
     });

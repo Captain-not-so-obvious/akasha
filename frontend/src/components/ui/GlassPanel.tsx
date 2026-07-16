@@ -1,14 +1,16 @@
+import { forwardRef } from 'react';
 import type { ReactNode, HTMLAttributes } from 'react';
 
-interface GlassPanelProps extends HTMLAttributes<HTMLDivElement> {
+export interface GlassPanelProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   className?: string;
 }
 
-export function GlassPanel({ children, className = '', ...props }: GlassPanelProps) {
+export const GlassPanel = forwardRef<HTMLDivElement, GlassPanelProps>(
+  ({ children, className = '', ...props }, ref) => {
   return (
-    <div className={`glass-panel ${className}`} {...props}>
+    <div ref={ref} className={`glass-panel ${className}`} {...props}>
       {children}
     </div>
   );
-}
+});

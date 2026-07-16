@@ -1,5 +1,4 @@
-import { MediaType } from './media';
-import { z } from 'zod';
+import type { MediaType } from './media';
 
 export type WishlistStatus = 'plan_to_watch' | 'watching' | 'completed' | 'dropped';
 

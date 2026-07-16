@@ -4,9 +4,9 @@
   "description": "Akasha — API Backend (Fastify + TypeScript + Prisma)",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "node --import tsx --env-file=.env --watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node --env-file=.env dist/server.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",

@@ -18,17 +18,17 @@ function triggerDebounce(ms = 400) {
 }
 
 describe('Hook useSearch', () => {
-  const originalFetch = global.fetch;
+  const originalFetch = globalThis.fetch;
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    globalThis.fetch = originalFetch;
     vi.useRealTimers();
     vi.clearAllMocks();
   });
 
   it('não dispara fetch se a query tiver menos de 2 caracteres', async () => {
     const mockFetch = vi.fn();
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
     renderHook(() => useSearch('a', 'movie'));
 
@@ -58,7 +58,7 @@ describe('Hook useSearch', () => {
       totalPages: 1,
     };
 
-    global.fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => mockPayload,
     } as unknown as Response);
@@ -74,8 +74,8 @@ describe('Hook useSearch', () => {
     expect(result.current.results[0].title).toBe('Batman');
     expect(result.current.totalResults).toBe(1);
     expect(result.current.isLoading).toBe(false);
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/tmdb/search?q=batman&type=movie'),
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: 'Bearer fake-jwt-token' }),
@@ -84,7 +84,7 @@ describe('Hook useSearch', () => {
   });
 
   it('preenche o estado de erro quando o fetch falha com resposta não-ok', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       json: async () => ({ error: 'Falha ao comunicar com o TMDB.' }),
     } as unknown as Response);
@@ -108,7 +108,7 @@ describe('Hook useSearch', () => {
       json: async () => ({ results: [], totalResults: 0, totalPages: 0 }),
     } as unknown as Response);
 
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
     vi.useFakeTimers();
 

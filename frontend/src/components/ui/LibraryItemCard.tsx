@@ -22,7 +22,7 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange }: Libr
   const nextStatusInfo = getNextStatusInfo(status);
 
   return (
-    <div className="group relative flex flex-col rounded-xl overflow-hidden bg-black/20 border border-white/5 transition-all hover:bg-black/40">
+    <div className="group relative flex flex-col rounded-xl overflow-hidden bg-white/[0.02] backdrop-blur-md border border-white/10 transition-all duration-300 hover:bg-white/[0.06] hover:border-white/20 hover:scale-[1.02] hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)]">
       {/* Pôster container */}
       <div className="relative aspect-[2/3] w-full bg-black/40">
         {media.posterUrl ? (
@@ -35,6 +35,14 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange }: Libr
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white/10">
             <ImageIcon size={48} />
+          </div>
+        )}
+
+        {/* Badge de Avaliação no topo do Pôster */}
+        {userRating && (
+          <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md border border-white/10 flex items-center gap-1 shadow-md z-10">
+            <Star size={10} className="fill-[var(--color-caramelo-claro)] text-[var(--color-caramelo-claro)]" />
+            <span className="font-outfit text-[11px] font-bold text-[var(--color-seda-milharal)] leading-none">{userRating}</span>
           </div>
         )}
         
@@ -72,13 +80,20 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange }: Libr
       </div>
 
       {/* Info do Card */}
-      <div className="p-3 flex flex-col gap-2 flex-1">
-        <h3 className="font-cinzel font-bold text-[var(--color-caramelo-claro)] text-sm line-clamp-1">
+      <div className="p-3 flex flex-col justify-between gap-2.5 flex-1">
+        <h3 className="font-cinzel font-bold text-[var(--color-caramelo-claro)] text-sm line-clamp-1 group-hover:text-white transition-colors duration-300" title={media.title}>
           {media.title}
         </h3>
-        <div className="flex justify-between items-center mt-auto">
-          <StatusBadge status={status} />
-          {userRating && <RatingStars rating={userRating} />}
+        <div className="flex flex-col gap-1.5 mt-auto">
+          <div className="flex items-center">
+            <StatusBadge status={status} />
+          </div>
+          {userRating && (
+            <div className="flex items-center gap-1.5">
+              <RatingStars rating={userRating} size={11} />
+              <span className="text-[10px] font-bold text-[var(--color-seda-milharal)]/40 font-outfit">({userRating}/5)</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
