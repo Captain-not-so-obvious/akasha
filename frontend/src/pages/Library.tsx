@@ -1,17 +1,21 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useWishlist } from '../hooks/useWishlist';
 import type { LibraryItem, WishlistStatus } from '../types/wishlist';
+import type { MediaDetails } from '../types/media';
 import { LibraryItemCard } from '../components/ui/LibraryItemCard';
 import { RatingModal } from '../components/ui/RatingModal';
+import { MediaDetailsModal } from '../components/ui/MediaDetailsModal';
+import { RecommendationRail } from '../components/recommendations/RecommendationRail';
 
 type TabKey = 'plan_to_watch' | 'watching' | 'completed';
 
 export const Library: React.FC = () => {
-  const { items, isLoading, error, fetchWishlist, updateListItem, removeFromList } = useWishlist();
+  const { items, isLoading, error, fetchWishlist, updateListItem, removeFromList, addToList } = useWishlist();
   const [activeTab, setActiveTab] = useState<TabKey>('watching');
   
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<LibraryItem | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<MediaDetails | null>(null);
 
   useEffect(() => {
     fetchWishlist();
@@ -49,6 +53,9 @@ export const Library: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6 w-full h-full min-h-[500px]">
+      {/* Seção de Recomendações Inteligentes ML */}
+      <RecommendationRail onSelectMedia={setSelectedMedia} />
+
       {/* Header & Tabs */}
       <div>
         <h2 className="font-cinzel text-3xl font-bold text-[var(--color-caramelo-claro)] mb-4">
@@ -137,6 +144,19 @@ export const Library: React.FC = () => {
         onSubmit={handleRatingSubmit}
         initialRating={editingItem?.userRating}
         title={`Avaliar ${editingItem?.media.title || 'Mídia'}`}
+      />
+
+      <MediaDetailsModal
+        isOpen={selectedMedia !== null}
+        media={selectedMedia}
+        onClose={() => setSelectedMedia(null)}
+        onAdd={(media) => {
+          addToList({
+            tmdbId: media.id,
+            mediaType: media.mediaType,
+            status: 'plan_to_watch',
+          });
+        }}
       />
     </div>
   );

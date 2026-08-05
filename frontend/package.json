@@ -11,9 +11,8 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@capacitor/android": "^8.4.1",
-    "@capacitor/cli": "^8.4.1",
-    "@capacitor/core": "^8.4.1",
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
     "@supabase/supabase-js": "^2.110.0",
     "lucide-react": "^1.23.0",
     "react": "^19.2.7",
@@ -21,6 +20,8 @@
     "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.4.2",
     "@tailwindcss/vite": "^4.3.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

@@ -31,6 +31,7 @@ export interface MediaDetails {
   releaseDate: string | null;
   mediaType: 'movie' | 'tv';
   voteAverage: number | null;
+  genreIds?: number[];
 }
 
 export interface SearchResult {
@@ -60,6 +61,7 @@ function normalizeMedia(raw: TmdbMediaRaw, mediaType: 'movie' | 'tv'): MediaDeta
     releaseDate: raw.release_date ?? raw.first_air_date ?? null,
     mediaType,
     voteAverage: raw.vote_average ?? null,
+    genreIds: raw.genre_ids,
   };
 }
 
@@ -76,8 +78,9 @@ export async function fetchMediaDetails(
       throw new Error(`Erro TMDB: ${response.status}`);
     }
 
-    const data: TmdbMediaRaw = await response.json() as TmdbMediaRaw;
-    return normalizeMedia(data, mediaType);
+    const data: TmdbMediaRaw & { genres?: { id: number; name: string }[] } = await response.json() as any;
+    const genreIds = data.genres ? data.genres.map((g) => g.id) : data.genre_ids;
+    return normalizeMedia({ ...data, genre_ids: genreIds }, mediaType);
   } catch (error) {
     console.error('Falha ao buscar detalhes no TMDB:', error);
     return null;
@@ -111,3 +114,45 @@ export async function searchMedia(
     return null;
   }
 }
+
+export async function fetchMediaRecommendations(
+  tmdbId: number,
+  mediaType: 'movie' | 'tv'
+): Promise<MediaDetails[]> {
+  const url = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}/recommendations?language=pt-BR&page=1`;
+
+  try {
+    const response = await fetch(url, { headers: getHeaders() });
+    if (!response.ok) return [];
+
+    const data: TmdbSearchResponse = await response.json() as TmdbSearchResponse;
+    return data.results.map((item) => normalizeMedia(item, mediaType));
+  } catch (error) {
+    console.error('Falha ao buscar recomendações TMDB:', error);
+    return [];
+  }
+}
+
+export async function fetchTrendingMedia(
+  mediaType: 'movie' | 'tv' | 'all' = 'all'
+): Promise<MediaDetails[]> {
+  const typeParam = mediaType === 'all' ? 'all' : mediaType;
+  const url = `${TMDB_BASE_URL}/trending/${typeParam}/week?language=pt-BR`;
+
+  try {
+    const response = await fetch(url, { headers: getHeaders() });
+    if (!response.ok) return [];
+
+    const data: { results: (TmdbMediaRaw & { media_type?: string })[] } = await response.json() as any;
+    return data.results
+      .filter((item) => item.media_type === 'movie' || item.media_type === 'tv' || mediaType !== 'all')
+      .map((item) => {
+        const itemType = (item.media_type as 'movie' | 'tv') || (mediaType === 'tv' ? 'tv' : 'movie');
+        return normalizeMedia(item, itemType);
+      });
+  } catch (error) {
+    console.error('Falha ao buscar trending TMDB:', error);
+    return [];
+  }
+}
+

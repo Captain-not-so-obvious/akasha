@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { wishlistRoutes } from './routes/wishlist.routes.js';
 import { tmdbRoutes } from './routes/tmdb.routes.js';
+import { recommendationRoutes } from './routes/recommendation.routes.js';
 
 const fastify = Fastify({
   logger: {
@@ -22,6 +23,7 @@ await fastify.register(cors, {
 // Registro de rotas com prefixo
 await fastify.register(wishlistRoutes, { prefix: '/wishlist' });
 await fastify.register(tmdbRoutes, { prefix: '/tmdb' });
+await fastify.register(recommendationRoutes, { prefix: '/recommendations' });
 
 // Health check — usado pelo Render para verificar se o servidor está vivo
 fastify.get('/health', async () => ({
