@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { X, Plus, Image as ImageIcon } from 'lucide-react';
+import { X, Plus, Image as ImageIcon, Check } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import type { MediaDetails } from '../../types/media';
 
@@ -8,9 +8,10 @@ interface MediaDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (media: MediaDetails) => void;
+  isInLibrary?: boolean;
 }
 
-export function MediaDetailsModal({ media, isOpen, onClose, onAdd }: MediaDetailsModalProps) {
+export function MediaDetailsModal({ media, isOpen, onClose, onAdd, isInLibrary = false }: MediaDetailsModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -92,17 +93,24 @@ export function MediaDetailsModal({ media, isOpen, onClose, onAdd }: MediaDetail
             </p>
 
             <div className="mt-auto pt-6 flex gap-4">
-              <button
-                tabIndex={0}
-                onClick={() => {
-                  onAdd(media);
-                  onClose();
-                }}
-                className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[var(--color-caramelo-claro)] text-[var(--color-floresta-negra)] px-8 py-4 rounded-xl font-bold font-outfit text-lg tv-focus-glow hover:bg-[var(--color-cobre)] hover:text-white transition-colors"
-              >
-                <Plus size={24} />
-                Adicionar à Biblioteca
-              </button>
+              {isInLibrary ? (
+                <div className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-8 py-4 rounded-xl font-bold font-outfit text-lg">
+                  <Check size={24} />
+                  Já está na sua Biblioteca
+                </div>
+              ) : (
+                <button
+                  tabIndex={0}
+                  onClick={() => {
+                    onAdd(media);
+                    onClose();
+                  }}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[var(--color-caramelo-claro)] text-[var(--color-floresta-negra)] px-8 py-4 rounded-xl font-bold font-outfit text-lg tv-focus-glow hover:bg-[var(--color-cobre)] hover:text-white transition-colors cursor-pointer"
+                >
+                  <Plus size={24} />
+                  Adicionar à Biblioteca
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -110,3 +118,4 @@ export function MediaDetailsModal({ media, isOpen, onClose, onAdd }: MediaDetail
     </div>
   );
 }
+

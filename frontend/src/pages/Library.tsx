@@ -26,6 +26,11 @@ export const Library: React.FC = () => {
     return items.filter(item => item.status === activeTab);
   }, [items, activeTab]);
 
+  const isSelectedMediaInLibrary = useMemo(() => {
+    if (!selectedMedia) return false;
+    return items.some(item => item.tmdbId === selectedMedia.id && item.mediaType === selectedMedia.mediaType);
+  }, [items, selectedMedia]);
+
   const handleEditItem = (item: LibraryItem) => {
     setEditingItem(item);
     setRatingModalOpen(true);
@@ -128,6 +133,7 @@ export const Library: React.FC = () => {
                 onEdit={handleEditItem}
                 onRemove={(i) => removeFromList(i.id)}
                 onStatusChange={handleStatusChange}
+                onSelect={setSelectedMedia}
               />
             ))}
           </div>
@@ -150,6 +156,7 @@ export const Library: React.FC = () => {
         isOpen={selectedMedia !== null}
         media={selectedMedia}
         onClose={() => setSelectedMedia(null)}
+        isInLibrary={isSelectedMediaInLibrary}
         onAdd={(media) => {
           addToList({
             tmdbId: media.id,
