@@ -123,12 +123,23 @@ export async function fetchMediaRecommendations(
 
   try {
     const response = await fetch(url, { headers: getHeaders() });
-    if (!response.ok) return [];
+    if (response.ok) {
+      const data: TmdbSearchResponse = await response.json() as TmdbSearchResponse;
+      if (data.results && data.results.length > 0) {
+        return data.results.map((item) => normalizeMedia(item, mediaType));
+      }
+    }
 
-    const data: TmdbSearchResponse = await response.json() as TmdbSearchResponse;
-    return data.results.map((item) => normalizeMedia(item, mediaType));
+    // Fallback inteligente: Se o endpoint de recomendações do TMDB retornar vazio (comum em séries de TV),
+    // busca o endpoint /similar que retorna mídias do mesmo gênero e temática
+    const similarUrl = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}/similar?language=pt-BR&page=1`;
+    const similarResponse = await fetch(similarUrl, { headers: getHeaders() });
+    if (!similarResponse.ok) return [];
+
+    const similarData: TmdbSearchResponse = await similarResponse.json() as TmdbSearchResponse;
+    return (similarData.results || []).map((item) => normalizeMedia(item, mediaType));
   } catch (error) {
-    console.error('Falha ao buscar recomendações TMDB:', error);
+    console.error('Falha ao buscar recomendações/similares no TMDB:', error);
     return [];
   }
 }

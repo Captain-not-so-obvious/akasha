@@ -12,27 +12,30 @@ interface UserWishlistItem {
 /**
  * Calcula os pesos de um item da wishlist do usuário com base na nota e status.
  */
+/**
+ * Calcula os pesos de um item da wishlist do usuário com base na nota e status.
+ *
+ * Regras:
+ * - Se o status for 'dropped' (abandonado), peso fortemente negativo (-3.0).
+ * - Se a nota for 1 ou 2 estrelas (dislike), peso negativo independente de status.
+ * - Para avaliações positivas (3 a 5 estrelas) ou sem nota, aplica o multiplicador de status.
+ */
 export function calculateItemWeight(item: UserWishlistItem): number {
-  let ratingWeight = 1.0;
+  if (item.status === 'dropped') {
+    return -3.0;
+  }
 
-  if (item.userRating !== null && item.userRating !== undefined) {
-    switch (item.userRating) {
-      case 5:
-        ratingWeight = 3.0;
-        break;
-      case 4:
-        ratingWeight = 2.0;
-        break;
-      case 3:
-        ratingWeight = 1.0;
-        break;
-      case 2:
-        ratingWeight = -1.0;
-        break;
-      case 1:
-        ratingWeight = -2.0;
-        break;
-    }
+  let ratingWeight = 1.0;
+  if (item.userRating === 5) {
+    ratingWeight = 3.0;
+  } else if (item.userRating === 4) {
+    ratingWeight = 2.0;
+  } else if (item.userRating === 3) {
+    ratingWeight = 1.0;
+  } else if (item.userRating === 2) {
+    ratingWeight = -1.0;
+  } else if (item.userRating === 1) {
+    ratingWeight = -2.0;
   }
 
   let statusMultiplier = 1.0;
@@ -45,9 +48,6 @@ export function calculateItemWeight(item: UserWishlistItem): number {
       break;
     case 'plan_to_watch':
       statusMultiplier = 1.0;
-      break;
-    case 'dropped':
-      statusMultiplier = -1.5;
       break;
   }
 
@@ -89,8 +89,18 @@ export async function getUserRecommendations(
     return getColdStartRecommendations(existingSet, targetType, limit);
   }
 
-  // Ordena itens positivos do usuário pelo peso calculado (maior peso primeiro)
+  // Ordena itens positivos do usuário pelo peso calculado (maior peso primeiro).
+  // Se targetType for especificado ('tv' ou 'movie'), prioriza mídias daquele tipo para servir de semente.
+  // Em caso de empate de peso, prioriza as avaliações/atualizações mais recentes!
   const sortedUserItems = [...positiveItems].sort((a, b) => {
+    if (targetType !== 'all') {
+      const matchA = a.mediaType === targetType ? 1 : 0;
+      const matchB = b.mediaType === targetType ? 1 : 0;
+      if (matchB !== matchA) {
+        return matchB - matchA;
+      }
+    }
+
     const wA = calculateItemWeight({
       tmdbId: a.tmdbId,
       mediaType: a.mediaType as 'movie' | 'tv',
@@ -103,11 +113,30 @@ export async function getUserRecommendations(
       userRating: b.userRating,
       status: b.status as any,
     });
-    return wB - wA;
+
+    if (wB !== wA) {
+      return wB - wA;
+    }
+
+    // Desempate por recência (updatedAt/createdAt mais recente primeiro)
+    const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+    const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+
+    return timeB - timeA;
   });
 
-  // Pega até os 5 itens mais relevantes do usuário para servir de semente (seeds)
-  const seedItems = sortedUserItems.slice(0, 5);
+  // Pega sementes do usuário: se targetType === 'all', equilibra entre filmes e séries
+  let seedItems: typeof positiveItems = [];
+  if (targetType === 'all') {
+    const movieSeeds = sortedUserItems.filter((i) => i.mediaType === 'movie').slice(0, 3);
+    const tvSeeds = sortedUserItems.filter((i) => i.mediaType === 'tv').slice(0, 3);
+    seedItems = [...movieSeeds, ...tvSeeds];
+    if (seedItems.length === 0) {
+      seedItems = sortedUserItems.slice(0, 5);
+    }
+  } else {
+    seedItems = sortedUserItems.slice(0, 5);
+  }
 
   const candidateMap = new Map<
     string,
@@ -181,9 +210,30 @@ export async function getUserRecommendations(
     }
   }
 
-  // 5. Converte para lista ordenada por score
-  const result: RecommendedItem[] = Array.from(candidateMap.values())
-    .sort((a, b) => b.score - a.score)
+  // 5. Converte para lista ordenada (e intercalada se targetType === 'all')
+  const allCandidates = Array.from(candidateMap.values());
+  let finalCandidates: typeof allCandidates = [];
+
+  if (targetType === 'all') {
+    const movieCandidates = allCandidates
+      .filter((c) => c.media.mediaType === 'movie')
+      .sort((a, b) => b.score - a.score);
+
+    const tvCandidates = allCandidates
+      .filter((c) => c.media.mediaType === 'tv')
+      .sort((a, b) => b.score - a.score);
+
+    // Intercala filmes e séries para garantir um mix rico e diversificado na aba 'Todos'
+    const maxLength = Math.max(movieCandidates.length, tvCandidates.length);
+    for (let i = 0; i < maxLength; i++) {
+      if (i < movieCandidates.length) finalCandidates.push(movieCandidates[i]);
+      if (i < tvCandidates.length) finalCandidates.push(tvCandidates[i]);
+    }
+  } else {
+    finalCandidates = allCandidates.sort((a, b) => b.score - a.score);
+  }
+
+  const result: RecommendedItem[] = finalCandidates
     .slice(0, limit)
     .map(({ media, score, reason }) => ({
       tmdbId: media.id,
