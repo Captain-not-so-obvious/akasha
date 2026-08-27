@@ -84,4 +84,15 @@ describe('Componente MovieCard', () => {
     render(<MovieCard media={mediaWithoutRating} />);
     expect(screen.queryByText(/\d+\.\d/)).not.toBeInTheDocument();
   });
+
+  it('exibe o badge "Na Biblioteca" e atualiza aria-label quando isInLibrary={true}', () => {
+    render(<MovieCard media={mockMovie} isInLibrary={true} />);
+    expect(screen.getByText('Na Biblioteca')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /duna, 2021, já está na sua biblioteca/i })).toBeInTheDocument();
+  });
+
+  it('não exibe o badge "Na Biblioteca" quando isInLibrary={false}', () => {
+    render(<MovieCard media={mockMovie} isInLibrary={false} />);
+    expect(screen.queryByText('Na Biblioteca')).not.toBeInTheDocument();
+  });
 });

@@ -52,13 +52,18 @@ function getHeaders(): Record<string, string> {
 }
 
 function normalizeMedia(raw: TmdbMediaRaw, mediaType: 'movie' | 'tv'): MediaDetails {
+  const releaseDate =
+    (raw.release_date && raw.release_date.trim()) ||
+    (raw.first_air_date && raw.first_air_date.trim()) ||
+    null;
+
   return {
     id: raw.id,
     title: raw.title ?? raw.name ?? 'Título indisponível',
     overview: raw.overview || 'Sinopse não disponível em português.',
     posterUrl: raw.poster_path ? `${TMDB_IMAGE_BASE}/w500${raw.poster_path}` : null,
     backdropUrl: raw.backdrop_path ? `${TMDB_IMAGE_BASE}/original${raw.backdrop_path}` : null,
-    releaseDate: raw.release_date ?? raw.first_air_date ?? null,
+    releaseDate,
     mediaType,
     voteAverage: raw.vote_average ?? null,
     genreIds: raw.genre_ids,

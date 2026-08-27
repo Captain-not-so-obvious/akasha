@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SearchBar } from '../components/search/SearchBar';
 import { MovieCard } from '../components/search/MovieCard';
 import { useSearch } from '../hooks/useSearch';
@@ -21,7 +21,20 @@ export const SearchPage: React.FC = () => {
   const [selectedMedia, setSelectedMedia] = useState<MediaDetails | null>(null);
 
   const { results, totalResults, isLoading, error } = useSearch(query, mediaType);
-  const { addToList } = useWishlist();
+  const { items, fetchWishlist, addToList } = useWishlist();
+
+  useEffect(() => {
+    fetchWishlist();
+  }, [fetchWishlist]);
+
+  const libraryKeys = useMemo(() => {
+    return new Set(items.map((item) => `${item.mediaType}-${item.tmdbId}`));
+  }, [items]);
+
+  const selectedIsInLibrary = useMemo(() => {
+    if (!selectedMedia) return false;
+    return libraryKeys.has(`${selectedMedia.mediaType}-${selectedMedia.id}`);
+  }, [selectedMedia, libraryKeys]);
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -50,6 +63,7 @@ export const SearchPage: React.FC = () => {
         error={error}
         results={results}
         totalResults={totalResults}
+        libraryKeys={libraryKeys}
         onSelectMedia={setSelectedMedia}
       />
 
@@ -58,6 +72,7 @@ export const SearchPage: React.FC = () => {
         isOpen={selectedMedia !== null}
         media={selectedMedia}
         onClose={() => setSelectedMedia(null)}
+        isInLibrary={selectedIsInLibrary}
         onAdd={(media) => {
           addToList({
             tmdbId: media.id,
@@ -78,10 +93,11 @@ interface SearchResultsProps {
   error: string | null;
   results: MediaDetails[];
   totalResults: number;
+  libraryKeys: Set<string>;
   onSelectMedia: (media: MediaDetails) => void;
 }
 
-function SearchResults({ query, isLoading, error, results, totalResults, onSelectMedia }: SearchResultsProps) {
+function SearchResults({ query, isLoading, error, results, totalResults, libraryKeys, onSelectMedia }: SearchResultsProps) {
   // Estado inicial — nenhuma busca feita
   if (query.trim().length < 2 && !isLoading) {
     return (
@@ -140,11 +156,14 @@ function SearchResults({ query, isLoading, error, results, totalResults, onSelec
         role="list"
         aria-label="Resultados da busca"
       >
-        {results.map((media) => (
-          <div key={`${media.mediaType}-${media.id}`} role="listitem">
-            <MovieCard media={media} onSelect={onSelectMedia} />
-          </div>
-        ))}
+        {results.map((media) => {
+          const isInLibrary = libraryKeys.has(`${media.mediaType}-${media.id}`);
+          return (
+            <div key={`${media.mediaType}-${media.id}`} role="listitem">
+              <MovieCard media={media} onSelect={onSelectMedia} isInLibrary={isInLibrary} />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

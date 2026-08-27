@@ -4,6 +4,7 @@ export interface RecommendedItem {
   overview: string;
   posterUrl: string | null;
   backdropUrl: string | null;
+  releaseDate: string | null;
   mediaType: 'movie' | 'tv';
   voteAverage: number | null;
   reason: string;

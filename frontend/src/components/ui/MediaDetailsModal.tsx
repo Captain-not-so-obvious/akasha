@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { X, Plus, Image as ImageIcon, Check } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import type { MediaDetails } from '../../types/media';
+import { getReleaseYear } from '../../utils/date';
 
 interface MediaDetailsModalProps {
   media: MediaDetails | null;
@@ -21,6 +22,8 @@ export function MediaDetailsModal({ media, isOpen, onClose, onAdd, isInLibrary =
   }, [isOpen]);
 
   if (!isOpen || !media) return null;
+
+  const year = getReleaseYear(media.releaseDate);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 bg-black/80 backdrop-blur-md">
@@ -79,7 +82,7 @@ export function MediaDetailsModal({ media, isOpen, onClose, onAdd, isInLibrary =
             </h2>
             
             <div className="flex items-center gap-4 text-sm font-outfit opacity-80 mb-6">
-              <span>{media.releaseDate?.substring(0, 4) || 'Ano desconhecido'}</span>
+              <span>{year || 'Ano desconhecido'}</span>
               <span className="capitalize">{media.mediaType === 'movie' ? 'Filme' : 'Série'}</span>
               {media.voteAverage && (
                 <span className="flex items-center gap-1 text-[var(--color-caramelo-claro)] font-bold">

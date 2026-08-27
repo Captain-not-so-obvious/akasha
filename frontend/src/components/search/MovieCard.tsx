@@ -1,9 +1,11 @@
 import React from 'react';
 import type { MediaDetails } from '../../types/media';
+import { getReleaseYear } from '../../utils/date';
 
 interface MovieCardProps {
   media: MediaDetails;
   onSelect?: (media: MediaDetails) => void;
+  isInLibrary?: boolean;
 }
 
 const FALLBACK_POSTER = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='300' viewBox='0 0 200 300'%3E%3Crect width='200' height='300' fill='%23283618'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23dda15e' font-size='14' font-family='serif'%3ESem Pôster%3C/text%3E%3C/svg%3E`;
@@ -17,8 +19,8 @@ const FALLBACK_POSTER = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
  * - Mobile: touch target mínimo de 44x44px (o card inteiro é clicável). Sem hover exclusivo.
  * - Desktop: hover com leve elevação e revelação do título completo.
  */
-export const MovieCard: React.FC<MovieCardProps> = ({ media, onSelect }) => {
-  const year = media.releaseDate ? new Date(media.releaseDate).getFullYear() : null;
+export const MovieCard: React.FC<MovieCardProps> = ({ media, onSelect, isInLibrary = false }) => {
+  const year = getReleaseYear(media.releaseDate);
   const rating = media.voteAverage ? media.voteAverage.toFixed(1) : null;
 
   const handleActivate = () => {
@@ -36,7 +38,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({ media, onSelect }) => {
     <div
       role="button"
       tabIndex={0}
-      aria-label={`${media.title}${year ? `, ${year}` : ''}`}
+      aria-label={`${media.title}${year ? `, ${year}` : ''}${isInLibrary ? ', Já está na sua biblioteca' : ''}`}
       onClick={handleActivate}
       onKeyDown={handleKeyDown}
       className="
@@ -76,6 +78,16 @@ export const MovieCard: React.FC<MovieCardProps> = ({ media, onSelect }) => {
             {media.mediaType === 'movie' ? 'Filme' : 'Série'}
           </span>
         </div>
+
+        {/* Badge "Na Biblioteca" */}
+        {isInLibrary && (
+          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-center gap-1 rounded-md bg-emerald-600/90 backdrop-blur-md py-1 px-2 text-white shadow-lg border border-emerald-400/30">
+            <svg className="w-3.5 h-3.5 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="text-xs font-outfit font-bold tracking-wide">Na Biblioteca</span>
+          </div>
+        )}
       </div>
 
       {/* Info */}

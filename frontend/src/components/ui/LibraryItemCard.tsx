@@ -4,6 +4,7 @@ import type { LibraryItem, WishlistStatus } from '../../types/wishlist';
 import type { MediaDetails } from '../../types/media';
 import { StatusBadge } from './StatusBadge';
 import { RatingStars } from './RatingStars';
+import { getReleaseYear } from '../../utils/date';
 
 interface LibraryItemCardProps {
   item: LibraryItem;
@@ -15,6 +16,7 @@ interface LibraryItemCardProps {
 
 export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSelect }: LibraryItemCardProps) {
   const { media, status, userRating } = item;
+  const year = getReleaseYear(media.releaseDate);
   
   const getNextStatusInfo = (currentStatus: WishlistStatus): { next: WishlistStatus; label: string } | null => {
     if (currentStatus === 'plan_to_watch') return { next: 'watching', label: 'Começar' };
@@ -139,9 +141,16 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
 
       {/* Info do Card */}
       <div className="p-3 flex flex-col justify-between gap-2.5 flex-1">
-        <h3 className="font-cinzel font-bold text-[var(--color-caramelo-claro)] text-sm line-clamp-1 group-hover:text-white transition-colors duration-300" title={media.title}>
-          {media.title}
-        </h3>
+        <div>
+          <h3 className="font-cinzel font-bold text-[var(--color-caramelo-claro)] text-sm line-clamp-1 group-hover:text-white transition-colors duration-300" title={media.title}>
+            {media.title}
+          </h3>
+          {year && (
+            <span className="font-outfit text-xs text-[var(--color-caramelo-claro)]/70">
+              {year}
+            </span>
+          )}
+        </div>
         <div className="flex flex-col gap-1.5 mt-auto">
           <div className="flex items-center">
             <StatusBadge status={status} />

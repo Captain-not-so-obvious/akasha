@@ -91,6 +91,7 @@ describe('Recommendation Service - Unit Tests', () => {
       expect(recs[0].isColdStart).toBe(true);
       expect(recs[0].reason).toContain('tendências');
       expect(recs[0].tmdbId).toBe(550);
+      expect(recs[0].releaseDate).toBe('1999-10-15');
     });
 
     it('deve gerar recomendações com explicação baseada em avaliação 5 estrelas', async () => {
@@ -127,6 +128,7 @@ describe('Recommendation Service - Unit Tests', () => {
       expect(recs[0].tmdbId).toBe(27205);
       expect(recs[0].isColdStart).toBe(false);
       expect(recs[0].reason).toContain('5★');
+      expect(recs[0].releaseDate).toBe('2010-07-16');
     });
 
     it('NUNCA deve recomendar itens que o usuário já possui na sua wishlist', async () => {

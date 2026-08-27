@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useRecommendations } from '../../hooks/useRecommendations';
 import type { RecommendedItem } from '../../types/recommendation';
 import type { MediaDetails } from '../../types/media';
+import { getReleaseYear } from '../../utils/date';
 
 interface RecommendationRailProps {
   onSelectMedia?: (media: MediaDetails) => void;
@@ -36,7 +37,7 @@ export const RecommendationRail: React.FC<RecommendationRailProps> = ({ onSelect
         backdropUrl: item.backdropUrl,
         mediaType: item.mediaType,
         voteAverage: item.voteAverage,
-        releaseDate: null,
+        releaseDate: item.releaseDate,
       });
     }
   };
@@ -164,12 +165,17 @@ export const RecommendationRail: React.FC<RecommendationRailProps> = ({ onSelect
                   <h3 className="font-outfit font-semibold text-sm text-[var(--color-seda-milharal)] line-clamp-1 group-hover:text-yellow-300 transition-colors">
                     {item.title}
                   </h3>
-                  {item.voteAverage && (
-                    <div className="flex items-center gap-1 text-[11px] text-[var(--color-caramelo-claro)] opacity-90">
-                      <span className="text-yellow-400">★</span>
-                      <span>{item.voteAverage.toFixed(1)}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 text-[11px] text-[var(--color-caramelo-claro)] opacity-90">
+                    {item.voteAverage && (
+                      <span className="flex items-center gap-0.5">
+                        <span className="text-yellow-400">★</span>
+                        <span>{item.voteAverage.toFixed(1)}</span>
+                      </span>
+                    )}
+                    {getReleaseYear(item.releaseDate) && (
+                      <span>({getReleaseYear(item.releaseDate)})</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Badge de Explicação do Porquê da Recomendação */}

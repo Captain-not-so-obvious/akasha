@@ -11,6 +11,7 @@ export const recommendedItemSchema = z.object({
   overview: z.string(),
   posterUrl: z.string().nullable(),
   backdropUrl: z.string().nullable(),
+  releaseDate: z.string().nullable(),
   mediaType: z.enum(['movie', 'tv']),
   voteAverage: z.number().nullable(),
   reason: z.string(),
