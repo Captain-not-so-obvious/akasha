@@ -34,6 +34,7 @@ export const Login: React.FC = () => {
 
       <GlassPanel className="w-full max-w-md p-8 md:p-10 text-center flex flex-col items-center">
         {/* Logo Akasha */}
+        <img src="/favicon.png" alt="Akasha Logo" className="w-16 h-16 object-contain drop-shadow-lg mb-3" />
         <h1 className="font-cinzel text-5xl font-bold tracking-widest text-[var(--color-seda-milharal)] drop-shadow-md mb-2">
           AKASHA
         </h1>

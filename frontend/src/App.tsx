@@ -22,9 +22,12 @@ function Layout({ children }: { children: React.ReactNode }) {
       {/* Sidebar - Oculta em telas muito pequenas, visível a partir de md */}
       <nav className="hidden md:flex flex-col w-56 mr-8 justify-between flex-shrink-0">
         <div>
-          <h1 className="text-4xl font-cinzel font-bold text-[var(--color-caramelo-claro)] mb-8">
-            Akasha
-          </h1>
+          <div className="flex items-center gap-3 mb-8">
+            <img src="/favicon.png" alt="Akasha Logo" className="w-10 h-10 object-contain drop-shadow-md rounded-lg" />
+            <h1 className="text-4xl font-cinzel font-bold text-[var(--color-caramelo-claro)]">
+              Akasha
+            </h1>
+          </div>
           <div className="flex flex-col gap-1">
             <NavLink to="/" end className={navLinkClass} tabIndex={0}>Biblioteca</NavLink>
             <NavLink to="/search" className={navLinkClass} tabIndex={0}>Busca</NavLink>
