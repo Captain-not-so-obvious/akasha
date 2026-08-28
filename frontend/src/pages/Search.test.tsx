@@ -66,8 +66,10 @@ describe('Página SearchPage', () => {
     vi.mocked(useSearch).mockReturnValue({
       results: [],
       totalResults: 0,
+      totalPages: 0,
       isLoading: false,
       error: null,
+      refetch: vi.fn(),
     });
 
     render(<SearchPage />);
@@ -78,8 +80,10 @@ describe('Página SearchPage', () => {
     vi.mocked(useSearch).mockReturnValue({
       results: [mockMovieInLibrary, mockMovieNotInLibrary],
       totalResults: 2,
+      totalPages: 1,
       isLoading: false,
       error: null,
+      refetch: vi.fn(),
     });
 
     render(<SearchPage />);
@@ -98,8 +102,10 @@ describe('Página SearchPage', () => {
     vi.mocked(useSearch).mockReturnValue({
       results: [mockMovieInLibrary],
       totalResults: 1,
+      totalPages: 1,
       isLoading: false,
       error: null,
+      refetch: vi.fn(),
     });
 
     render(<SearchPage />);

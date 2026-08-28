@@ -40,6 +40,7 @@ describe('Library Page', () => {
           overview: 'As viagens interestelares...',
           posterUrl: '/interstellar.jpg',
           backdropUrl: '/backdrop.jpg',
+          releaseDate: '2014-11-05',
           mediaType: 'movie',
           voteAverage: 8.6,
           reason: 'Baseado na sua nota para Inception',
