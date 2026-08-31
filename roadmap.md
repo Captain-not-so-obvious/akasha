@@ -132,8 +132,8 @@
 
 | # | Feature | Complexidade | Dependência | Status |
 |---|---|---|---|---|
-| 5.1 | **Motor de Recomendação ML:** Modelo treinado com histórico + notas do usuário | 🔴 | 3+ meses de dados | Pendente |
-| 5.2 | Tela de Recomendações: "Akasha sugere para você" | 🔴 | 5.1 | Pendente |
+| 5.1 | **Motor de Recomendação ML:** Modelo treinado com histórico + notas do usuário | 🔴 | 3+ meses de dados | Concluído |
+| 5.2 | Tela de Recomendações: "Akasha sugere para você" | 🔴 | 5.1 | Concluído |
 | 5.3 | **Camada Social:** Sistema de amizades (seguir/ser seguido) | 🔴 | Fase 3 estável | Pendente |
 | 5.4 | Feed de Atividades: o que a sua rede está assistindo | 🔴 | 5.3 | Pendente |
 | 5.5 | Comparar listas e avaliações com amigos | 🔴 | 5.3 | Pendente |

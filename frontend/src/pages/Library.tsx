@@ -26,9 +26,9 @@ export const Library: React.FC = () => {
     return items.filter(item => item.status === activeTab);
   }, [items, activeTab]);
 
-  const isSelectedMediaInLibrary = useMemo(() => {
-    if (!selectedMedia) return false;
-    return items.some(item => item.tmdbId === selectedMedia.id && item.mediaType === selectedMedia.mediaType);
+  const selectedLibraryItem = useMemo(() => {
+    if (!selectedMedia) return undefined;
+    return items.find(item => item.tmdbId === selectedMedia.id && item.mediaType === selectedMedia.mediaType);
   }, [items, selectedMedia]);
 
   const handleEditItem = (item: LibraryItem) => {
@@ -156,7 +156,11 @@ export const Library: React.FC = () => {
         isOpen={selectedMedia !== null}
         media={selectedMedia}
         onClose={() => setSelectedMedia(null)}
-        isInLibrary={isSelectedMediaInLibrary}
+        isInLibrary={!!selectedLibraryItem}
+        libraryItem={selectedLibraryItem}
+        onRemove={(item) => removeFromList(item.id)}
+        onStatusChange={handleStatusChange}
+        onEdit={handleEditItem}
         onAdd={(media) => {
           addToList({
             tmdbId: media.id,

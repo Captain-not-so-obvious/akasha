@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { X, Plus, Image as ImageIcon, Check } from 'lucide-react';
+import { X, Plus, Image as ImageIcon, Check, Star, Trash2 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import type { MediaDetails } from '../../types/media';
+import type { LibraryItem, WishlistStatus } from '../../types/wishlist';
 import { getReleaseYear } from '../../utils/date';
 
 interface MediaDetailsModalProps {
@@ -10,9 +11,13 @@ interface MediaDetailsModalProps {
   onClose: () => void;
   onAdd: (media: MediaDetails) => void;
   isInLibrary?: boolean;
+  libraryItem?: LibraryItem;
+  onRemove?: (item: LibraryItem) => void;
+  onStatusChange?: (item: LibraryItem, newStatus: WishlistStatus) => void;
+  onEdit?: (item: LibraryItem) => void;
 }
 
-export function MediaDetailsModal({ media, isOpen, onClose, onAdd, isInLibrary = false }: MediaDetailsModalProps) {
+export function MediaDetailsModal({ media, isOpen, onClose, onAdd, isInLibrary = false, libraryItem, onRemove, onStatusChange, onEdit }: MediaDetailsModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -96,7 +101,49 @@ export function MediaDetailsModal({ media, isOpen, onClose, onAdd, isInLibrary =
             </p>
 
             <div className="mt-auto pt-6 flex gap-4">
-              {isInLibrary ? (
+              {isInLibrary && libraryItem ? (
+                <div className="flex-1 md:flex-none flex flex-col md:flex-row gap-4 w-full">
+                  {libraryItem.status !== 'completed' && onStatusChange && (
+                    <button
+                      tabIndex={0}
+                      onClick={() => {
+                        onStatusChange(libraryItem, 'completed');
+                        onClose();
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-6 py-4 rounded-xl font-bold font-outfit text-base lg:text-lg tv-focus-glow hover:bg-emerald-500 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <Check size={20} />
+                      Concluir
+                    </button>
+                  )}
+                  {onEdit && (
+                    <button
+                      tabIndex={0}
+                      onClick={() => {
+                        onClose();
+                        onEdit(libraryItem);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-[var(--color-caramelo-claro)] text-black px-6 py-4 rounded-xl font-bold font-outfit text-base lg:text-lg tv-focus-glow hover:bg-[var(--color-cobre)] hover:text-white transition-colors cursor-pointer"
+                    >
+                      <Star size={20} className="fill-current" />
+                      Avaliar
+                    </button>
+                  )}
+                  {onRemove && (
+                    <button
+                      tabIndex={0}
+                      onClick={() => {
+                        onRemove(libraryItem);
+                        onClose();
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-red-500/20 border border-red-500/40 text-red-300 px-6 py-4 rounded-xl font-bold font-outfit text-base lg:text-lg tv-focus-glow hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={20} />
+                      Remover
+                    </button>
+                  )}
+                </div>
+              ) : isInLibrary ? (
                 <div className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-8 py-4 rounded-xl font-bold font-outfit text-lg">
                   <Check size={24} />
                   Já está na sua Biblioteca
