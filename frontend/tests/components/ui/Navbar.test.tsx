@@ -1,10 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
-import { Navbar } from './Navbar';
-import * as useAuthModule from '../../hooks/useAuth';
+import { Navbar } from '../../../src/components/ui/Navbar';
+import * as useAuthModule from '../../../src/hooks/useAuth';
 
-vi.mock('../../hooks/useAuth', () => ({
+vi.mock('../../../src/hooks/useAuth', () => ({
   useAuth: vi.fn(),
 }));
 

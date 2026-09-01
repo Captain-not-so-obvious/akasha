@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getReleaseYear } from './date';
+import { getReleaseYear } from '../../src/utils/date';
 
 describe('getReleaseYear', () => {
   it('deve extrair o ano de quatro dígitos de uma data YYYY-MM-DD', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createWishlistItemSchema, updateWishlistItemSchema } from './wishlist.schema.js';
+import { createWishlistItemSchema, updateWishlistItemSchema } from '../../src/schemas/wishlist.schema.js';
 
 describe('Zod Schema: createWishlistItemSchema', () => {
   it('deve validar um payload válido', () => {

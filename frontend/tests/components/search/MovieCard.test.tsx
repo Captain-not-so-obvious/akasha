@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { MovieCard } from './MovieCard';
-import type { MediaDetails } from '../../types/media';
+import { MovieCard } from '../../../src/components/search/MovieCard';
+import type { MediaDetails } from '../../../src/types/media';
 
 const mockMovie: MediaDetails = {
   id: 42,

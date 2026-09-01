@@ -1,9 +1,9 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
-import { useRecommendations } from './useRecommendations';
+import { useRecommendations } from '../../src/hooks/useRecommendations';
 
-vi.mock('../utils/auth', () => ({
+vi.mock('../../src/utils/auth', () => ({
   getAuthToken: vi.fn(() => Promise.resolve('fake-jwt-token')),
 }));
 

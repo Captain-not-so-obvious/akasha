@@ -1,14 +1,14 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Library } from './Library';
-import * as useWishlistModule from '../hooks/useWishlist';
-import * as useRecsModule from '../hooks/useRecommendations';
+import { Library } from '../../src/pages/Library';
+import * as useWishlistModule from '../../src/hooks/useWishlist';
+import * as useRecsModule from '../../src/hooks/useRecommendations';
 
-vi.mock('../hooks/useWishlist', () => ({
+vi.mock('../../src/hooks/useWishlist', () => ({
   useWishlist: vi.fn(),
 }));
 
-vi.mock('../hooks/useRecommendations', () => ({
+vi.mock('../../src/hooks/useRecommendations', () => ({
   useRecommendations: vi.fn(),
 }));
 

@@ -1,11 +1,10 @@
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
 import { SearchPage } from './pages/Search';
 import { Library } from './pages/Library';
 import { Profile } from './pages/Profile';
-import { useAuth } from './hooks/useAuth';
 
 import { Navbar } from './components/ui/Navbar';
 

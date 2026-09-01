@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { LibraryItemCard } from './LibraryItemCard';
-import type { LibraryItem } from '../../types/wishlist';
+import { LibraryItemCard } from '../../../src/components/ui/LibraryItemCard';
+import type { LibraryItem } from '../../../src/types/wishlist';
 
 describe('LibraryItemCard Component', () => {
   const mockItem: LibraryItem = {

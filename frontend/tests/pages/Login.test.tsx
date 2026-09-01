@@ -1,10 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Login } from './Login';
-import { useAuth } from '../hooks/useAuth';
+import { Login } from '../../src/pages/Login';
+import { useAuth } from '../../src/hooks/useAuth';
 
 // Mock do hook de autenticação
-vi.mock('../hooks/useAuth', () => ({
+vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: vi.fn(),
 }));
 

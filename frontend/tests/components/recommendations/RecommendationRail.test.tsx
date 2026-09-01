@@ -1,9 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { RecommendationRail } from './RecommendationRail';
-import * as useRecsModule from '../../hooks/useRecommendations';
+import { RecommendationRail } from '../../../src/components/recommendations/RecommendationRail';
+import * as useRecsModule from '../../../src/hooks/useRecommendations';
 
-vi.mock('../../hooks/useRecommendations', () => ({
+vi.mock('../../../src/hooks/useRecommendations', () => ({
   useRecommendations: vi.fn(),
 }));
 

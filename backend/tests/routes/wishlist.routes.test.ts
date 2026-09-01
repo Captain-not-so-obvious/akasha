@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
-import { wishlistRoutes } from './wishlist.routes.js';
-import { prisma } from '../lib/prisma.js';
+import { wishlistRoutes } from '../../src/routes/wishlist.routes.js';
+import { prisma } from '../../src/lib/prisma.js';
 
 // Mock do prisma
-vi.mock('../lib/prisma.js', () => ({
+vi.mock('../../src/lib/prisma.js', () => ({
   prisma: {
     wishlist: {
       findMany: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock('../lib/prisma.js', () => ({
 }));
 
 // Mock do middleware de auth para injetar o userId em todas as requisições
-vi.mock('../middlewares/auth.middleware.js', () => ({
+vi.mock('../../src/middlewares/auth.middleware.js', () => ({
   authMiddleware: vi.fn(async (request) => {
     request.userId = 'user-123';
   }),

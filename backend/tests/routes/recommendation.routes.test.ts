@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
-import { recommendationRoutes } from './recommendation.routes.js';
-import * as recommendationService from '../services/recommendation.service.js';
+import { recommendationRoutes } from '../../src/routes/recommendation.routes.js';
+import * as recommendationService from '../../src/services/recommendation.service.js';
 
-vi.mock('../services/recommendation.service.js', () => ({
+vi.mock('../../src/services/recommendation.service.js', () => ({
   getUserRecommendations: vi.fn(),
 }));
 
-vi.mock('../middlewares/auth.middleware.js', () => ({
+vi.mock('../../src/middlewares/auth.middleware.js', () => ({
   authMiddleware: vi.fn(async (request) => {
     request.userId = 'user-123';
   }),

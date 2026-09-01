@@ -1,9 +1,9 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { useSearch } from './useSearch';
+import { useSearch } from '../../src/hooks/useSearch';
 
 // Mock do utilitário de token para não depender do Supabase em testes
-vi.mock('../utils/auth', () => ({
+vi.mock('../../src/utils/auth', () => ({
   getAuthToken: vi.fn().mockResolvedValue('fake-jwt-token'),
 }));
 

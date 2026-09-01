@@ -1,10 +1,10 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
-import { useWishlist } from './useWishlist';
+import { useWishlist } from '../../src/hooks/useWishlist';
 
 // Mock getAuthToken
-vi.mock('../utils/auth', () => ({
+vi.mock('../../src/utils/auth', () => ({
   getAuthToken: vi.fn(() => Promise.resolve('fake-token'))
 }));
 

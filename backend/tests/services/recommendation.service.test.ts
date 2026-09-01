@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { calculateItemWeight, getUserRecommendations } from './recommendation.service.js';
-import { prisma } from '../lib/prisma.js';
-import * as tmdbService from './tmdb.service.js';
+import { calculateItemWeight, getUserRecommendations } from '../../src/services/recommendation.service.js';
+import { prisma } from '../../src/lib/prisma.js';
+import * as tmdbService from '../../src/services/tmdb.service.js';
 
 // Mock das dependências externas (Prisma e TMDB)
-vi.mock('../lib/prisma.js', () => ({
+vi.mock('../../src/lib/prisma.js', () => ({
   prisma: {
     wishlist: {
       findMany: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock('../lib/prisma.js', () => ({
   },
 }));
 
-vi.mock('./tmdb.service.js', () => ({
+vi.mock('../../src/services/tmdb.service.js', () => ({
   fetchMediaRecommendations: vi.fn(),
   fetchTrendingMedia: vi.fn(),
 }));

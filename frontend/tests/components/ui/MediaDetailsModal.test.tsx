@@ -1,8 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MediaDetailsModal } from './MediaDetailsModal';
-import type { MediaDetails } from '../../types/media';
-import type { LibraryItem } from '../../types/wishlist';
+import { MediaDetailsModal } from '../../../src/components/ui/MediaDetailsModal';
+import type { MediaDetails } from '../../../src/types/media';
+import type { LibraryItem } from '../../../src/types/wishlist';
 
 describe('MediaDetailsModal Component', () => {
   const mockMedia: MediaDetails = {

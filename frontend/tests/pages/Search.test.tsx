@@ -1,13 +1,13 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SearchPage } from './Search';
-import { useSearch } from '../hooks/useSearch';
-import { useWishlist } from '../hooks/useWishlist';
-import type { MediaDetails } from '../types/media';
-import type { LibraryItem } from '../types/wishlist';
+import { SearchPage } from '../../src/pages/Search';
+import { useSearch } from '../../src/hooks/useSearch';
+import { useWishlist } from '../../src/hooks/useWishlist';
+import type { MediaDetails } from '../../src/types/media';
+import type { LibraryItem } from '../../src/types/wishlist';
 
-vi.mock('../hooks/useSearch');
-vi.mock('../hooks/useWishlist');
+vi.mock('../../src/hooks/useSearch');
+vi.mock('../../src/hooks/useWishlist');
 
 const mockMovieInLibrary: MediaDetails = {
   id: 101,

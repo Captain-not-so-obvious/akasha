@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { RatingModal } from './RatingModal';
+import { RatingModal } from '../../../src/components/ui/RatingModal';
 
 describe('RatingModal', () => {
   it('não deve renderizar se isOpen for false', () => {
