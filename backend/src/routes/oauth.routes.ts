@@ -10,10 +10,13 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
   
   // RFC 8414 - OAuth 2.0 Authorization Server Metadata
   fastify.get('/metadata', async (request, reply) => {
+    const protocol = request.headers['x-forwarded-proto'] || request.protocol;
+    const host = request.headers.host;
+    const baseUrl = `${protocol}://${host}`;
     return reply.send({
-      issuer: BACKEND_URL,
-      authorization_endpoint: `${BACKEND_URL}/oauth/authorize`,
-      token_endpoint: `${BACKEND_URL}/oauth/token`,
+      issuer: baseUrl,
+      authorization_endpoint: `${baseUrl}/oauth/authorize`,
+      token_endpoint: `${baseUrl}/oauth/token`,
       response_types_supported: ['code'],
       grant_types_supported: ['authorization_code'],
       token_endpoint_auth_methods_supported: ['none', 'client_secret_basic', 'client_secret_post'],
@@ -23,9 +26,12 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
 
   // RFC 9700 - OAuth Protected Resource Metadata
   fastify.get('/resource-metadata', async (request, reply) => {
+    const protocol = request.headers['x-forwarded-proto'] || request.protocol;
+    const host = request.headers.host;
+    const baseUrl = `${protocol}://${host}`;
     return reply.send({
-      resource: `${BACKEND_URL}/mcp/sse`,
-      authorization_servers: [BACKEND_URL],
+      resource: `${baseUrl}/mcp/sse`,
+      authorization_servers: [baseUrl],
       scopes_supported: ['mcp:read', 'mcp:write']
     });
   });
