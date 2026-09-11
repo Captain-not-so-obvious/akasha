@@ -31,7 +31,7 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
     const host = request.headers.host;
     const baseUrl = `${protocol}://${host}`;
     return reply.send({
-      resource: `${baseUrl}/mcp/sse`,
+      resource: `${baseUrl}/mcp`,
       authorization_servers: [baseUrl],
       scopes_supported: ['mcp:read', 'mcp:write']
     });
@@ -48,8 +48,12 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'redirect_uri é obrigatório' });
     }
 
-    // Tentar ler o cookie para verificar se o usuário já está logado
-    const token = request.cookies.access_token;
+    // Tentar ler o token via query param, header Authorization ou cookie
+    let token = query.token || query.access_token || request.cookies?.access_token;
+    if (!token && request.headers.authorization?.startsWith('Bearer ')) {
+      token = request.headers.authorization.split(' ')[1];
+    }
+
     let userId: string | null = null;
 
     if (token) {
@@ -60,6 +64,7 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
         userId = null;
       }
     }
+
 
     // Se não estiver logado, redireciona para o frontend no login com um returnTo
     if (!userId) {
