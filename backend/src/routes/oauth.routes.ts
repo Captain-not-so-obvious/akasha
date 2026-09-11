@@ -91,28 +91,41 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(401).send({ error: 'Usuário não autenticado.' });
     }
 
-    // Cria o código de autorização no banco de dados
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    const code = crypto.randomUUID();
+    try {
+      // Garantir que o perfil existe na tabela 'profiles' para não violar a chave estrangeira em 'oauth_codes'
+      await prisma.profile.upsert({
+        where: { id: userId },
+        update: {},
+        create: { id: userId },
+      });
 
-    const oauthCode = await prisma.oAuthCode.create({
-      data: {
-        code,
-        userId,
-        clientId,
-        redirectUri,
-        expiresAt,
+      // Cria o código de autorização no banco de dados (expira em 5 minutos)
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      const code = crypto.randomUUID();
+
+      const oauthCode = await prisma.oAuthCode.create({
+        data: {
+          code,
+          userId,
+          clientId,
+          redirectUri,
+          expiresAt,
+        }
+      });
+
+      const separator = redirectUri.includes('?') ? '&' : '?';
+      let targetUrl = `${redirectUri}${separator}code=${oauthCode.code}`;
+      if (state) {
+        targetUrl += `&state=${state}`;
       }
-    });
 
-    const separator = redirectUri.includes('?') ? '&' : '?';
-    let targetUrl = `${redirectUri}${separator}code=${oauthCode.code}`;
-    if (state) {
-      targetUrl += `&state=${encodeURIComponent(state)}`;
+      return reply.send({ redirect_url: targetUrl });
+    } catch (err: any) {
+      fastify.log.error(err);
+      return reply.status(500).send({ error: `Erro ao gerar código de autorização: ${err.message}` });
     }
-
-    return reply.send({ redirect_url: targetUrl });
   });
+
 
 
   // POST /oauth/token
