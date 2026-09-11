@@ -35,6 +35,7 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || 'akasha-mcp-jwt-secret-2026-v1';
+const isUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
 
   // Helper para identificar usuário logado via cookie / header / query token
   async function resolveUserId(request: any): Promise<string | null> {
@@ -55,8 +56,13 @@ const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || 
     try {
       const payload = jwt.decode(token) as { sub: string; type?: string };
       if (payload?.sub && payload?.type === 'oauth_mcp') {
-        const profile = await prisma.profile.findUnique({ where: { id: payload.sub } });
-        if (profile) return profile.id;
+        if (isUuid(payload.sub)) {
+          const profile = await prisma.profile.findUnique({ where: { id: payload.sub } });
+          if (profile) return profile.id;
+        } else {
+          const profile = await prisma.profile.findFirst({ where: { username: payload.sub } });
+          if (profile) return profile.id;
+        }
       }
     } catch {}
 
@@ -298,12 +304,9 @@ const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || 
     // Se o usuário digitou o e-mail no formulário
     if (!userId && submittedUsername) {
       const existingProfile = await prisma.profile.findFirst({
-        where: {
-          OR: [
-            { username: submittedUsername },
-            { id: submittedUsername }
-          ]
-        }
+        where: isUuid(submittedUsername)
+          ? { OR: [{ username: submittedUsername }, { id: submittedUsername }] }
+          : { username: submittedUsername }
       });
 
       if (existingProfile) {
@@ -322,6 +325,20 @@ const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || 
     if (!userId) {
       const html = renderAuthorizeHtml(clientId, redirectUri, state, null, 'Por favor, informe seu e-mail cadastrado no Akasha.');
       return reply.type('text/html').send(html);
+    }
+
+    // Garantir que userId é um UUID válido antes de passar para Prisma @db.Uuid
+    if (!isUuid(userId)) {
+      const profile = await prisma.profile.findFirst({ where: { username: userId } });
+      if (profile) {
+        userId = profile.id;
+      } else {
+        const newId = crypto.randomUUID();
+        await prisma.profile.create({
+          data: { id: newId, username: userId }
+        });
+        userId = newId;
+      }
     }
 
     // Garantir que o perfil existe no banco relacional
@@ -375,10 +392,22 @@ const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || 
       return reply.status(401).send({ error: 'Usuário não autenticado.' });
     }
 
+    let activeUserId = userId;
+    if (!isUuid(activeUserId)) {
+      const profile = await prisma.profile.findFirst({ where: { username: activeUserId } });
+      if (profile) {
+        activeUserId = profile.id;
+      } else {
+        const newId = crypto.randomUUID();
+        await prisma.profile.create({ data: { id: newId, username: activeUserId } });
+        activeUserId = newId;
+      }
+    }
+
     await prisma.profile.upsert({
-      where: { id: userId },
+      where: { id: activeUserId },
       update: {},
-      create: { id: userId },
+      create: { id: activeUserId },
     });
 
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);

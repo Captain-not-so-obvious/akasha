@@ -25,12 +25,19 @@ async function authenticateMcpUser(request: any): Promise<string | null> {
     if (decoded?.sub) return decoded.sub;
   } catch {}
 
+const isUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+
   // 2. Tenta decodificar se for token do tipo oauth_mcp emitido pelo Akasha
   try {
     const decoded = jwt.decode(token) as { sub: string; type?: string };
     if (decoded?.sub && decoded?.type === 'oauth_mcp') {
-      const profile = await prisma.profile.findUnique({ where: { id: decoded.sub } });
-      if (profile) return profile.id;
+      if (isUuid(decoded.sub)) {
+        const profile = await prisma.profile.findUnique({ where: { id: decoded.sub } });
+        if (profile) return profile.id;
+      } else {
+        const profile = await prisma.profile.findFirst({ where: { username: decoded.sub } });
+        if (profile) return profile.id;
+      }
     }
   } catch {}
 
