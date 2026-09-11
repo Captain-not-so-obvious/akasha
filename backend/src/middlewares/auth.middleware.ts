@@ -35,53 +35,41 @@ export async function authMiddleware(
   }
 
   if (!token) {
+    reply.header('WWW-Authenticate', 'Bearer realm="akasha"');
     await reply.status(401).send({ error: 'Token de autenticação ausente.' });
     return;
   }
+  
   const supabaseUrl = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
+  const jwtSecret = process.env.SUPABASE_JWT_SECRET;
 
-  if (!supabaseUrl || !anonKey) {
-    request.log.error('SUPABASE_URL ou SUPABASE_ANON_KEY não configurado.');
+  if (!supabaseUrl || !anonKey || !jwtSecret) {
+    request.log.error('SUPABASE_URL, SUPABASE_ANON_KEY ou SUPABASE_JWT_SECRET não configurado.');
     await reply.status(500).send({ error: 'Erro de configuração do servidor.' });
     return;
   }
 
   try {
-    const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: anonKey,
-      },
-    });
-
-    if (!res.ok) {
-      const errBody = await res.text();
-      request.log.error(`Erro do Supabase ao validar token: ${res.status} - ${errBody}`);
-      await reply.status(401).send({ error: 'Token inválido ou expirado.' });
-      return;
-    }
-
-    const user = await res.json();
-    request.userId = user.id;
-
+    // 1. Tentar validar o token localmente (Stateless)
+    const decoded = jwt.verify(token, jwtSecret) as SupabaseJwtPayload;
+    request.userId = decoded.sub;
+    
     // Garante que o profile existe no banco, para que a foreign key do wishlist não falhe.
     await prisma.profile.upsert({
-      where: { id: user.id },
+      where: { id: request.userId },
       update: { 
-        username: user.user_metadata?.full_name || user.email || 'Viajante',
-        avatarUrl: user.user_metadata?.avatar_url || null
+        // Em um JWT puro talvez não tenhamos user_metadata. Se não tiver, preserva o antigo.
       },
       create: { 
-        id: user.id,
-        username: user.user_metadata?.full_name || user.email || 'Viajante',
-        avatarUrl: user.user_metadata?.avatar_url || null
+        id: request.userId,
+        username: decoded.email || 'Viajante',
+        avatarUrl: null
       }
     });
-
   } catch (err: any) {
-    request.log.error('Erro de rede/validação ao contatar Supabase: %o', err);
+    request.log.error('Erro de validação do token: %o', err);
+    reply.header('WWW-Authenticate', 'Bearer realm="akasha", error="invalid_token"');
     await reply.status(401).send({ error: 'Token inválido ou expirado.' });
   }
 }

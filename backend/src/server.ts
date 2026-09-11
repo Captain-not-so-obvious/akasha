@@ -38,11 +38,29 @@ await fastify.register(mcpRoutes, { prefix: '/mcp' });
 
 // Redirecionamento para Metadata OAuth (Descoberta automática)
 fastify.get('/.well-known/oauth-authorization-server', async (request, reply) => {
-  return reply.redirect('/oauth/metadata');
+  const protocol = request.headers['x-forwarded-proto'] || request.protocol;
+  const host = request.headers.host || 'akasha-backend.onrender.com';
+  const baseUrl = `${protocol}://${host}`;
+  return reply.send({
+    issuer: baseUrl,
+    authorization_endpoint: `${baseUrl}/oauth/authorize`,
+    token_endpoint: `${baseUrl}/oauth/token`,
+    response_types_supported: ['code'],
+    grant_types_supported: ['authorization_code'],
+    token_endpoint_auth_methods_supported: ['none', 'client_secret_basic', 'client_secret_post'],
+    scopes_supported: ['mcp:read', 'mcp:write'],
+  });
 });
 
 fastify.get('/.well-known/oauth-protected-resource', async (request, reply) => {
-  return reply.redirect('/oauth/resource-metadata');
+  const protocol = request.headers['x-forwarded-proto'] || request.protocol;
+  const host = request.headers.host || 'akasha-backend.onrender.com';
+  const baseUrl = `${protocol}://${host}`;
+  return reply.send({
+    resource: `${baseUrl}/mcp/sse`,
+    authorization_servers: [baseUrl],
+    scopes_supported: ['mcp:read', 'mcp:write']
+  });
 });
 
 // Health check — usado pelo Render para verificar se o servidor está vivo
