@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { RecommendedItem, RecommendationQueryOptions } from '../types/recommendation';
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
+import { apiFetch } from '../lib/api';
 
 export function useRecommendations() {
   const [recommendations, setRecommendations] = useState<RecommendedItem[]>([]);
@@ -15,13 +14,7 @@ export function useRecommendations() {
       const limit = options.limit ?? 10;
       const mediaType = options.mediaType ?? 'all';
 
-      const url = `${BACKEND_URL}/recommendations?limit=${limit}&mediaType=${mediaType}`;
-      const res = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      const res = await apiFetch(`/recommendations?limit=${limit}&mediaType=${mediaType}`);
 
       if (!res.ok) {
         throw new Error('Erro ao buscar recomendações inteligentes');

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { MediaType, SearchResult, MediaDetails } from '../types/media';
+import { apiFetch } from '../lib/api';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
 const DEBOUNCE_DELAY_MS = 400;
 
 interface UseSearchReturn {
@@ -53,12 +53,7 @@ export function useSearch(query: string, mediaType: MediaType): UseSearchReturn 
       setError(null);
 
       try {
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-        };
-
-        const url = `${BACKEND_URL}/tmdb/search?q=${encodeURIComponent(query.trim())}&type=${mediaType}`;
-        const response = await fetch(url, { headers, credentials: 'include' });
+        const response = await apiFetch(`/tmdb/search?q=${encodeURIComponent(query.trim())}&type=${mediaType}`);
 
         if (!response.ok) {
           const body = await response.json() as { error?: string };

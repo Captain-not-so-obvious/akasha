@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { CreateWishlistItemInput, LibraryItem, UpdateWishlistItemInput, WishlistItem } from '../types/wishlist';
 import type { MediaDetails } from '../types/media';
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
+import { apiFetch } from '../lib/api';
 
 export function useWishlist() {
   const [items, setItems] = useState<LibraryItem[]>([]);
@@ -13,11 +12,7 @@ export function useWishlist() {
     setIsLoading(true);
     setError(null);
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-
-      const res = await fetch(`${BACKEND_URL}/wishlist`, { headers, credentials: 'include' });
+      const res = await apiFetch('/wishlist');
       if (res.status === 401) throw new Error('Não autenticado');
       if (!res.ok) throw new Error('Erro ao buscar biblioteca');
       
@@ -26,7 +21,7 @@ export function useWishlist() {
       // Buscando detalhes da mídia para cada item
       const libraryItems: LibraryItem[] = await Promise.all(
         wishlistItems.map(async (item) => {
-          const mediaRes = await fetch(`${BACKEND_URL}/tmdb/${item.mediaType}/${item.tmdbId}`, { headers, credentials: 'include' });
+          const mediaRes = await apiFetch(`/tmdb/${item.mediaType}/${item.tmdbId}`);
           if (!mediaRes.ok) throw new Error(`Erro ao buscar mídia ${item.tmdbId}`);
           const media: MediaDetails = await mediaRes.json();
           return { ...item, media };
@@ -44,12 +39,8 @@ export function useWishlist() {
 
   const addToList = useCallback(async (data: CreateWishlistItemInput) => {
     try {
-      const res = await fetch(`${BACKEND_URL}/wishlist`, {
+      const res = await apiFetch('/wishlist', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
         body: JSON.stringify(data),
       });
 
@@ -64,12 +55,8 @@ export function useWishlist() {
 
   const updateListItem = useCallback(async (id: number, data: UpdateWishlistItemInput) => {
     try {
-      const res = await fetch(`${BACKEND_URL}/wishlist/${id}`, {
+      const res = await apiFetch(`/wishlist/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
         body: JSON.stringify(data),
       });
 
@@ -86,9 +73,8 @@ export function useWishlist() {
 
   const removeFromList = useCallback(async (id: number) => {
     try {
-      const res = await fetch(`${BACKEND_URL}/wishlist/${id}`, {
+      const res = await apiFetch(`/wishlist/${id}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
 
       if (!res.ok) throw new Error('Erro ao remover item');
