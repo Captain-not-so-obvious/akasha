@@ -70,7 +70,7 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
     return null;
   }
 
-  // GET & POST /oauth/authorize - Handler unificado de autorização (Arquitetura SmartBolsa / RFC 6749)
+  // GET & POST /oauth/authorize - Redireciona para a tela de consentimento Liquid Glass no Frontend
   const handleAuthorizeRequest = async (request: any, reply: any) => {
     let body = request.body || {};
     if (typeof body === 'string') {
@@ -89,47 +89,14 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
       try { redirectUri = decodeURIComponent(redirectUri); } catch {}
     }
 
-    const userId = await resolveUserId(request);
-
-    // Se o usuário ESTÁ logado: gera o código e faz HTTP 302 REDIRECT direto para a URI do Spark!
-    if (userId) {
-      await prisma.profile.upsert({
-        where: { id: userId },
-        update: {},
-        create: { id: userId },
-      });
-
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-      const code = crypto.randomUUID();
-
-      await prisma.oAuthCode.create({
-        data: {
-          code,
-          userId,
-          clientId,
-          redirectUri,
-          expiresAt,
-        }
-      });
-
-      const separator = redirectUri.includes('?') ? '&' : '?';
-      let targetUrl = `${redirectUri}${separator}code=${code}`;
-      if (state) {
-        targetUrl += `&state=${state}`;
-      }
-
-      return reply.redirect(targetUrl);
-    }
-
-    // Se o usuário NÃO está logado: redireciona para a tela de Login do frontend com returnTo
-    const returnTo = encodeURIComponent(`/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`);
-    return reply.redirect(`${FRONTEND_URL}/login?returnTo=${returnTo}`);
+    const frontendAuthorizeUrl = `${FRONTEND_URL}/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
+    return reply.redirect(frontendAuthorizeUrl);
   };
 
   fastify.get('/authorize', handleAuthorizeRequest);
   fastify.post('/authorize', handleAuthorizeRequest);
 
-  // POST /oauth/confirm — Suporte adicional para requisições do frontend
+  // POST /oauth/confirm — Chamado pela tela de consentimento do Frontend para gerar o código e finalizar
   fastify.post('/confirm', async (request, reply) => {
     let body = request.body as any;
     if (typeof body === 'string') {

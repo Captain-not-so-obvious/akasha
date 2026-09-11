@@ -13,11 +13,25 @@ export const OAuthAuthorize: React.FC = () => {
   const [redirectTarget, setRedirectTarget] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const clientId = searchParams.get('client_id') || 'spark';
-  const redirectUri = searchParams.get('redirect_uri') || '';
-  const state = searchParams.get('state') || '';
+  // Tentar ler parâmetros da URL ou do sessionStorage como fallback
+  let clientId = searchParams.get('client_id') || '';
+  let redirectUri = searchParams.get('redirect_uri') || '';
+  let state = searchParams.get('state') || '';
 
-  // Guardar parâmetros na sessão para resgatar caso a Supabase Auth redirecione para a raiz
+  if (!clientId || !redirectUri) {
+    try {
+      const saved = sessionStorage.getItem('pending_oauth');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!clientId) clientId = parsed.clientId || 'spark';
+        if (!redirectUri) redirectUri = parsed.redirectUri || '';
+        if (!state) state = parsed.state || '';
+      }
+    } catch {}
+  }
+
+  if (!clientId) clientId = 'spark';
+
   useEffect(() => {
     if (clientId && redirectUri) {
       sessionStorage.setItem(
@@ -31,6 +45,12 @@ export const OAuthAuthorize: React.FC = () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     setErrorMsg(null);
+
+    if (!redirectUri) {
+      setErrorMsg('URL de redirecionamento (redirect_uri) não informada.');
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const token = session?.access_token;
@@ -59,10 +79,9 @@ export const OAuthAuthorize: React.FC = () => {
         setRedirectTarget(data.redirect_url);
         setIsSuccess(true);
 
-        // Redireciona para o Spark após 2.5 segundos para exibir o card de sucesso
         setTimeout(() => {
           window.location.href = data.redirect_url;
-        }, 2500);
+        }, 2000);
       } else {
         throw new Error('URL de redirecionamento não retornada pelo servidor.');
       }
