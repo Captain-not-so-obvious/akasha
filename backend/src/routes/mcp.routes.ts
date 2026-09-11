@@ -13,6 +13,7 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/sse', async (request, reply) => {
     const sessionId = crypto.randomUUID();
+    const token = (request.query as any).token;
     
     // O SDK lida diretamente com a Response (raw) do Node.js
     // No Fastify, podemos acessar request.raw e reply.raw
@@ -24,7 +25,9 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     // Endpoint onde o cliente MCP enviará as mensagens POST
-    const messageEndpoint = `/mcp/message?sessionId=${sessionId}`;
+    const messageEndpoint = token 
+      ? `/mcp/message?sessionId=${sessionId}&token=${token}`
+      : `/mcp/message?sessionId=${sessionId}`;
     const transport = new SSEServerTransport(messageEndpoint, reply.raw);
     
     transports.set(sessionId, transport);

@@ -21,14 +21,23 @@ export async function authMiddleware(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
-  const authHeader = request.headers.authorization;
+  // Lê primeiramente do cookie HttpOnly
+  let token = request.cookies.access_token || '';
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  // Fallback: se não tiver no cookie, tenta pegar da query (útil para SSE/MCP)
+  if (!token && (request.query as any)?.token) {
+    token = (request.query as any).token;
+  }
+
+  // Mantemos o Header como fallback caso queira testar a API no Insomnia/Postman localmente sem cookie
+  if (!token && request.headers.authorization?.startsWith('Bearer ')) {
+    token = request.headers.authorization.split(' ')[1];
+  }
+
+  if (!token) {
     await reply.status(401).send({ error: 'Token de autenticação ausente.' });
     return;
   }
-
-  const token = authHeader.split(' ')[1];
   const supabaseUrl = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
 

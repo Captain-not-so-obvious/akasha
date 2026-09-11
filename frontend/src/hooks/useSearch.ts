@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { MediaType, SearchResult, MediaDetails } from '../types/media';
-import { getAuthToken } from '../utils/auth';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
 const DEBOUNCE_DELAY_MS = 400;
@@ -54,16 +53,12 @@ export function useSearch(query: string, mediaType: MediaType): UseSearchReturn 
       setError(null);
 
       try {
-        const token = await getAuthToken();
         const headers: HeadersInit = {
           'Content-Type': 'application/json',
         };
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
 
         const url = `${BACKEND_URL}/tmdb/search?q=${encodeURIComponent(query.trim())}&type=${mediaType}`;
-        const response = await fetch(url, { headers });
+        const response = await fetch(url, { headers, credentials: 'include' });
 
         if (!response.ok) {
           const body = await response.json() as { error?: string };

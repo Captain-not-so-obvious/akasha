@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { getAuthToken } from '../utils/auth';
 import type { RecommendedItem, RecommendationQueryOptions } from '../types/recommendation';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
@@ -13,9 +12,6 @@ export function useRecommendations() {
     setIsLoading(true);
     setError(null);
     try {
-      const token = await getAuthToken();
-      if (!token) throw new Error('Não autenticado');
-
       const limit = options.limit ?? 10;
       const mediaType = options.mediaType ?? 'all';
 
@@ -23,8 +19,8 @@ export function useRecommendations() {
       const res = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
       });
 
       if (!res.ok) {

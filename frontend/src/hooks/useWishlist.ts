@@ -14,15 +14,12 @@ export function useWishlist() {
     setIsLoading(true);
     setError(null);
     try {
-      const token = await getAuthToken();
-      if (!token) throw new Error('Não autenticado');
-
       const headers = {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       };
 
-      const res = await fetch(`${BACKEND_URL}/wishlist`, { headers });
+      const res = await fetch(`${BACKEND_URL}/wishlist`, { headers, credentials: 'include' });
+      if (res.status === 401) throw new Error('Não autenticado');
       if (!res.ok) throw new Error('Erro ao buscar biblioteca');
       
       const wishlistItems: WishlistItem[] = await res.json();
@@ -30,7 +27,7 @@ export function useWishlist() {
       // Buscando detalhes da mídia para cada item
       const libraryItems: LibraryItem[] = await Promise.all(
         wishlistItems.map(async (item) => {
-          const mediaRes = await fetch(`${BACKEND_URL}/tmdb/${item.mediaType}/${item.tmdbId}`, { headers });
+          const mediaRes = await fetch(`${BACKEND_URL}/tmdb/${item.mediaType}/${item.tmdbId}`, { headers, credentials: 'include' });
           if (!mediaRes.ok) throw new Error(`Erro ao buscar mídia ${item.tmdbId}`);
           const media: MediaDetails = await mediaRes.json();
           return { ...item, media };
@@ -48,15 +45,12 @@ export function useWishlist() {
 
   const addToList = useCallback(async (data: CreateWishlistItemInput) => {
     try {
-      const token = await getAuthToken();
-      if (!token) throw new Error('Não autenticado');
-
       const res = await fetch(`${BACKEND_URL}/wishlist`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
 
@@ -71,15 +65,12 @@ export function useWishlist() {
 
   const updateListItem = useCallback(async (id: number, data: UpdateWishlistItemInput) => {
     try {
-      const token = await getAuthToken();
-      if (!token) throw new Error('Não autenticado');
-
       const res = await fetch(`${BACKEND_URL}/wishlist/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
 
@@ -96,14 +87,9 @@ export function useWishlist() {
 
   const removeFromList = useCallback(async (id: number) => {
     try {
-      const token = await getAuthToken();
-      if (!token) throw new Error('Não autenticado');
-
       const res = await fetch(`${BACKEND_URL}/wishlist/${id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (!res.ok) throw new Error('Erro ao remover item');

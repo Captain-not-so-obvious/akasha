@@ -9,4 +9,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+// Implementação de Storage em memória (não persiste entre reloads)
+// Isso garante que o JWT nunca toque o disco/localStorage (protegendo contra XSS)
+const inMemoryStorage = {
+  getItem: (key: string) => null,
+  setItem: (key: string, value: string) => {},
+  removeItem: (key: string) => {},
+};
+
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
+  auth: {
+    storage: inMemoryStorage,
+    autoRefreshToken: false, // O backend vai gerenciar o refresh se necessário, ou podemos deixar o fluxo de BFF
+    persistSession: false,
+  }
+});

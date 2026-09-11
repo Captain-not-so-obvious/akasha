@@ -16,6 +16,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^9.0.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@prisma/client": "^5.22.0",

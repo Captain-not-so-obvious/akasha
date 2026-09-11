@@ -428,19 +428,25 @@ try {
 
 ---
 
-## 5. Fluxo de Autenticação OAuth via Supabase
+## 5. Fluxo de Autenticação OAuth via Supabase (BFF + HttpOnly Cookies)
+
+Para mitigar vulnerabilidades de XSS e evitar que tokens fiquem expostos no `localStorage`, o Akasha implementa o padrão Backend-for-Frontend (BFF). O Frontend nunca lê o token de acesso.
 
 ```
-[ Usuário ] ──► [ Botão "Login com Google" ] ──► [ Tela de Consentimento Google ]
-                                                          │
-[ React App ] ◄── [ Redirect + JWT Supabase ] ───────────┘
-                        │
-                        └──► [ Todas as chamadas ao Backend incluem:
-                                 Authorization: Bearer <JWT_SUPABASE> ]
-                                        │
-                              [ Backend valida JWT com SUPABASE_JWT_SECRET ]
-                                        │
-                              [ Extrai userId e filtra dados no Prisma ]
+[ Usuário ] ──► [ Botão "Login" ] ──► [ Supabase OAuth ]
+                                            │
+[ React App ] ◄── [ Redirect + JWT ] ───────┘
+     │
+     └──► POST /auth/session (Envia tokens para o Backend)
+                │
+                └──► [ Backend guarda Access Token e Refresh Token
+                       em Cookies HttpOnly, Secure, SameSite=Lax ]
+                              │
+[ React App ] ◄── [ Todas as chamadas subsequentes enviam o Cookie 
+                    automaticamente via credentials: 'include' ]
+                              │
+                    [ Backend lê request.cookies e 
+                      valida JWT no Middleware ]
 ```
 
 ### Configuração no Frontend (React)
@@ -449,31 +455,33 @@ try {
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js';
 
+// Usamos inMemoryStorage para que o token nunca seja persistido 
+// do lado do cliente (proteção contra XSS)
+const inMemoryStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  {
+    auth: {
+      storage: inMemoryStorage,
+      persistSession: false
+    }
+  }
 );
+```
 
-// src/hooks/useAuth.ts
-export async function signInWithGoogle() {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin,
-    },
-  });
-  if (error) console.error('Erro no login OAuth:', error.message);
-}
+As chamadas ao backend nas rotas protegidas não utilizam mais o header `Authorization`, passando a utilizar `credentials: 'include'` no `fetch` nativo.
 
-export async function signOut() {
-  await supabase.auth.signOut();
-}
-
-// Obtém o token para enviar ao backend
-export async function getAuthToken(): Promise<string | null> {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
-}
+```typescript
+const res = await fetch(`${BACKEND_URL}/wishlist`, {
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include', // Envia os cookies HttpOnly
+});
 ```
 
 ---
