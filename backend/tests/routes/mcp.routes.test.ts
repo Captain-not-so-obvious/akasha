@@ -37,4 +37,16 @@ describe('Integration: MCP & OAuth Metadata Routes', () => {
     expect(body).toHaveProperty('token_endpoint');
     expect(body.code_challenge_methods_supported).toEqual(['S256', 'plain']);
   });
+
+  it('POST /mcp/message - deve retornar 404 para sessionId inexistente', async () => {
+    const response = await fastify.inject({
+      method: 'POST',
+      url: '/mcp/message?sessionId=invalid-session',
+      payload: { jsonrpc: '2.0', id: 1, method: 'ping' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ error: 'Sessão MCP não encontrada' });
+  });
 });
+

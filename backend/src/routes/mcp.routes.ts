@@ -1,8 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { authMiddleware } from '../middlewares/auth.middleware.js';
 import { createMcpServer } from '../mcp/mcp-server.js';
-import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 
 // Mapa para armazenar os transportes ativos e dados de sessão
@@ -23,7 +21,6 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /mcp/sse — Permite o handshake inicial de conexão SSE do protocolo MCP
   fastify.get('/sse', async (request, reply) => {
-    const sessionId = crypto.randomUUID();
     let token = (request.query as any)?.token || (request.query as any)?.access_token;
 
     if (!token && request.headers.authorization?.startsWith('Bearer ')) {
@@ -40,34 +37,31 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    reply.raw.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-    });
+    // Assumir o controle manual da resposta no Fastify
+    reply.hijack();
+    reply.raw.setHeader('Access-Control-Allow-Origin', '*');
 
     const protocol = request.headers['x-forwarded-proto'] || request.protocol;
     const host = request.headers.host || 'akasha-backend.onrender.com';
     const baseUrl = `${protocol}://${host}`;
 
     const messageEndpoint = token 
-      ? `${baseUrl}/mcp/message?sessionId=${sessionId}&token=${token}`
-      : `${baseUrl}/mcp/message?sessionId=${sessionId}`;
+      ? `${baseUrl}/mcp/message?token=${token}`
+      : `${baseUrl}/mcp/message`;
       
     const transport = new SSEServerTransport(messageEndpoint, reply.raw);
     
-    transports.set(sessionId, { transport, userId });
+    // O SSEServerTransport gera seu próprio transport.sessionId no construtor.
+    // É esse ID que o cliente recebe no evento SSE 'endpoint', portanto devemos usá-lo no Map!
+    transports.set(transport.sessionId, { transport, userId });
 
     const server = createMcpServer(userId);
     await server.connect(transport);
 
     request.raw.on('close', () => {
-      transports.delete(sessionId);
+      transports.delete(transport.sessionId);
       server.close();
     });
-
-    reply.hijack();
   });
 
   // POST /mcp/message — Recebe as mensagens JSON-RPC do MCP
@@ -85,8 +79,10 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
       return;
     }
 
-    await sessionData.transport.handlePostMessage(request.raw, reply.raw);
+    // Passar request.body como 3º parâmetro pois o Fastify já consumiu o stream request.raw
+    await sessionData.transport.handlePostMessage(request.raw, reply.raw, request.body);
     reply.hijack();
   });
 };
+
 
