@@ -5,6 +5,7 @@ import { tmdbRoutes } from './routes/tmdb.routes.js';
 import { recommendationRoutes } from './routes/recommendation.routes.js';
 import { mcpRoutes } from './routes/mcp.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
+import { oauthRoutes } from './routes/oauth.routes.js';
 import cookie from '@fastify/cookie';
 
 const fastify = Fastify({
@@ -28,11 +29,17 @@ await fastify.register(cors, {
 });
 
 // Registro de rotas com prefixo
+await fastify.register(oauthRoutes, { prefix: '/oauth' });
 await fastify.register(authRoutes, { prefix: '/auth' });
 await fastify.register(wishlistRoutes, { prefix: '/wishlist' });
 await fastify.register(tmdbRoutes, { prefix: '/tmdb' });
 await fastify.register(recommendationRoutes, { prefix: '/recommendations' });
 await fastify.register(mcpRoutes, { prefix: '/mcp' });
+
+// Redirecionamento para Metadata OAuth (Descoberta automática)
+fastify.get('/.well-known/oauth-authorization-server', async (request, reply) => {
+  return reply.redirect('/oauth/metadata');
+});
 
 // Health check — usado pelo Render para verificar se o servidor está vivo
 fastify.get('/health', async () => ({

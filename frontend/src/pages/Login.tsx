@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { GlassPanel } from '../components/ui/GlassPanel';
 
 export const Login: React.FC = () => {
   const { signInWithGoogle, user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -12,7 +14,8 @@ export const Login: React.FC = () => {
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
-      await signInWithGoogle();
+      const returnTo = searchParams.get('returnTo');
+      await signInWithGoogle(returnTo || undefined);
     } catch (err: any) {
       console.error('Falha no login com Google:', err);
       setErrorMsg(err.message || 'Ocorreu um erro ao conectar com o Google.');
@@ -22,7 +25,13 @@ export const Login: React.FC = () => {
 
   // Se o usuário de alguma forma já estiver logado na tela de login
   if (user) {
-    // Roteamento lidará com isso, mas retornamos nulo temporariamente
+    const returnTo = searchParams.get('returnTo');
+    if (returnTo) {
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
+      window.location.href = `${BACKEND_URL}${returnTo.startsWith('/') ? '' : '/'}${returnTo}`;
+    } else {
+      window.location.href = '/';
+    }
     return null;
   }
 

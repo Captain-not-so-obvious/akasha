@@ -8,21 +8,16 @@ A integração foi projetada para garantir que o LLM só consiga realizar açõe
 Isso é feito através de uma **Sessão MCP atrelada ao Token JWT do usuário**.
 O servidor MCP embutido no Fastify intercepta a conexão inicial do agente e extrai o ID do usuário. Dessa forma, as "Tools" expostas não recebem o ID do usuário como parâmetro do agente, mas sim utilizam o ID validado no momento da conexão (Contexto Seguro).
 
-## Configurando a Conexão no Agente (Spark)
-
-O transporte utilizado é o **SSE (Server-Sent Events) sobre HTTP**.
-
-**URL de Conexão (Render):**
-`https://akasha-backend.onrender.com/mcp/sse`
+**Configuração Automática (Recomendado):**
+Graças à implementação do OAuth 2.0 Authorization Server nativo, o Google Spark consegue descobrir todas as rotas necessárias automaticamente.
+1. No Google Spark, insira a URL Base do backend:
+   `https://akasha-backend.onrender.com`
+2. O Spark detectará o endpoint de metadados (`/.well-known/oauth-authorization-server`).
+3. Uma janela será aberta pedindo para você fazer login no Akasha.
+4. Após o login, a janela fecha e a integração está pronta! O Spark usará um JWT Stateless seguro para realizar as ações.
 
 > [!WARNING]
 > **Cold Start no Render:** Como o backend está hospedado no Render (plano gratuito), ele pode "dormir" após inatividade. Ao conectar o Spark, certifique-se de configurar um timeout generoso (pelo menos 60 segundos) para aguardar o Cold Start da aplicação caso seja a primeira requisição do dia.
-
-**Headers Necessários:**
-O agente deve enviar o token JWT (obtido no login via Supabase) em *ambas* as chamadas do SSE (`GET /mcp/sse` e `POST /mcp/message`):
-```http
-Authorization: Bearer <SEU_TOKEN_JWT>
-```
 
 ## Ferramentas Disponíveis (Tools)
 

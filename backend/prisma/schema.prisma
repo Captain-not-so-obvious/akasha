@@ -16,8 +16,24 @@ model Profile {
   avatarUrl String?    @map("avatar_url")
   updatedAt DateTime   @default(now()) @updatedAt @map("updated_at")
   wishlists Wishlist[]
+  oauthCodes OAuthCode[]
 
   @@map("profiles")
+}
+
+model OAuthCode {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  userId      String   @db.Uuid @map("user_id")
+  clientId    String   @map("client_id")
+  redirectUri String   @map("redirect_uri")
+  expiresAt   DateTime @map("expires_at")
+  used        Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  profile     Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("oauth_codes")
 }
 
 enum MediaType {
