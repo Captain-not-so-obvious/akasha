@@ -47,9 +47,13 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
       'Access-Control-Allow-Origin': '*',
     });
 
+    const protocol = request.headers['x-forwarded-proto'] || request.protocol;
+    const host = request.headers.host || 'akasha-backend.onrender.com';
+    const baseUrl = `${protocol}://${host}`;
+
     const messageEndpoint = token 
-      ? `/mcp/message?sessionId=${sessionId}&token=${token}`
-      : `/mcp/message?sessionId=${sessionId}`;
+      ? `${baseUrl}/mcp/message?sessionId=${sessionId}&token=${token}`
+      : `${baseUrl}/mcp/message?sessionId=${sessionId}`;
       
     const transport = new SSEServerTransport(messageEndpoint, reply.raw);
     
@@ -82,6 +86,7 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     await sessionData.transport.handlePostMessage(request.raw, reply.raw);
+    reply.hijack();
   });
 };
 

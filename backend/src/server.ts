@@ -108,6 +108,7 @@ fastify.get('/mcp/sse/.well-known/oauth-protected-resource', sendProtectedResour
 
 fastify.get('/.well-known/mcp', sendMcpMetadata);
 fastify.get('/.well-known/mcp.json', sendMcpMetadata);
+fastify.get('/', sendMcpMetadata);
 
 // Health check — usado pelo Render para verificar se o servidor está vivo
 fastify.get('/health', async () => ({
