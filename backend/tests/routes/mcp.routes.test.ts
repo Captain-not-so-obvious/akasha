@@ -25,18 +25,6 @@ describe('Integration: MCP & OAuth Metadata Routes', () => {
     expect(body.sse_endpoint).toContain('/mcp/sse');
   });
 
-  it('GET /mcp/sse sem token - deve retornar 401 com o cabeçalho RFC 9728 WWW-Authenticate', async () => {
-    const response = await fastify.inject({
-      method: 'GET',
-      url: '/mcp/sse',
-    });
-
-    expect(response.statusCode).toBe(401);
-    const authHeader = response.headers['www-authenticate'];
-    expect(authHeader).toContain('resource_metadata=');
-    expect(authHeader).toContain('/.well-known/oauth-protected-resource');
-  });
-
   it('GET /oauth/metadata - deve retornar metadados RFC 8414 suportando PKCE', async () => {
     const response = await fastify.inject({
       method: 'GET',

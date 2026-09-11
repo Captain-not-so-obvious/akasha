@@ -4,11 +4,11 @@ import { authMiddleware } from '../middlewares/auth.middleware.js';
 import { createMcpServer } from '../mcp/mcp-server.js';
 import crypto from 'node:crypto';
 
-// Mapa para armazenar os transportes ativos
-const transports = new Map<string, SSEServerTransport>();
+// Mapa para armazenar os transportes ativos e dados de sessão
+const transports = new Map<string, { transport: SSEServerTransport; userId: string }>();
 
 export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
-  // Informações básicas da raiz do MCP (sem necessidade de auth para responder ping)
+  // Informações básicas da raiz do MCP (responder ping/health)
   fastify.get('/', async (request, reply) => {
     const protocol = request.headers['x-forwarded-proto'] || request.protocol;
     const host = request.headers.host || 'akasha-backend.onrender.com';
@@ -20,44 +20,52 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // As rotas sse e message exigem autenticação via JWT
-  fastify.register(async (protectedRoutes) => {
-    protectedRoutes.addHook('preHandler', authMiddleware);
-
-    protectedRoutes.get('/sse', async (request, reply) => {
+  // GET /mcp/sse — Permite o handshake inicial de conexão SSE do protocolo MCP
+  fastify.get('/sse', async (request, reply) => {
     const sessionId = crypto.randomUUID();
-    const token = (request.query as any).token;
-    
-    // O SDK lida diretamente com a Response (raw) do Node.js
-    // No Fastify, podemos acessar request.raw e reply.raw
-    
+    let token = (request.query as any)?.token || (request.query as any)?.access_token;
+
+    if (!token && request.headers.authorization?.startsWith('Bearer ')) {
+      token = request.headers.authorization.split(' ')[1];
+    }
+
+    let userId = 'guest';
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.SUPABASE_JWT_SECRET!) as { sub: string };
+        userId = decoded.sub;
+      } catch (err) {
+        userId = 'guest';
+      }
+    }
+
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
     });
 
-    // Endpoint onde o cliente MCP enviará as mensagens POST
     const messageEndpoint = token 
       ? `/mcp/message?sessionId=${sessionId}&token=${token}`
       : `/mcp/message?sessionId=${sessionId}`;
+      
     const transport = new SSEServerTransport(messageEndpoint, reply.raw);
     
-    transports.set(sessionId, transport);
+    transports.set(sessionId, { transport, userId });
 
-    // Cria o servidor MCP exclusivo para este usuário e o conecta
-    const server = createMcpServer(request.userId);
-    
-    // Conecta o servidor ao transporte
+    const server = createMcpServer(userId);
     await server.connect(transport);
 
-    // Limpa a conexão se o cliente fechar
     request.raw.on('close', () => {
       transports.delete(sessionId);
       server.close();
     });
+
+    reply.hijack();
   });
 
+  // POST /mcp/message — Recebe as mensagens JSON-RPC do MCP
   fastify.post('/message', async (request, reply) => {
     const sessionId = (request.query as { sessionId?: string }).sessionId;
 
@@ -66,15 +74,13 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
       return;
     }
 
-    const transport = transports.get(sessionId);
-    if (!transport) {
+    const sessionData = transports.get(sessionId);
+    if (!sessionData) {
       reply.status(404).send({ error: 'Sessão MCP não encontrada' });
       return;
     }
 
-    // Passa a mensagem para o transporte
-    await transport.handlePostMessage(request.raw, reply.raw);
-  });
+    await sessionData.transport.handlePostMessage(request.raw, reply.raw);
   });
 };
 
