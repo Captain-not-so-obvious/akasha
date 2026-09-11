@@ -20,9 +20,23 @@ describe('Integration: MCP & OAuth Metadata Routes', () => {
 
     expect(response.statusCode).toBe(200);
     const body = response.json();
-    expect(body).toHaveProperty('status', 'ok');
+    expect(body).toHaveProperty('status', 'online');
     expect(body).toHaveProperty('name', 'Akasha MCP Server');
     expect(body.sse_endpoint).toContain('/mcp/sse');
+  });
+
+  it('POST /mcp (initialize) - deve retornar resultado no formato JSON-RPC 2.0', async () => {
+    const response = await fastify.inject({
+      method: 'POST',
+      url: '/mcp',
+      payload: { jsonrpc: '2.0', id: 1, method: 'initialize' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.jsonrpc).toBe('2.0');
+    expect(body.id).toBe(1);
+    expect(body.result.serverInfo.name).toBe('Akasha MCP Server');
   });
 
   it('GET /oauth/metadata - deve retornar metadados RFC 8414 suportando PKCE', async () => {
@@ -49,4 +63,5 @@ describe('Integration: MCP & OAuth Metadata Routes', () => {
     expect(response.json()).toEqual({ error: 'Sessão MCP não encontrada' });
   });
 });
+
 

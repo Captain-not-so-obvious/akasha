@@ -1,43 +1,153 @@
 import { FastifyPluginAsync } from 'fastify';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { createMcpServer } from '../mcp/mcp-server.js';
+import { createMcpServer, AKASHA_MCP_TOOLS, executeAkashaMcpTool } from '../mcp/mcp-server.js';
 import jwt from 'jsonwebtoken';
 
-// Mapa para armazenar os transportes ativos e dados de sessão
+// Mapa para armazenar os transportes ativos e dados de sessão SSE
 const transports = new Map<string, { transport: SSEServerTransport; userId: string }>();
 
+// Helper para autenticar o token Bearer ou query param
+function authenticateMcpUser(request: any): string | null {
+  let token = (request.query as any)?.token || (request.query as any)?.access_token;
+
+  if (!token && request.headers.authorization?.startsWith('Bearer ')) {
+    token = request.headers.authorization.split(' ')[1].trim();
+  }
+
+  if (!token) return null;
+
+  try {
+    const decoded = jwt.verify(token, process.env.SUPABASE_JWT_SECRET!) as { sub: string };
+    return decoded.sub;
+  } catch (err) {
+    return null;
+  }
+}
+
 export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
-  // Informações básicas da raiz do MCP (responder ping/health)
+  
+  // GET /mcp — Retorna status e metadados básicos do servidor MCP
   fastify.get('/', async (request, reply) => {
     const protocol = request.headers['x-forwarded-proto'] || request.protocol;
     const host = request.headers.host || 'akasha-backend.onrender.com';
     const baseUrl = `${protocol}://${host}`;
     return reply.send({
-      status: 'ok',
+      status: 'online',
       name: 'Akasha MCP Server',
+      version: '1.0.0',
+      protocolVersion: '2024-11-05',
+      capabilities: {
+        tools: {}
+      },
       sse_endpoint: `${baseUrl}/mcp/sse`,
+    });
+  });
+
+  // POST /mcp — Endpoint HTTP JSON-RPC 2.0 direto (Arquitetura SmartBolsa / Google Spark)
+  fastify.post('/', async (request, reply) => {
+    const body = request.body as any;
+
+    if (!body || typeof body !== 'object') {
+      return reply.status(400).send({
+        error: { code: -32700, message: 'Parse error / JSON inválido' }
+      });
+    }
+
+    const method = body.method;
+    const params = body.params || {};
+    const reqId = body.id;
+
+    // 1. Handshake / Initialize (pode ocorrer antes da autenticação)
+    if (method === 'initialize') {
+      return reply.send({
+        jsonrpc: '2.0',
+        id: reqId,
+        result: {
+          protocolVersion: '2024-11-05',
+          capabilities: {
+            tools: {}
+          },
+          serverInfo: {
+            name: 'Akasha MCP Server',
+            version: '1.0.0'
+          }
+        }
+      });
+    }
+
+    if (method === 'notifications/initialized' || method === 'ping') {
+      return reply.send({ jsonrpc: '2.0', id: reqId, result: {} });
+    }
+
+    // 2. Autenticação estrita para listar e chamar ferramentas
+    const userId = authenticateMcpUser(request);
+    if (!userId) {
+      return reply.status(401).send({
+        jsonrpc: '2.0',
+        id: reqId,
+        error: {
+          code: -32001,
+          message: 'Não autorizado. Forneça um token válido no cabeçalho Authorization: Bearer <token>'
+        }
+      });
+    }
+
+    // 3. Listar Ferramentas
+    if (method === 'tools/list' || method === 'tools/list_tools') {
+      return reply.send({
+        jsonrpc: '2.0',
+        id: reqId,
+        result: {
+          tools: AKASHA_MCP_TOOLS
+        }
+      });
+    }
+
+    // 4. Executar Ferramenta
+    if (method === 'tools/call' || method === 'tools/execute') {
+      const toolName = params.name;
+      const args = params.arguments || {};
+
+      try {
+        const result = await executeAkashaMcpTool(toolName, args, userId);
+        return reply.send({
+          jsonrpc: '2.0',
+          id: reqId,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: typeof result === 'string' ? result : JSON.stringify(result, null, 2)
+              }
+            ]
+          }
+        });
+      } catch (err: any) {
+        return reply.send({
+          jsonrpc: '2.0',
+          id: reqId,
+          error: {
+            code: -32603,
+            message: `Erro interno ao executar ferramenta: ${err.message}`
+          }
+        });
+      }
+    }
+
+    return reply.status(400).send({
+      jsonrpc: '2.0',
+      id: reqId,
+      error: {
+        code: -32601,
+        message: `Método '${method}' desconhecido.`
+      }
     });
   });
 
   // GET /mcp/sse — Permite o handshake inicial de conexão SSE do protocolo MCP
   fastify.get('/sse', async (request, reply) => {
-    let token = (request.query as any)?.token || (request.query as any)?.access_token;
+    const userId = authenticateMcpUser(request) || 'guest';
 
-    if (!token && request.headers.authorization?.startsWith('Bearer ')) {
-      token = request.headers.authorization.split(' ')[1];
-    }
-
-    let userId = 'guest';
-    if (token) {
-      try {
-        const decoded = jwt.verify(token, process.env.SUPABASE_JWT_SECRET!) as { sub: string };
-        userId = decoded.sub;
-      } catch (err) {
-        userId = 'guest';
-      }
-    }
-
-    // Assumir o controle manual da resposta no Fastify
     reply.hijack();
     reply.raw.setHeader('Access-Control-Allow-Origin', '*');
 
@@ -45,14 +155,13 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
     const host = request.headers.host || 'akasha-backend.onrender.com';
     const baseUrl = `${protocol}://${host}`;
 
+    const token = (request.query as any)?.token || (request.query as any)?.access_token;
     const messageEndpoint = token 
       ? `${baseUrl}/mcp/message?token=${token}`
       : `${baseUrl}/mcp/message`;
       
     const transport = new SSEServerTransport(messageEndpoint, reply.raw);
     
-    // O SSEServerTransport gera seu próprio transport.sessionId no construtor.
-    // É esse ID que o cliente recebe no evento SSE 'endpoint', portanto devemos usá-lo no Map!
     transports.set(transport.sessionId, { transport, userId });
 
     const server = createMcpServer(userId);
@@ -64,7 +173,7 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // POST /mcp/message — Recebe as mensagens JSON-RPC do MCP
+  // POST /mcp/message — Recebe as mensagens JSON-RPC do MCP para sessões SSE
   fastify.post('/message', async (request, reply) => {
     const sessionId = (request.query as { sessionId?: string }).sessionId;
 
@@ -79,10 +188,10 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
       return;
     }
 
-    // Passar request.body como 3º parâmetro pois o Fastify já consumiu o stream request.raw
     await sessionData.transport.handlePostMessage(request.raw, reply.raw, request.body);
     reply.hijack();
   });
 };
+
 
 
