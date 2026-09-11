@@ -57,19 +57,48 @@ export async function authMiddleware(
   }
 
   try {
+    let userId: string | null = null;
+    let email: string | undefined = undefined;
+
     // 1. Tentar validar o token localmente (Stateless)
-    const decoded = jwt.verify(token, jwtSecret) as SupabaseJwtPayload;
-    request.userId = decoded.sub;
-    
+    try {
+      const decoded = jwt.verify(token, jwtSecret) as SupabaseJwtPayload;
+      userId = decoded.sub;
+      email = decoded.email;
+    } catch (jwtErr) {
+      // 2. Fallback: se a validação local falhar (ex: segredo JWT incorreto ou chave assimétrica), valida diretamente na API do Supabase
+      const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: anonKey,
+        },
+      });
+
+      if (res.ok) {
+        const user = await res.json();
+        userId = user.id;
+        email = user.email;
+      } else {
+        throw jwtErr;
+      }
+    }
+
+    if (!userId) {
+      reply.header('WWW-Authenticate', 'Bearer realm="akasha", error="invalid_token"');
+      await reply.status(401).send({ error: 'Token inválido ou expirado.' });
+      return;
+    }
+
+    request.userId = userId;
+
     // Garante que o profile existe no banco, para que a foreign key do wishlist não falhe.
     await prisma.profile.upsert({
       where: { id: request.userId },
-      update: { 
-        // Em um JWT puro talvez não tenhamos user_metadata. Se não tiver, preserva o antigo.
-      },
+      update: {},
       create: { 
         id: request.userId,
-        username: decoded.email || 'Viajante',
+        username: email || 'Viajante',
         avatarUrl: null
       }
     });
