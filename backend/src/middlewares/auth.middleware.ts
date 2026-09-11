@@ -22,7 +22,7 @@ export async function authMiddleware(
   reply: FastifyReply
 ): Promise<void> {
   // Lê primeiramente do cookie HttpOnly
-  let token = request.cookies.access_token || '';
+  let token = request.cookies?.access_token || '';
 
   // Fallback: se não tiver no cookie, tenta pegar da query (útil para SSE/MCP)
   if (!token && (request.query as any)?.token) {
@@ -40,7 +40,7 @@ export async function authMiddleware(
     const baseUrl = `${protocol}://${host}`;
     reply.header(
       'WWW-Authenticate',
-      `Bearer realm="akasha", resource_id="${baseUrl}/mcp/sse", as_uri="${baseUrl}"`
+      `Bearer realm="akasha", resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`
     );
     await reply.status(401).send({ error: 'Token de autenticação ausente.' });
     return;
