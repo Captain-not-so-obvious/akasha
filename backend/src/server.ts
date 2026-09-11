@@ -41,6 +41,10 @@ fastify.get('/.well-known/oauth-authorization-server', async (request, reply) =>
   return reply.redirect('/oauth/metadata');
 });
 
+fastify.get('/.well-known/oauth-protected-resource', async (request, reply) => {
+  return reply.redirect('/oauth/resource-metadata');
+});
+
 // Health check — usado pelo Render para verificar se o servidor está vivo
 fastify.get('/health', async () => ({
   status: 'ok',

@@ -9,7 +9,6 @@ const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:3000';
 export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
   
   // RFC 8414 - OAuth 2.0 Authorization Server Metadata
-  // Registramos aqui e em server.ts redirecionaremos /.well-known/... para cá (ou serviremos direto)
   fastify.get('/metadata', async (request, reply) => {
     return reply.send({
       issuer: BACKEND_URL,
@@ -17,8 +16,17 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
       token_endpoint: `${BACKEND_URL}/oauth/token`,
       response_types_supported: ['code'],
       grant_types_supported: ['authorization_code'],
-      token_endpoint_auth_methods_supported: ['none'],
+      token_endpoint_auth_methods_supported: ['none', 'client_secret_basic', 'client_secret_post'],
       scopes_supported: ['mcp:read', 'mcp:write'],
+    });
+  });
+
+  // RFC 9700 - OAuth Protected Resource Metadata
+  fastify.get('/resource-metadata', async (request, reply) => {
+    return reply.send({
+      resource: `${BACKEND_URL}/mcp/sse`,
+      authorization_servers: [BACKEND_URL],
+      scopes_supported: ['mcp:read', 'mcp:write']
     });
   });
 
