@@ -37,25 +37,47 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // GET /oauth/authorize
+  // GET /oauth/authorize — Redireciona o navegador para a tela de consentimento no Frontend
   fastify.get('/authorize', async (request, reply) => {
     const query = request.query as any;
     const clientId = query.client_id || 'spark';
-    const redirectUri = query.redirect_uri;
+    const redirectUri = query.redirect_uri || '';
     const state = query.state || '';
     
     if (!redirectUri) {
       return reply.status(400).send({ error: 'redirect_uri é obrigatório' });
     }
 
-    // Tentar ler o token via query param, header Authorization ou cookie
-    let token = query.token || query.access_token || request.cookies?.access_token;
+    const frontendAuthorizeUrl = `${FRONTEND_URL}/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
+    return reply.redirect(frontendAuthorizeUrl);
+  });
+
+  // POST /oauth/confirm — Chamado pela página de consentimento do Frontend para gerar o código e finalizar
+  fastify.post('/confirm', async (request, reply) => {
+    let body = request.body as any;
+    if (typeof body === 'string') {
+      try {
+        body = Object.fromEntries(new URLSearchParams(body));
+      } catch {
+        body = {};
+      }
+    }
+
+    const clientId = body?.client_id || (request.query as any)?.client_id || 'spark';
+    const redirectUri = body?.redirect_uri || (request.query as any)?.redirect_uri;
+    const state = body?.state || (request.query as any)?.state || '';
+
+    if (!redirectUri) {
+      return reply.status(400).send({ error: 'redirect_uri é obrigatório' });
+    }
+
+    // Tentar ler o token via header Authorization, query param ou cookie
+    let token = (request.query as any)?.token || (request.query as any)?.access_token || request.cookies?.access_token;
     if (!token && request.headers.authorization?.startsWith('Bearer ')) {
       token = request.headers.authorization.split(' ')[1];
     }
 
     let userId: string | null = null;
-
     if (token) {
       try {
         const payload = jwt.verify(token, process.env.SUPABASE_JWT_SECRET!) as { sub: string };
@@ -65,18 +87,14 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-
-    // Se não estiver logado, redireciona para o frontend no login com um returnTo
     if (!userId) {
-      const returnTo = encodeURIComponent(`/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`);
-      return reply.redirect(`${FRONTEND_URL}/login?returnTo=${returnTo}`);
+      return reply.status(401).send({ error: 'Usuário não autenticado.' });
     }
 
-    // Se estiver logado, cria o código no banco
-    // A expiração é em 5 minutos
+    // Cria o código de autorização no banco de dados
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const code = crypto.randomUUID();
-    
+
     const oauthCode = await prisma.oAuthCode.create({
       data: {
         code,
@@ -87,15 +105,15 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
       }
     });
 
-    // Monta a URL de redirecionamento de volta ao app cliente (Spark)
     const separator = redirectUri.includes('?') ? '&' : '?';
     let targetUrl = `${redirectUri}${separator}code=${oauthCode.code}`;
     if (state) {
-      targetUrl += `&state=${state}`;
+      targetUrl += `&state=${encodeURIComponent(state)}`;
     }
 
-    return reply.redirect(targetUrl);
+    return reply.send({ redirect_url: targetUrl });
   });
+
 
   // POST /oauth/token
   fastify.post('/token', async (request, reply) => {

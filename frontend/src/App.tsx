@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
+import { OAuthAuthorize } from './pages/OAuthAuthorize';
 import { SearchPage } from './pages/Search';
 import { Library } from './pages/Library';
 import { Profile } from './pages/Profile';
@@ -28,8 +29,10 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Rota Pública de Autenticação */}
+          {/* Rotas Públicas de Autenticação & Autorização OAuth */}
           <Route path="/login" element={<Login />} />
+          <Route path="/oauth/authorize" element={<OAuthAuthorize />} />
+
 
           {/* Rotas Privadas/Protegidas */}
           <Route
