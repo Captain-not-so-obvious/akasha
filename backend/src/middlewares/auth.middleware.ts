@@ -35,7 +35,13 @@ export async function authMiddleware(
   }
 
   if (!token) {
-    reply.header('WWW-Authenticate', 'Bearer realm="akasha"');
+    const protocol = request.headers['x-forwarded-proto'] || request.protocol;
+    const host = request.headers.host || 'akasha-backend.onrender.com';
+    const baseUrl = `${protocol}://${host}`;
+    reply.header(
+      'WWW-Authenticate',
+      `Bearer realm="akasha", resource_id="${baseUrl}/mcp/sse", as_uri="${baseUrl}"`
+    );
     await reply.status(401).send({ error: 'Token de autenticação ausente.' });
     return;
   }

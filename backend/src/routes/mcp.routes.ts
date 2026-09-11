@@ -8,10 +8,23 @@ import crypto from 'node:crypto';
 const transports = new Map<string, SSEServerTransport>();
 
 export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
-  // Ambas as rotas exigem que o usuário esteja autenticado via token JWT (Supabase)
-  fastify.addHook('preHandler', authMiddleware);
+  // Informações básicas da raiz do MCP (sem necessidade de auth para responder ping)
+  fastify.get('/', async (request, reply) => {
+    const protocol = request.headers['x-forwarded-proto'] || request.protocol;
+    const host = request.headers.host || 'akasha-backend.onrender.com';
+    const baseUrl = `${protocol}://${host}`;
+    return reply.send({
+      status: 'ok',
+      name: 'Akasha MCP Server',
+      sse_endpoint: `${baseUrl}/mcp/sse`,
+    });
+  });
 
-  fastify.get('/sse', async (request, reply) => {
+  // As rotas sse e message exigem autenticação via JWT
+  fastify.register(async (protectedRoutes) => {
+    protectedRoutes.addHook('preHandler', authMiddleware);
+
+    protectedRoutes.get('/sse', async (request, reply) => {
     const sessionId = crypto.randomUUID();
     const token = (request.query as any).token;
     
@@ -62,4 +75,6 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
     // Passa a mensagem para o transporte
     await transport.handlePostMessage(request.raw, reply.raw);
   });
+  });
 };
+

@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+import Fastify, { FastifyRequest, FastifyReply } from 'fastify';
 import cors from '@fastify/cors';
 import { wishlistRoutes } from './routes/wishlist.routes.js';
 import { tmdbRoutes } from './routes/tmdb.routes.js';
@@ -17,14 +17,28 @@ const fastify = Fastify({
   },
 });
 
+// Registrar parser para application/x-www-form-urlencoded (padrão de requisições OAuth)
+fastify.addContentTypeParser(
+  'application/x-www-form-urlencoded',
+  { parseAs: 'string' },
+  (req, body, done) => {
+    try {
+      const parsed = Object.fromEntries(new URLSearchParams(body as string));
+      done(null, parsed);
+    } catch (err: any) {
+      done(err, undefined);
+    }
+  }
+);
+
 // Registrar plugin de cookie
 await fastify.register(cookie);
 
-// CORS: em produção, só aceita o domínio do frontend
+// CORS: Permite origin dinâmico para integrações MCP (Gemini, Claude, web app local, etc.)
 await fastify.register(cors, {
-  origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
-  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: true,
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
   credentials: true,
 });
 
@@ -36,11 +50,15 @@ await fastify.register(tmdbRoutes, { prefix: '/tmdb' });
 await fastify.register(recommendationRoutes, { prefix: '/recommendations' });
 await fastify.register(mcpRoutes, { prefix: '/mcp' });
 
-// Redirecionamento para Metadata OAuth (Descoberta automática)
-fastify.get('/.well-known/oauth-authorization-server', async (request, reply) => {
+// Helper para obter a URL base dinâmica
+const getBaseUrl = (request: FastifyRequest) => {
   const protocol = request.headers['x-forwarded-proto'] || request.protocol;
   const host = request.headers.host || 'akasha-backend.onrender.com';
-  const baseUrl = `${protocol}://${host}`;
+  return `${protocol}://${host}`;
+};
+
+const sendAuthServerMetadata = async (request: FastifyRequest, reply: FastifyReply) => {
+  const baseUrl = getBaseUrl(request);
   return reply.send({
     issuer: baseUrl,
     authorization_endpoint: `${baseUrl}/oauth/authorize`,
@@ -50,18 +68,45 @@ fastify.get('/.well-known/oauth-authorization-server', async (request, reply) =>
     token_endpoint_auth_methods_supported: ['none', 'client_secret_basic', 'client_secret_post'],
     scopes_supported: ['mcp:read', 'mcp:write'],
   });
-});
+};
 
-fastify.get('/.well-known/oauth-protected-resource', async (request, reply) => {
-  const protocol = request.headers['x-forwarded-proto'] || request.protocol;
-  const host = request.headers.host || 'akasha-backend.onrender.com';
-  const baseUrl = `${protocol}://${host}`;
+const sendProtectedResourceMetadata = async (request: FastifyRequest, reply: FastifyReply) => {
+  const baseUrl = getBaseUrl(request);
   return reply.send({
     resource: `${baseUrl}/mcp/sse`,
     authorization_servers: [baseUrl],
-    scopes_supported: ['mcp:read', 'mcp:write']
+    scopes_supported: ['mcp:read', 'mcp:write'],
   });
-});
+};
+
+const sendMcpMetadata = async (request: FastifyRequest, reply: FastifyReply) => {
+  const baseUrl = getBaseUrl(request);
+  return reply.send({
+    name: 'Akasha MCP Server',
+    version: '1.0.0',
+    description: 'Servidor MCP de entretenimento inteligente do Akasha',
+    endpoints: {
+      sse: `${baseUrl}/mcp/sse`,
+      messages: `${baseUrl}/mcp/message`,
+    },
+    authentication: {
+      type: 'oauth2',
+      authorization_server: baseUrl,
+    },
+  });
+};
+
+// Endpoints de Descoberta OAuth 2.0 (RFC 8414 & RFC 9728)
+fastify.get('/.well-known/oauth-authorization-server', sendAuthServerMetadata);
+fastify.get('/.well-known/oauth-authorization-server/*', sendAuthServerMetadata);
+
+fastify.get('/.well-known/oauth-protected-resource', sendProtectedResourceMetadata);
+fastify.get('/.well-known/oauth-protected-resource/*', sendProtectedResourceMetadata);
+fastify.get('/mcp/.well-known/oauth-protected-resource', sendProtectedResourceMetadata);
+fastify.get('/mcp/sse/.well-known/oauth-protected-resource', sendProtectedResourceMetadata);
+
+fastify.get('/.well-known/mcp', sendMcpMetadata);
+fastify.get('/.well-known/mcp.json', sendMcpMetadata);
 
 // Health check — usado pelo Render para verificar se o servidor está vivo
 fastify.get('/health', async () => ({
@@ -77,3 +122,4 @@ try {
   fastify.log.error(err);
   process.exit(1);
 }
+

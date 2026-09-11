@@ -93,19 +93,33 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /oauth/token
   fastify.post('/token', async (request, reply) => {
-    const body = request.body as any;
-    const code = body?.code;
-    const grantType = body?.grant_type || 'authorization_code';
+    let body = request.body as any;
+    if (typeof body === 'string') {
+      try {
+        body = Object.fromEntries(new URLSearchParams(body));
+      } catch {
+        body = {};
+      }
+    }
+    
+    let code = body?.code || (request.query as any)?.code;
+    let grantType = body?.grant_type || (request.query as any)?.grant_type || 'authorization_code';
 
     if (grantType !== 'authorization_code' || !code) {
-      return reply.status(400).send({ error: 'invalid_grant', error_description: 'Código de autorização necessário.' });
+      return reply.status(400).send({ 
+        error: 'invalid_grant', 
+        error_description: 'Código de autorização necessário.' 
+      });
     }
 
     // Buscar no banco
     const oauthCode = await prisma.oAuthCode.findUnique({ where: { code } });
 
     if (!oauthCode || oauthCode.used || oauthCode.expiresAt < new Date()) {
-      return reply.status(400).send({ error: 'invalid_grant', error_description: 'Código inválido ou expirado.' });
+      return reply.status(400).send({ 
+        error: 'invalid_grant', 
+        error_description: 'Código inválido ou expirado.' 
+      });
     }
 
     // Marcar como usado
