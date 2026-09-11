@@ -3,8 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
 
-const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
-const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:3000';
+const FRONTEND_URL = process.env.FRONTEND_URL ?? 'https://akasha-nine.vercel.app';
 
 export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
   
@@ -37,73 +36,73 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-  // GET /oauth/authorize — Redireciona o navegador para a tela de consentimento no Frontend
-  fastify.get('/authorize', async (request, reply) => {
-    const query = request.query as any;
-    const clientId = query.client_id || 'spark';
-    const redirectUri = query.redirect_uri || '';
-    const state = query.state || '';
-    
-    if (!redirectUri) {
-      return reply.status(400).send({ error: 'redirect_uri é obrigatório' });
-    }
-
-    const frontendAuthorizeUrl = `${FRONTEND_URL}/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
-    return reply.redirect(frontendAuthorizeUrl);
-  });
-
-  // POST /oauth/confirm — Chamado pela página de consentimento do Frontend para gerar o código e finalizar
-  fastify.post('/confirm', async (request, reply) => {
-    let body = request.body as any;
-    if (typeof body === 'string') {
-      try {
-        body = Object.fromEntries(new URLSearchParams(body));
-      } catch {
-        body = {};
-      }
-    }
-
-    const clientId = body?.client_id || (request.query as any)?.client_id || 'spark';
-    const redirectUri = body?.redirect_uri || (request.query as any)?.redirect_uri;
-    const state = body?.state || (request.query as any)?.state || '';
-
-    if (!redirectUri) {
-      return reply.status(400).send({ error: 'redirect_uri é obrigatório' });
-    }
-
-    // Tentar ler o token via header Authorization, query param ou cookie
+  // Helper para identificar usuário logado
+  async function resolveUserId(request: any): Promise<string | null> {
     let token = (request.query as any)?.token || (request.query as any)?.access_token || request.cookies?.access_token;
     if (!token && request.headers.authorization?.startsWith('Bearer ')) {
-      token = request.headers.authorization.split(' ')[1];
+      token = request.headers.authorization.split(' ')[1].trim();
     }
 
-    let userId: string | null = null;
-    if (token) {
+    if (!token) return null;
+
+    const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+    if (jwtSecret) {
       try {
-        const payload = jwt.verify(token, process.env.SUPABASE_JWT_SECRET!) as { sub: string };
-        userId = payload.sub;
-      } catch (err) {
-        userId = null;
-      }
+        const payload = jwt.verify(token, jwtSecret) as { sub: string };
+        if (payload?.sub) return payload.sub;
+      } catch {}
     }
 
-    if (!userId) {
-      return reply.status(401).send({ error: 'Usuário não autenticado.' });
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const anonKey = process.env.SUPABASE_ANON_KEY;
+    if (supabaseUrl && anonKey) {
+      try {
+        const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          headers: { Authorization: `Bearer ${token}`, apikey: anonKey }
+        });
+        if (res.ok) {
+          const u = await res.json();
+          if (u?.id) return u.id;
+        }
+      } catch {}
     }
 
-    try {
-      // Garantir que o perfil existe na tabela 'profiles' para não violar a chave estrangeira em 'oauth_codes'
+    return null;
+  }
+
+  // GET & POST /oauth/authorize - Handler unificado de autorização (Arquitetura SmartBolsa / RFC 6749)
+  const handleAuthorizeRequest = async (request: any, reply: any) => {
+    let body = request.body || {};
+    if (typeof body === 'string') {
+      try { body = Object.fromEntries(new URLSearchParams(body)); } catch {}
+    }
+
+    const clientId = body.client_id || (request.query as any)?.client_id || 'spark';
+    let redirectUri = body.redirect_uri || (request.query as any)?.redirect_uri || '';
+    const state = body.state || (request.query as any)?.state || '';
+
+    if (!redirectUri) {
+      return reply.status(400).send({ error: 'redirect_uri é obrigatório' });
+    }
+
+    if (redirectUri.includes('%3A') || redirectUri.includes('%2F')) {
+      try { redirectUri = decodeURIComponent(redirectUri); } catch {}
+    }
+
+    const userId = await resolveUserId(request);
+
+    // Se o usuário ESTÁ logado: gera o código e faz HTTP 302 REDIRECT direto para a URI do Spark!
+    if (userId) {
       await prisma.profile.upsert({
         where: { id: userId },
         update: {},
         create: { id: userId },
       });
 
-      // Cria o código de autorização no banco de dados (expira em 5 minutos)
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
       const code = crypto.randomUUID();
 
-      const oauthCode = await prisma.oAuthCode.create({
+      await prisma.oAuthCode.create({
         data: {
           code,
           userId,
@@ -114,21 +113,72 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       const separator = redirectUri.includes('?') ? '&' : '?';
-      let targetUrl = `${redirectUri}${separator}code=${oauthCode.code}`;
+      let targetUrl = `${redirectUri}${separator}code=${code}`;
       if (state) {
         targetUrl += `&state=${state}`;
       }
 
-      return reply.send({ redirect_url: targetUrl });
-    } catch (err: any) {
-      fastify.log.error(err);
-      return reply.status(500).send({ error: `Erro ao gerar código de autorização: ${err.message}` });
+      return reply.redirect(targetUrl);
     }
+
+    // Se o usuário NÃO está logado: redireciona para a tela de Login do frontend com returnTo
+    const returnTo = encodeURIComponent(`/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`);
+    return reply.redirect(`${FRONTEND_URL}/login?returnTo=${returnTo}`);
+  };
+
+  fastify.get('/authorize', handleAuthorizeRequest);
+  fastify.post('/authorize', handleAuthorizeRequest);
+
+  // POST /oauth/confirm — Suporte adicional para requisições do frontend
+  fastify.post('/confirm', async (request, reply) => {
+    let body = request.body as any;
+    if (typeof body === 'string') {
+      try { body = Object.fromEntries(new URLSearchParams(body)); } catch {}
+    }
+
+    const clientId = body?.client_id || (request.query as any)?.client_id || 'spark';
+    let redirectUri = body?.redirect_uri || (request.query as any)?.redirect_uri || '';
+    const state = body?.state || (request.query as any)?.state || '';
+
+    if (!redirectUri) {
+      return reply.status(400).send({ error: 'redirect_uri é obrigatório' });
+    }
+
+    const userId = await resolveUserId(request);
+
+    if (!userId) {
+      return reply.status(401).send({ error: 'Usuário não autenticado.' });
+    }
+
+    await prisma.profile.upsert({
+      where: { id: userId },
+      update: {},
+      create: { id: userId },
+    });
+
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const code = crypto.randomUUID();
+
+    await prisma.oAuthCode.create({
+      data: {
+        code,
+        userId,
+        clientId,
+        redirectUri,
+        expiresAt,
+      }
+    });
+
+    const separator = redirectUri.includes('?') ? '&' : '?';
+    let targetUrl = `${redirectUri}${separator}code=${code}`;
+    if (state) {
+      targetUrl += `&state=${state}`;
+    }
+
+    return reply.send({ redirect_url: targetUrl });
   });
 
-
-
-  // POST /oauth/token
+  // POST /oauth/token - Troca do código pelo token de acesso
   fastify.post('/token', async (request, reply) => {
     let body = request.body as any;
     if (typeof body === 'string') {
@@ -166,7 +216,6 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     // Gerar JWT Stateless para o Access Token (30 dias)
-    // Assinamos com o SUPABASE_JWT_SECRET para o authMiddleware funcionar automaticamente!
     const accessToken = jwt.sign(
       { 
         sub: oauthCode.userId,
@@ -184,23 +233,12 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
-
   // GET /oauth/userinfo - OpenID Connect UserInfo endpoint
   fastify.get('/userinfo', async (request, reply) => {
-    let token = request.headers.authorization?.startsWith('Bearer ')
-      ? request.headers.authorization.split(' ')[1]
-      : request.cookies.access_token;
-
-    if (!token) {
+    const userId = await resolveUserId(request);
+    if (!userId) {
       return reply.status(401).send({ error: 'unauthorized' });
     }
-
-    try {
-      const payload = jwt.verify(token, process.env.SUPABASE_JWT_SECRET!) as { sub: string };
-      return reply.send({ sub: payload.sub });
-    } catch {
-      return reply.status(401).send({ error: 'invalid_token' });
-    }
+    return reply.send({ sub: userId });
   });
 };
-
