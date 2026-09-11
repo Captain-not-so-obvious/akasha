@@ -2,9 +2,12 @@ import { FastifyPluginAsync } from 'fastify';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { createMcpServer, AKASHA_MCP_TOOLS, executeAkashaMcpTool } from '../mcp/mcp-server.js';
 import jwt from 'jsonwebtoken';
+import { prisma } from '../lib/prisma.js';
 
 // Mapa para armazenar os transportes ativos e dados de sessão SSE
 const transports = new Map<string, { transport: SSEServerTransport; userId: string }>();
+
+const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || 'akasha-mcp-jwt-secret-2026-v1';
 
 // Helper para autenticar o token Bearer ou query param
 async function authenticateMcpUser(request: any): Promise<string | null> {
@@ -16,16 +19,22 @@ async function authenticateMcpUser(request: any): Promise<string | null> {
 
   if (!token) return null;
 
-  const jwtSecret = process.env.SUPABASE_JWT_SECRET;
-  if (jwtSecret) {
-    try {
-      const decoded = jwt.verify(token, jwtSecret) as { sub: string };
-      if (decoded.sub) return decoded.sub;
-    } catch {
-      // Ignora erro para tentar validação na API do Supabase
-    }
-  }
+  // 1. Tenta verificar via JWT usando JWT_SECRET
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { sub: string };
+    if (decoded?.sub) return decoded.sub;
+  } catch {}
 
+  // 2. Tenta decodificar se for token do tipo oauth_mcp emitido pelo Akasha
+  try {
+    const decoded = jwt.decode(token) as { sub: string; type?: string };
+    if (decoded?.sub && decoded?.type === 'oauth_mcp') {
+      const profile = await prisma.profile.findUnique({ where: { id: decoded.sub } });
+      if (profile) return profile.id;
+    }
+  } catch {}
+
+  // 3. Fallback: Tenta autenticar na API do Supabase Auth
   const supabaseUrl = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
 

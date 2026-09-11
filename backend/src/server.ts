@@ -74,7 +74,7 @@ const sendAuthServerMetadata = async (request: FastifyRequest, reply: FastifyRep
 const sendProtectedResourceMetadata = async (request: FastifyRequest, reply: FastifyReply) => {
   const baseUrl = getBaseUrl(request);
   return reply.send({
-    resource: `${baseUrl}/mcp/sse`,
+    resource: `${baseUrl}/mcp`,
     authorization_servers: [baseUrl],
     scopes_supported: ['mcp:read', 'mcp:write'],
   });
