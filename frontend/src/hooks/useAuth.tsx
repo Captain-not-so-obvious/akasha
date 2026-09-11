@@ -22,13 +22,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
-    // 1. Tentar recuperar o usuário pelo cookie via backend
+    // 1. Tentar recuperar o usuário pelo cookie via backend ou pela sessão Supabase existente
     const restoreSession = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/auth/me`, { credentials: 'include' });
+        const { data: { session: localSession } } = await supabase.auth.getSession();
+
+        const headers: Record<string, string> = {};
+        if (localSession?.access_token) {
+          headers['Authorization'] = `Bearer ${localSession.access_token}`;
+        }
+
+        const res = await fetch(`${BACKEND_URL}/auth/me`, {
+          credentials: 'include',
+          headers,
+        });
+
         if (res.ok) {
           const data = await res.json();
-          if (mounted) setUser(data.user);
+          if (mounted) {
+            setUser(data.user);
+            if (localSession) setSession(localSession);
+          }
+        } else if (localSession?.user) {
+          // Fallback caso cookies terceiros estejam bloqueados no navegador
+          if (mounted) {
+            setUser(localSession.user);
+            setSession(localSession);
+          }
         }
       } catch (err) {
         console.error('Erro ao restaurar sessão pelo backend:', err);
@@ -51,7 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           await fetch(`${BACKEND_URL}/auth/session`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
             credentials: 'include',
             body: JSON.stringify({
               access_token: session.access_token,
