@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import { wishlistRoutes } from './routes/wishlist.routes.js';
 import { tmdbRoutes } from './routes/tmdb.routes.js';
 import { recommendationRoutes } from './routes/recommendation.routes.js';
+import { mcpRoutes } from './routes/mcp.routes.js';
 
 const fastify = Fastify({
   logger: {
@@ -24,6 +25,7 @@ await fastify.register(cors, {
 await fastify.register(wishlistRoutes, { prefix: '/wishlist' });
 await fastify.register(tmdbRoutes, { prefix: '/tmdb' });
 await fastify.register(recommendationRoutes, { prefix: '/recommendations' });
+await fastify.register(mcpRoutes, { prefix: '/mcp' });
 
 // Health check — usado pelo Render para verificar se o servidor está vivo
 fastify.get('/health', async () => ({

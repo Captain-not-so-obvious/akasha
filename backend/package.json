@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^9.0.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@prisma/client": "^5.22.0",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^20.17.0",
