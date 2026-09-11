@@ -3,6 +3,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { authMiddleware } from '../middlewares/auth.middleware.js';
 import { createMcpServer } from '../mcp/mcp-server.js';
 import crypto from 'node:crypto';
+import jwt from 'jsonwebtoken';
 
 // Mapa para armazenar os transportes ativos e dados de sessão
 const transports = new Map<string, { transport: SSEServerTransport; userId: string }>();
