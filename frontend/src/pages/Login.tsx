@@ -27,13 +27,18 @@ export const Login: React.FC = () => {
   if (user) {
     const returnTo = searchParams.get('returnTo');
     if (returnTo) {
-      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
-      window.location.href = `${BACKEND_URL}${returnTo.startsWith('/') ? '' : '/'}${returnTo}`;
+      if (returnTo.startsWith('/oauth/authorize')) {
+        window.location.href = returnTo;
+      } else {
+        const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'https://akasha-backend.onrender.com';
+        window.location.href = `${BACKEND_URL}${returnTo.startsWith('/') ? '' : '/'}${returnTo}`;
+      }
     } else {
       window.location.href = '/';
     }
     return null;
   }
+
 
   return (
     <div className="relative flex min-h-screen w-screen items-center justify-center overflow-hidden bg-[var(--color-floresta-negra)] px-4">

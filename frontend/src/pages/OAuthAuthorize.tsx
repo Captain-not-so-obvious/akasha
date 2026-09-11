@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { GlassPanel } from '../components/ui/GlassPanel';
@@ -9,11 +9,23 @@ export const OAuthAuthorize: React.FC = () => {
   const { user, session, signInWithGoogle, loading } = useAuth();
   const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [redirectTarget, setRedirectTarget] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const clientId = searchParams.get('client_id') || 'spark';
   const redirectUri = searchParams.get('redirect_uri') || '';
   const state = searchParams.get('state') || '';
+
+  // Guardar parâmetros na sessão para resgatar caso a Supabase Auth redirecione para a raiz
+  useEffect(() => {
+    if (clientId && redirectUri) {
+      sessionStorage.setItem(
+        'pending_oauth',
+        JSON.stringify({ clientId, redirectUri, state })
+      );
+    }
+  }, [clientId, redirectUri, state]);
 
   const handleAuthorize = async () => {
     if (isSubmitting) return;
@@ -43,7 +55,14 @@ export const OAuthAuthorize: React.FC = () => {
       }
 
       if (data.redirect_url) {
-        window.location.href = data.redirect_url;
+        sessionStorage.removeItem('pending_oauth');
+        setRedirectTarget(data.redirect_url);
+        setIsSuccess(true);
+
+        // Redireciona para o Spark após 2.5 segundos para exibir o card de sucesso
+        setTimeout(() => {
+          window.location.href = data.redirect_url;
+        }, 2500);
       } else {
         throw new Error('URL de redirecionamento não retornada pelo servidor.');
       }
@@ -63,6 +82,45 @@ export const OAuthAuthorize: React.FC = () => {
     return (
       <div className="flex min-h-screen w-screen items-center justify-center bg-[var(--color-floresta-negra)]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-cobre)] border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  // TELA DE PARABÉNS / CONECTADO COM SUCESSO
+  if (isSuccess && redirectTarget) {
+    return (
+      <div className="relative flex min-h-screen w-screen items-center justify-center overflow-hidden bg-[var(--color-floresta-negra)] px-4 py-8">
+        <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-emerald-600/20 blur-[100px] pointer-events-none animate-pulse"></div>
+        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-amber-600/20 blur-[120px] pointer-events-none"></div>
+
+        <GlassPanel className="w-full max-w-lg p-8 md:p-10 text-center flex flex-col items-center border border-emerald-500/30">
+          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 mb-4 animate-bounce">
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+
+          <h1 className="font-cinzel text-3xl font-bold tracking-widest text-[var(--color-seda-milharal)] drop-shadow-md mb-2">
+            PARABÉNS!
+          </h1>
+          <p className="font-outfit text-base font-semibold text-emerald-300 mb-4">
+            Akasha Conectado ao Google Spark com Sucesso!
+          </p>
+
+          <p className="font-outfit text-xs text-[var(--color-seda-milharal)] opacity-80 mb-6 leading-relaxed">
+            Seu assistente de Inteligência Artificial já pode acessar suas recomendações, wishlist e avaliações.
+            Redirecionando de volta em instantes...
+          </p>
+
+          <button
+            onClick={() => window.location.href = redirectTarget}
+            tabIndex={0}
+            aria-label="Retornar ao Google Spark"
+            className="tv-focus-glow group relative flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-6 py-4 font-outfit text-base font-semibold text-zinc-950 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/30 cursor-pointer"
+          >
+            <span>Retornar ao Google Spark Agora</span>
+          </button>
+        </GlassPanel>
       </div>
     );
   }
