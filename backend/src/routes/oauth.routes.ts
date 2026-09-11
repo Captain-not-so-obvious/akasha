@@ -146,4 +146,23 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
       expires_in: 30 * 24 * 60 * 60, // 30 dias em segundos
     });
   });
+
+  // GET /oauth/userinfo - OpenID Connect UserInfo endpoint
+  fastify.get('/userinfo', async (request, reply) => {
+    let token = request.headers.authorization?.startsWith('Bearer ')
+      ? request.headers.authorization.split(' ')[1]
+      : request.cookies.access_token;
+
+    if (!token) {
+      return reply.status(401).send({ error: 'unauthorized' });
+    }
+
+    try {
+      const payload = jwt.verify(token, process.env.SUPABASE_JWT_SECRET!) as { sub: string };
+      return reply.send({ sub: payload.sub });
+    } catch {
+      return reply.status(401).send({ error: 'invalid_token' });
+    }
+  });
 };
+

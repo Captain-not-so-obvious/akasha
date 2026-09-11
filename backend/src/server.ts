@@ -97,18 +97,52 @@ const sendMcpMetadata = async (request: FastifyRequest, reply: FastifyReply) => 
   });
 };
 
-// Endpoints de Descoberta OAuth 2.0 (RFC 8414 & RFC 9728)
-fastify.get('/.well-known/oauth-authorization-server', sendAuthServerMetadata);
-fastify.get('/.well-known/oauth-authorization-server/*', sendAuthServerMetadata);
+// Endpoints de Descoberta OAuth 2.0 & OpenID Connect (RFC 8414, RFC 9728 & OIDC)
+const authDiscoveryPaths = [
+  '/.well-known/oauth-authorization-server',
+  '/.well-known/oauth-authorization-server/*',
+  '/.well-known/openid-configuration',
+  '/.well-known/openid-configuration/*',
+  '/mcp/.well-known/oauth-authorization-server',
+  '/mcp/.well-known/oauth-authorization-server/*',
+  '/mcp/.well-known/openid-configuration',
+  '/mcp/.well-known/openid-configuration/*',
+  '/mcp/sse/.well-known/oauth-authorization-server',
+  '/mcp/sse/.well-known/oauth-authorization-server/*',
+  '/mcp/sse/.well-known/openid-configuration',
+  '/mcp/sse/.well-known/openid-configuration/*',
+];
 
-fastify.get('/.well-known/oauth-protected-resource', sendProtectedResourceMetadata);
-fastify.get('/.well-known/oauth-protected-resource/*', sendProtectedResourceMetadata);
-fastify.get('/mcp/.well-known/oauth-protected-resource', sendProtectedResourceMetadata);
-fastify.get('/mcp/sse/.well-known/oauth-protected-resource', sendProtectedResourceMetadata);
+for (const path of authDiscoveryPaths) {
+  fastify.get(path, sendAuthServerMetadata);
+}
 
-fastify.get('/.well-known/mcp', sendMcpMetadata);
-fastify.get('/.well-known/mcp.json', sendMcpMetadata);
-fastify.get('/', sendMcpMetadata);
+const protectedResourcePaths = [
+  '/.well-known/oauth-protected-resource',
+  '/.well-known/oauth-protected-resource/*',
+  '/mcp/.well-known/oauth-protected-resource',
+  '/mcp/.well-known/oauth-protected-resource/*',
+  '/mcp/sse/.well-known/oauth-protected-resource',
+  '/mcp/sse/.well-known/oauth-protected-resource/*',
+];
+
+for (const path of protectedResourcePaths) {
+  fastify.get(path, sendProtectedResourceMetadata);
+}
+
+const mcpMetadataPaths = [
+  '/.well-known/mcp',
+  '/.well-known/mcp.json',
+  '/mcp/.well-known/mcp',
+  '/mcp/.well-known/mcp.json',
+  '/mcp/sse/.well-known/mcp',
+  '/mcp/sse/.well-known/mcp.json',
+  '/',
+];
+
+for (const path of mcpMetadataPaths) {
+  fastify.get(path, sendMcpMetadata);
+}
 
 // Health check — usado pelo Render para verificar se o servidor está vivo
 fastify.get('/health', async () => ({
