@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { getAuthToken } from '../utils/auth';
 import type { CreateWishlistItemInput, LibraryItem, UpdateWishlistItemInput, WishlistItem } from '../types/wishlist';
 import type { MediaDetails } from '../types/media';
 

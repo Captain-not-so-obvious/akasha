@@ -1,6 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { prisma } from '../lib/prisma.js';
 import jwt from 'jsonwebtoken';
+import crypto from 'node:crypto';
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:3000';
@@ -54,9 +55,11 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
     // Se estiver logado, cria o código no banco
     // A expiração é em 5 minutos
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const code = crypto.randomUUID();
     
     const oauthCode = await prisma.oAuthCode.create({
       data: {
+        code,
         userId,
         clientId,
         redirectUri,
