@@ -180,8 +180,10 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
       access_token: accessToken,
       token_type: 'Bearer',
       expires_in: 30 * 24 * 60 * 60, // 30 dias em segundos
+      scope: 'mcp:read mcp:write',
     });
   });
+
 
   // GET /oauth/userinfo - OpenID Connect UserInfo endpoint
   fastify.get('/userinfo', async (request, reply) => {

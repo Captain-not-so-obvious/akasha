@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 const transports = new Map<string, { transport: SSEServerTransport; userId: string }>();
 
 // Helper para autenticar o token Bearer ou query param
-function authenticateMcpUser(request: any): string | null {
+async function authenticateMcpUser(request: any): Promise<string | null> {
   let token = (request.query as any)?.token || (request.query as any)?.access_token;
 
   if (!token && request.headers.authorization?.startsWith('Bearer ')) {
@@ -16,12 +16,37 @@ function authenticateMcpUser(request: any): string | null {
 
   if (!token) return null;
 
-  try {
-    const decoded = jwt.verify(token, process.env.SUPABASE_JWT_SECRET!) as { sub: string };
-    return decoded.sub;
-  } catch (err) {
-    return null;
+  const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+  if (jwtSecret) {
+    try {
+      const decoded = jwt.verify(token, jwtSecret) as { sub: string };
+      if (decoded.sub) return decoded.sub;
+    } catch {
+      // Ignora erro para tentar validação na API do Supabase
+    }
   }
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+
+  if (supabaseUrl && anonKey) {
+    try {
+      const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: anonKey,
+        },
+      });
+
+      if (res.ok) {
+        const user = await res.json();
+        if (user?.id) return user.id;
+      }
+    } catch {}
+  }
+
+  return null;
 }
 
 export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
@@ -80,8 +105,17 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     // 2. Autenticação estrita para listar e chamar ferramentas
-    const userId = authenticateMcpUser(request);
+    const userId = await authenticateMcpUser(request);
     if (!userId) {
+      const protocol = request.headers['x-forwarded-proto'] || request.protocol;
+      const host = request.headers.host || 'akasha-backend.onrender.com';
+      const baseUrl = `${protocol}://${host}`;
+
+      reply.header(
+        'WWW-Authenticate',
+        `Bearer realm="akasha", resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`
+      );
+
       return reply.status(401).send({
         jsonrpc: '2.0',
         id: reqId,
@@ -91,6 +125,7 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
         }
       });
     }
+
 
     // 3. Listar Ferramentas
     if (method === 'tools/list' || method === 'tools/list_tools') {
@@ -146,7 +181,8 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /mcp/sse — Permite o handshake inicial de conexão SSE do protocolo MCP
   fastify.get('/sse', async (request, reply) => {
-    const userId = authenticateMcpUser(request) || 'guest';
+    const userId = (await authenticateMcpUser(request)) || 'guest';
+
 
     reply.hijack();
     reply.raw.setHeader('Access-Control-Allow-Origin', '*');
