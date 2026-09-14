@@ -301,24 +301,27 @@ const isUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9
 
     let userId = await resolveUserId(request);
 
-    // Se o usuário digitou o e-mail no formulário
+    // Se o usuário digitou o e-mail ou nome no formulário
     if (!userId && submittedUsername) {
+      // Busca EXATA por UUID ou por username/e-mail cadastrado
       const existingProfile = await prisma.profile.findFirst({
         where: isUuid(submittedUsername)
-          ? { OR: [{ username: submittedUsername }, { id: submittedUsername }] }
-          : { username: submittedUsername }
+          ? { OR: [{ username: { equals: submittedUsername, mode: 'insensitive' } }, { id: submittedUsername }] }
+          : { username: { equals: submittedUsername, mode: 'insensitive' } }
       });
 
       if (existingProfile) {
         userId = existingProfile.id;
       } else {
-        userId = crypto.randomUUID();
-        await prisma.profile.create({
-          data: {
-            id: userId,
-            username: submittedUsername
-          }
-        });
+        // E-mail ou usuário não encontrado — sem fallbacks ou adivinhações
+        const html = renderAuthorizeHtml(
+          clientId,
+          redirectUri,
+          state,
+          null,
+          'E-mail ou usuário não encontrado. Por favor, utilize o e-mail exato cadastrado no Akasha.'
+        );
+        return reply.type('text/html').send(html);
       }
     }
 
@@ -333,11 +336,8 @@ const isUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9
       if (profile) {
         userId = profile.id;
       } else {
-        const newId = crypto.randomUUID();
-        await prisma.profile.create({
-          data: { id: newId, username: userId }
-        });
-        userId = newId;
+        const html = renderAuthorizeHtml(clientId, redirectUri, state, null, 'E-mail ou usuário não encontrado.');
+        return reply.type('text/html').send(html);
       }
     }
 
@@ -398,9 +398,7 @@ const isUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9
       if (profile) {
         activeUserId = profile.id;
       } else {
-        const newId = crypto.randomUUID();
-        await prisma.profile.create({ data: { id: newId, username: activeUserId } });
-        activeUserId = newId;
+        return reply.status(404).send({ error: 'Usuário não encontrado.' });
       }
     }
 

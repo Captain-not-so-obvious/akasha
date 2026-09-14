@@ -1,7 +1,29 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
 import { mcpRoutes } from '../../src/routes/mcp.routes.js';
 import { oauthRoutes } from '../../src/routes/oauth.routes.js';
+import { prisma } from '../../src/lib/prisma.js';
+
+vi.mock('../../src/lib/prisma.js', () => ({
+  prisma: {
+    profile: {
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      upsert: vi.fn(),
+    },
+    oAuthCode: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    wishlist: {
+      upsert: vi.fn(),
+      delete: vi.fn(),
+    }
+  },
+}));
 
 describe('Integration: MCP & OAuth Metadata Routes', () => {
   let fastify: ReturnType<typeof Fastify>;
@@ -10,6 +32,7 @@ describe('Integration: MCP & OAuth Metadata Routes', () => {
     fastify = Fastify();
     await fastify.register(mcpRoutes, { prefix: '/mcp' });
     await fastify.register(oauthRoutes, { prefix: '/oauth' });
+    vi.clearAllMocks();
   });
 
   it('GET /mcp - deve retornar informações básicas do servidor MCP', async () => {
@@ -61,6 +84,51 @@ describe('Integration: MCP & OAuth Metadata Routes', () => {
 
     expect(response.statusCode).toBe(404);
     expect(response.json()).toEqual({ error: 'Sessão MCP não encontrada' });
+  });
+
+  it('POST /oauth/authorize - deve processar autorização com sucesso quando houver correspondência exata de e-mail/usuário', async () => {
+    vi.mocked(prisma.profile.findFirst).mockResolvedValue({
+      id: '11111111-2222-3333-4444-555555555555',
+      username: 'usuario.teste@example.com',
+      avatarUrl: null,
+      updatedAt: new Date()
+    } as any);
+    vi.mocked(prisma.profile.upsert).mockResolvedValue({} as any);
+    vi.mocked(prisma.oAuthCode.create).mockResolvedValue({} as any);
+
+    const response = await fastify.inject({
+      method: 'POST',
+      url: '/oauth/authorize',
+      payload: {
+        client_id: 'spark',
+        redirect_uri: 'https://spark.google.com/oauth/callback',
+        state: 'test-state-123',
+        username: 'usuario.teste@example.com'
+      }
+    });
+
+    expect(response.statusCode).toBe(302);
+    expect(response.headers.location).toContain('code=');
+    expect(prisma.profile.create).not.toHaveBeenCalled();
+  });
+
+  it('POST /oauth/authorize - deve retornar mensagem de erro sem criar perfil fictício quando usuário não for encontrado', async () => {
+    vi.mocked(prisma.profile.findFirst).mockResolvedValue(null);
+
+    const response = await fastify.inject({
+      method: 'POST',
+      url: '/oauth/authorize',
+      payload: {
+        client_id: 'spark',
+        redirect_uri: 'https://spark.google.com/oauth/callback',
+        state: 'test-state-123',
+        username: 'naoexistente@example.com'
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toContain('E-mail ou usuário não encontrado');
+    expect(prisma.profile.create).not.toHaveBeenCalled();
   });
 });
 
