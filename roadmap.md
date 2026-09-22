@@ -138,3 +138,76 @@
 | 5.4 | Feed de Atividades: o que a sua rede está assistindo | 🔴 | 5.3 | Pendente |
 | 5.5 | Comparar listas e avaliações com amigos | 🔴 | 5.3 | Pendente |
 | 5.6 | Notificações push (novo episódio, amigo avaliou algo) | 🔴 | 5.3, 5.4 | Pendente |
+
+---
+
+## FASE 6 — Fundação & Modelo Polimórfico Universal
+> 📄 **Spec:** [`specs/SPEC-001-universal-media-expansion.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-001-universal-media-expansion.md)
+**Objetivo:** Adaptar o banco e backend para suportar Games, Livros e HQs sem quebrar os dados existentes de Cinema/TV.
+
+| # | Feature | Complexidade | Dependência | Status |
+|---|---|---|---|---|
+| 6.1 | Atualizar `schema.prisma` com enums `DomainType` e `ConsumptionStatus` + campos de metadados | 🟡 | Fase 2 | Em Planejamento |
+| 6.2 | Migration sem perda de dados (`prisma migrate dev`) mapeando dados legados do TMDB | 🟡 | 6.1 | Em Planejamento |
+| 6.3 | Atualizar schemas Zod de Wishlist para aceitar `domain` e metadados cacheados | 🟢 | 6.1 | Em Planejamento |
+| 6.4 | Adaptar rotas `/wishlist` para suportar filtros por domínio (`?domain=...`) | 🟢 | 6.3 | Em Planejamento |
+| 6.5 | Testes unitários com Vitest para schemas polimórficos e migração | 🟡 | 6.4 | Em Planejamento |
+
+---
+
+## FASE 7 — Módulo de Jogos (Games)
+> 📄 **Spec:** [`specs/SPEC-001-universal-media-expansion.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-001-universal-media-expansion.md)
+**Objetivo:** Ingestão de jogos via IGDB, motor de recomendação por jogabilidade e interface na TV/Web.
+
+| # | Feature | Complexidade | Dependência | Status |
+|---|---|---|---|---|
+| 7.1 | Serviço IGDB (`igdb.service.ts`) com autenticação Twitch OAuth e tipagem estrita | 🟡 | Fase 6 | Pendente |
+| 7.2 | Rotas Fastify: `GET /games/search` e `GET /games/:id` | 🟢 | 7.1 | Pendente |
+| 7.3 | Motor de Recomendação de Jogos baseado em gêneros e `similar_games` da IGDB | 🔴 | 7.1, Fase 6 | Pendente |
+| 7.4 | Componente `GameCard` com badges de plataforma e foco D-Pad para TV | 🟡 | 7.2 | Pendente |
+| 7.5 | Tela de Busca e Rails de Recomendação de Jogos no Frontend | 🟡 | 7.3, 7.4 | Pendente |
+| 7.6 | Testes unitários e de componente para módulo de Jogos | 🟡 | 7.5 | Pendente |
+
+---
+
+## FASE 8 — Módulo de Livros (Books)
+> 📄 **Spec:** [`specs/SPEC-001-universal-media-expansion.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-001-universal-media-expansion.md)
+**Objetivo:** Ingestão de livros via Google Books, controle de páginas e recomendações literárias.
+
+| # | Feature | Complexidade | Dependência | Status |
+|---|---|---|---|---|
+| 8.1 | Serviço Google Books (`books.service.ts`) com busca em pt-BR e ISBN | 🟡 | Fase 6 | Pendente |
+| 8.2 | Rotas Fastify: `GET /books/search` e `GET /books/:id` | 🟢 | 8.1 | Pendente |
+| 8.3 | Motor de Recomendação de Livros por autor e assuntos/gêneros literários | 🔴 | 8.1, Fase 6 | Pendente |
+| 8.4 | Componente `BookCard` com proporção de capa editorial e foco D-Pad para TV | 🟡 | 8.2 | Pendente |
+| 8.5 | Tela de Busca e Rails de Leituras Recomendadas no Frontend | 🟡 | 8.3, 8.4 | Pendente |
+| 8.6 | Testes unitários e de componente para módulo de Livros | 🟡 | 8.5 | Pendente |
+
+---
+
+## FASE 9 — Módulo de Quadrinhos (Comics & Mangás)
+> 📄 **Spec:** [`specs/SPEC-001-universal-media-expansion.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-001-universal-media-expansion.md)
+**Objetivo:** Ingestão de HQs e Mangás (Comic Vine + AniList) com rastreio de volumes e arcos.
+
+| # | Feature | Complexidade | Dependência | Status |
+|---|---|---|---|---|
+| 9.1 | Serviço Comic Vine / AniList (`comics.service.ts`) com normalização de dados | 🔴 | Fase 6 | Pendente |
+| 9.2 | Rotas Fastify: `GET /comics/search` e `GET /comics/:id` | 🟢 | 9.1 | Pendente |
+| 9.3 | Motor de Recomendação de Quadrinhos (roteiristas, desenhistas e sagas) | 🔴 | 9.1, Fase 6 | Pendente |
+| 9.4 | Componente `ComicCard` com estética Liquid Glass e foco TV | 🟡 | 9.2 | Pendente |
+| 9.5 | Interface de HQs & Mangás no Frontend | 🟡 | 9.3, 9.4 | Pendente |
+| 9.6 | Testes unitários e de integração para Quadrinhos | 🟡 | 9.5 | Pendente |
+
+---
+
+## FASE 10 — O Grande Acervo Transmídia & MCP Universal
+> 📄 **Spec:** [`specs/SPEC-001-universal-media-expansion.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-001-universal-media-expansion.md)
+**Objetivo:** Conexão cruzada entre franquias (filme <-> livro <-> jogo) e suporte total ao assistente agêntico MCP.
+
+| # | Feature | Complexidade | Dependência | Status |
+|---|---|---|---|---|
+| 10.1 | Motor Transmídia: descoberta de obras relacionadas entre diferentes mídias | 🔴 | Fases 7, 8, 9 | Pendente |
+| 10.2 | Dashboard do Grande Acervo: métricas consolidadas de consumo cultural | 🟡 | Fases 7, 8, 9 | Pendente |
+| 10.3 | Atualização das Tools MCP Fastify para aceitar parâmetro `domain` | 🟡 | Fase 6 | Pendente |
+| 10.4 | Testes end-to-end de integração geral | 🔴 | 10.1–10.3 | Pendente |
+

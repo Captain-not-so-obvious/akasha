@@ -1,17 +1,30 @@
 Contexto do Produto e Regras de Negócio: AKASHA
-1. Visão Geral do Produto
-O Akasha é um repositório inteligente e rastreador pessoal de entretenimento. Ele atua como o registro definitivo do usuário para organizar e documentar sua jornada de consumo de mídias televisivas e cinematográficas.
 
-2. Função Principal (MVP - Fase 1)
-A aplicação funciona como um gerenciador de biblioteca interativo. Suas funcionalidades centrais incluem:
+## 1. Visão Geral do Produto
+O **Akasha** é um repositório inteligente e acervo universal de entretenimento. Inspirado conceitualmente nos "Registros Akáshicos" (o compêndio cósmico da sabedoria), ele atua como o registro definitivo do usuário para documentar sua jornada através de múltiplas mídias: **Filmes, Séries, Jogos, Livros e Quadrinhos (HQs/Mangás)**.
 
-Gestão de Catálogo e Status: Permitir que o usuário adicione filmes e séries e os classifique em três categorias fundamentais: o que está assistindo no momento, o que já terminou de ver (concluídos) e a lista de desejos (o que planeja ver no futuro).
+> 📄 **Especificação Técnica de Referência:** [`specs/SPEC-001-universal-media-expansion.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-001-universal-media-expansion.md)
 
-Sistema de Avaliação: Ao alterar o status de uma obra para "concluído", o sistema deve solicitar que o usuário avalie a mídia com uma nota de 1 a 5 estrelas, criando um histórico de qualidade e preferências.
+## 2. Funções Principais e Módulos do Acervo
 
-3. Roadmap e Escalabilidade (Visão de Futuro)
-A arquitetura do banco de dados e do back-end deve ser construída já prevendo flexibilidade para receber os seguintes módulos no futuro:
+### 2.1 Gestão Universal de Catálogo e Status
+Permite que o usuário organize suas obras em status de consumo padronizados e semânticos por mídia:
+* **Quero Consumir (Backlog):** Filmes/séries a assistir, jogos a jogar, livros e quadrinhos a ler.
+* **Em Progresso:** Obras sendo consumidas ativamente no momento.
+* **Concluídos:** Histórico de obras finalizadas, com sistema obrigatório de avaliação.
+* **Abandonados (Dropped):** Obras interrompidas (sinal negativo forte para o motor de recomendação).
 
-Motor de Inteligência (Machine Learning): O histórico de consumo e as notas de 1 a 5 estrelas alimentarão um modelo de ML próprio. O objetivo é fugir de sugestões genéricas e gerar recomendações cirúrgicas baseadas no perfil comportamental real do usuário.
+### 2.2 Sistema de Avaliação Cirúrgico
+Ao concluir qualquer mídia, o usuário atribui uma nota de 1 a 5 estrelas. Essas notas, combinadas com o status de consumo, constroem o mapa comportamental e o perfil de gosto do usuário.
 
-Camada de Interação Social: Evolução para uma rede fechada. Usuários poderão se conectar como "amigos", visualizando feeds de atividade (o que a rede está assistindo), comparando listas de desejos e conferindo as avaliações dadas por seus contatos para fomentar a descoberta orgânica.
+## 3. Escalabilidade e Motores de Inteligência
+
+### Motores de Recomendação Especialistas & Transmídia
+O Akasha opera motores de recomendação dedicados por domínio (TMDB para cinema, IGDB para games, Google Books para livros e Comic Vine/AniList para HQs/mangás), complementados por um **Motor Transmídia**:
+* Descoberta cruzada de franquias e universos expandidos (ex: conectar games a livros e adaptações cinematográficas baseadas nas notas do usuário).
+
+### Agente Autônomo e Camada MCP (Model Context Protocol)
+Compatibilidade nativa com assistentes agênticos (como Google Spark) para gerenciar o acervo, catalogar mídias e solicitar recomendações personalizadas via comandos conversacionais.
+
+### Camada de Interação Social (Visão Futura)
+Evolução para uma rede fechada entre amigos: feeds de atividade transmídia, comparação de bibliotecas e recomendações orgânicas entre contatos.

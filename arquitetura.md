@@ -1,47 +1,57 @@
 # Contexto e Escopo do Projeto: Akasha
 
+> 📄 **Especificação Técnica de Expansão (Módulos Universais):** [`specs/SPEC-001-universal-media-expansion.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-001-universal-media-expansion.md)
+
 ## 1. Visão Geral da Arquitetura
 
 ```
-┌────────────────────────────────────────────────────────┐
-│                    Frontend (React + Vite)              │
-│                Hospedado na Vercel / Netlify            │
-└───────────────────────────┬────────────────────────────┘
-                            │
-            ┌───────────────┴───────────────┐
-            ▼                               ▼
-┌───────────────────────┐       ┌────────────────────────┐
-│    API Externa TMDB   │       │  Backend API (Fastify)  │
-│  Dados em Português   │       │  TypeScript + Zod       │
-│  (language=pt-BR)     │       │  Hospedado no Render    │
-└───────────────────────┘       └───────────┬────────────┘
-                                            │
-                                            ▼
-                                ┌────────────────────────┐
-                                │      Prisma ORM         │
-                                │  (Type-safe DB Client)  │
-                                └───────────┬────────────┘
-                                            │
-                                            ▼
-                                ┌────────────────────────┐
-                                │   Supabase Cloud DB    │
-                                │ PostgreSQL + Auth OAuth │
-                                └────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Frontend (React + Vite)                         │
+│     Universal (Android TV D-Pad, Mobile Touch, Desktop Responsive)     │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Backend API (Fastify)                           │
+│          TypeScript + Zod + Auth BFF (HttpOnly) + Servidor MCP         │
+└───────┬───────────────┬───────────────────┬───────────────────┬────────┘
+        │               │                   │                   │
+        ▼               ▼                   ▼                   ▼
+┌──────────────┐ ┌──────────────┐   ┌───────────────┐   ┌───────────────┐
+│   TMDB API   │ │   IGDB API   │   │ Google Books  │   │  Comic Vine   │
+│(Filmes/Séries│ │   (Games)    │   │   (Livros)    │   │   & AniList   │
+│   pt-BR)     │ │ Twitch OAuth │   │    pt-BR      │   │ (HQs/Mangás)  │
+└──────────────┘ └──────────────┘   └───────────────┘   └───────────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │      Prisma ORM       │
+                        │ (Type-safe DB Client) │
+                        └───────────┬───────────┘
+                                    │
+                                    ▼
+                        ┌───────────────────────┐
+                        │   Supabase Cloud DB   │
+                        │PostgreSQL + Auth OAuth│
+                        └───────────────────────┘
 ```
 
 ### Decisões de Stack e Justificativas
 
 | Camada | Tecnologia | Justificativa |
 |---|---|---|
-| **Frontend** | React + Vite | SPA moderna, ecossistema rico, deploy trivial na Vercel |
-| **Framework Backend** | **Fastify** | Mais performático que Express, suporte TypeScript nativo via types oficiais, maior adoção em vagas de mercado |
-| **Linguagem Backend** | **TypeScript** | Type safety em tempo de desenvolvimento, autocompletar preciso, erros capturados antes de rodar |
-| **Validação de Input** | **Zod** | Integração perfeita com TypeScript — infere tipos automaticamente dos schemas de validação |
-| **ORM** | **Prisma** | ORM dominante no mercado TypeScript; schema auto-gera tipos TS, migrations controladas, DX excelente |
-| **Banco de Dados** | **Supabase (PostgreSQL)** | PostgreSQL gerenciado, RLS nativo, Auth OAuth embutido, plano gratuito generoso |
-| **Catálogo de Mídias** | **TMDB API** | Dados completos de filmes/séries sem custo de armazenamento próprio |
-| **Deploy Frontend** | Vercel / Netlify | CI/CD automático via GitHub, CDN global, gratuito |
-| **Deploy Backend** | Render | Suporte a Node.js/TypeScript, deploy via GitHub, gratuito com limitações |
+| **Frontend** | React + Vite | SPA moderna, ecossistema rico, compatibilidade total com Capacitor (Android TV) |
+| **Framework Backend** | **Fastify** | Alta performance, tipagem TypeScript de primeira classe, suporte nativo a plugins e MCP |
+| **Linguagem Backend** | **TypeScript** | Rigor estrito de tipos (`no-any`), prevenção de erros em tempo de compilação |
+| **Validação de Input** | **Zod** | Schemas compartilhados e inferência direta de tipos TypeScript |
+| **ORM** | **Prisma** | Schema declarativo, migrations controladas e tipagem estrita com Postgres |
+| **Banco de Dados** | **Supabase (PostgreSQL)** | PostgreSQL relacional, RLS (Row Level Security), Auth OAuth e suporte a JSONB para metadados |
+| **Catálogo Filmes/Séries** | **TMDB API** | Dados completos com suporte a `pt-BR` e imagens |
+| **Catálogo Jogos** | **IGDB API (Twitch)** | Padrão ouro da indústria, `similar_games`, gêneros e estúdios |
+| **Catálogo Livros** | **Google Books API** | Maior acervo pt-BR, busca por ISBN e assuntos literários |
+| **Catálogo Quadrinhos** | **Comic Vine + AniList** | Cobertura de HQs ocidentais (volumes/arcos) e mangás/manhwas |
+| **Deploy Frontend** | Vercel / Netlify | CI/CD automático via GitHub, CDN global |
+| **Deploy Backend** | Render | Suporte a Node.js/TypeScript, deploy via GitHub |
 
 > **Nota sobre Prisma vs Drizzle:** Prisma foi escolhido por ser o ORM TypeScript mais adotado no mercado atualmente e por ter a curva de aprendizado mais suave para quem está migrando de outras linguagens. O schema declarativo (arquivo `.prisma`) é intuitivo e similar ao Django ORM conceitualmente. Drizzle é uma alternativa excelente e mais próxima do SQL puro, mas Prisma é o passo natural para um primeiro projeto em TypeScript.
 

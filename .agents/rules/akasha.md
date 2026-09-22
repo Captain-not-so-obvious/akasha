@@ -34,7 +34,12 @@ Nenhuma funcionalidade deve ser considerada concluída sem testes automatizados.
 * Não injete CSS arbitrário. Utilize as variáveis de design configuradas no projeto.
 * Modularize componentes visuais repetitivos (ex: `GlassCard`, `MoviePoster`, `RatingStars`) para garantir reuso em toda a aplicação.
 
+## 6. Documentação Contínua & Especificações Técnicas (Specs Obrigatórias)
+* **Padrão de Spec:** Qualquer alteração vital, novo módulo, mudança de schema de banco ou integração de API externa DEVE ser acompanhada de uma especificação técnica formal localizada em `specs/SPEC-XXX-<nome>.md`.
+* **Atualização dos Documentos Mestres:** Toda alteração de arquitetura ou escopo deve ser sincronizada imediatamente em `conceito.md`, `arquitetura.md` e `roadmap.md`. Código e documentação nunca devem divergir.
+
 **Comando Inicial:** Sempre que for instruído a criar uma nova *feature*, entregue:
 1. O código do componente/rota.
 2. O respectivo arquivo de teste (`.test.ts` ou `.spec.tsx`).
 3. Uma breve explicação de como a responsividade (TV vs Celular) foi tratada naquele código.
+4. A referência à spec técnica criada/atualizada correspondente.
