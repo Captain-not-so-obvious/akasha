@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRecommendations } from '../../hooks/useRecommendations';
 import type { RecommendedItem } from '../../types/recommendation';
 import type { MediaDetails } from '../../types/media';
@@ -15,13 +15,15 @@ const FALLBACK_POSTER = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
  *
  * Tratamento de Responsividade e Plataformas:
  * - Android TV (D-Pad): Todos os cards interativos possuem tabIndex={0}, aria-label explicativo,
- *   foco com realce animado (.tv-focus-glow) e suporte a ativação pelas teclas Enter ou Espaço.
+ *   foco com realce animado (.tv-focus-glow), auto-scroll seguro com scrollIntoView({ inline: 'center' })
+ *   ao focar no D-Pad e botão atalho para voltar ao início do trilho.
  * - Mobile (Touch): scroll horizontal suave (overflow-x-auto, touch-action), áreas de toque amplas (min 44px).
  * - Desktop: Hover com elevação, transparência glassmorphic e visualização de motivos da recomendação.
  */
 export const RecommendationRail: React.FC<RecommendationRailProps> = ({ onSelectMedia }) => {
   const { recommendations, isLoading, error, fetchRecommendations } = useRecommendations();
   const [filterType, setFilterType] = useState<'all' | 'movie' | 'tv'>('all');
+  const railRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchRecommendations({ limit: 12, mediaType: filterType });
@@ -46,6 +48,31 @@ export const RecommendationRail: React.FC<RecommendationRailProps> = ({ onSelect
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       handleSelect(item);
+    }
+  };
+
+  const handleCardFocus = (e: React.FocusEvent<HTMLDivElement>) => {
+    // Garantia para Android TV / D-Pad: focar o card centraliza-o na viewport horizontal
+    if (typeof e.currentTarget.scrollIntoView === 'function') {
+      e.currentTarget.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  };
+
+  const handleScrollToStart = () => {
+    if (railRef.current) {
+      railRef.current.scrollTo({
+        left: 0,
+        behavior: 'smooth',
+      });
+      // Tenta mover o foco para o primeiro card de recomendação no D-Pad
+      const firstCard = railRef.current.querySelector<HTMLDivElement>('[role="button"]');
+      if (firstCard) {
+        firstCard.focus();
+      }
     }
   };
 
@@ -88,33 +115,55 @@ export const RecommendationRail: React.FC<RecommendationRailProps> = ({ onSelect
           </div>
         </div>
 
-        {/* Abas de Filtro (Filmes / Séries) */}
-        <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-lg border border-white/10 self-start sm:self-auto">
-          {(['all', 'movie', 'tv'] as const).map((type) => (
-            <button
-              key={type}
-              type="button"
-              tabIndex={0}
-              onClick={() => setFilterType(type)}
-              className={`
-                px-3 py-1.5 text-xs font-outfit font-medium rounded-md transition-all duration-200
-                focus-visible:ring-2 focus-visible:ring-yellow-400 outline-none
-                ${
-                  filterType === type
-                    ? 'bg-[var(--color-caramelo-claro)] text-black font-semibold shadow'
-                    : 'text-[var(--color-seda-milharal)]/70 hover:text-[var(--color-seda-milharal)] hover:bg-white/5'
-                }
-              `}
-            >
-              {type === 'all' ? 'Todos' : type === 'movie' ? 'Filmes' : 'Séries'}
-            </button>
-          ))}
+        {/* Controle de Navegação e Filtros */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap self-start sm:self-auto">
+          {/* Botão de Atalho para TV / D-Pad: Voltar ao Início */}
+          <button
+            type="button"
+            tabIndex={0}
+            onClick={handleScrollToStart}
+            aria-label="Voltar ao início das recomendações"
+            className="
+              tv-focus-glow flex items-center gap-1.5 px-3 py-1.5 text-xs font-outfit font-medium rounded-lg
+              bg-white/5 hover:bg-white/10 text-[var(--color-seda-milharal)] border border-white/10
+              focus-visible:ring-2 focus-visible:ring-yellow-400 outline-none cursor-pointer transition-all
+            "
+          >
+            <span>⏮</span>
+            <span>Início</span>
+          </button>
+
+          {/* Abas de Filtro (Filmes / Séries) */}
+          <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-lg border border-white/10">
+            {(['all', 'movie', 'tv'] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                tabIndex={0}
+                onClick={() => setFilterType(type)}
+                className={`
+                  px-3 py-1.5 text-xs font-outfit font-medium rounded-md transition-all duration-200
+                  focus-visible:ring-2 focus-visible:ring-yellow-400 outline-none
+                  ${
+                    filterType === type
+                      ? 'bg-[var(--color-caramelo-claro)] text-black font-semibold shadow'
+                      : 'text-[var(--color-seda-milharal)]/70 hover:text-[var(--color-seda-milharal)] hover:bg-white/5'
+                  }
+                `}
+              >
+                {type === 'all' ? 'Todos' : type === 'movie' ? 'Filmes' : 'Séries'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Carrossel de Cards com Scroll Horizontal e Touch target amplo */}
       <div className="relative w-full overflow-hidden">
-        <div className="flex gap-4 overflow-x-auto pb-4 pt-1 px-1 scrollbar-thin scrollbar-thumb-white/20 scroll-smooth snap-x">
+        <div
+          ref={railRef}
+          className="flex gap-4 overflow-x-auto pb-4 pt-1 px-1 scrollbar-thin scrollbar-thumb-white/20 scroll-smooth"
+        >
           {recommendations.map((item) => (
             <div
               key={`${item.mediaType}-${item.tmdbId}`}
@@ -123,6 +172,7 @@ export const RecommendationRail: React.FC<RecommendationRailProps> = ({ onSelect
               aria-label={`Recomendação: ${item.title}. Motivo: ${item.reason}`}
               onClick={() => handleSelect(item)}
               onKeyDown={(e) => handleKeyDown(e, item)}
+              onFocus={handleCardFocus}
               className="
                 tv-focus-glow snap-start flex-none w-[170px] sm:w-[200px]
                 group relative flex flex-col rounded-xl overflow-hidden
@@ -191,3 +241,4 @@ export const RecommendationRail: React.FC<RecommendationRailProps> = ({ onSelect
     </section>
   );
 };
+
