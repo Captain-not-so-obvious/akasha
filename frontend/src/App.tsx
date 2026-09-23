@@ -6,6 +6,7 @@ import { OAuthAuthorize } from './pages/OAuthAuthorize';
 import { SearchPage } from './pages/Search';
 import { Library } from './pages/Library';
 import { Profile } from './pages/Profile';
+import { Social } from './pages/Social';
 
 import { Navbar } from './components/ui/Navbar';
 
@@ -86,6 +87,16 @@ export default function App() {
                 <ProtectedRoute>
                   <Layout>
                     <SearchPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/social"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Social />
                   </Layout>
                 </ProtectedRoute>
               }

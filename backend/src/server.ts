@@ -6,6 +6,8 @@ import { recommendationRoutes } from './routes/recommendation.routes.js';
 import { mcpRoutes } from './routes/mcp.routes.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { oauthRoutes } from './routes/oauth.routes.js';
+import { friendsRoutes } from './routes/friends.routes.js';
+import { profileRoutes } from './routes/profile.routes.js';
 import cookie from '@fastify/cookie';
 
 const fastify = Fastify({
@@ -49,6 +51,8 @@ await fastify.register(wishlistRoutes, { prefix: '/wishlist' });
 await fastify.register(tmdbRoutes, { prefix: '/tmdb' });
 await fastify.register(recommendationRoutes, { prefix: '/recommendations' });
 await fastify.register(mcpRoutes, { prefix: '/mcp' });
+await fastify.register(friendsRoutes, { prefix: '/friends' });
+await fastify.register(profileRoutes, { prefix: '/profile' });
 
 // Helper para obter a URL base dinâmica
 const getBaseUrl = (request: FastifyRequest) => {

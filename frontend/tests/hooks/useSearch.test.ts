@@ -78,7 +78,7 @@ describe('Hook useSearch', () => {
     expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/tmdb/search?q=batman&type=movie'),
       expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: 'Bearer fake-jwt-token' }),
+        credentials: 'include',
       })
     );
   });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Menu, X, Film, Search, User, LogOut } from 'lucide-react';
+import { Menu, X, Film, Search, User, LogOut, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 export function Navbar() {
@@ -101,6 +101,10 @@ export function Navbar() {
                 <Search className="w-5 h-5 text-[var(--color-caramelo-claro)]" />
                 <span>Busca</span>
               </NavLink>
+              <NavLink to="/social" className={navLinkClassMobile} tabIndex={0}>
+                <Users className="w-5 h-5 text-[var(--color-caramelo-claro)]" />
+                <span>Amigos</span>
+              </NavLink>
               <NavLink to="/profile" className={navLinkClassMobile} tabIndex={0}>
                 <User className="w-5 h-5 text-[var(--color-caramelo-claro)]" />
                 <span>Perfil</span>
@@ -146,6 +150,9 @@ export function Navbar() {
             </NavLink>
             <NavLink to="/search" className={navLinkClassDesktop} tabIndex={0}>
               Busca
+            </NavLink>
+            <NavLink to="/social" className={navLinkClassDesktop} tabIndex={0}>
+              Amigos
             </NavLink>
             <NavLink to="/profile" className={navLinkClassDesktop} tabIndex={0}>
               Perfil

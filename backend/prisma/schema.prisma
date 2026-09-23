@@ -10,15 +10,43 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum FriendshipStatus {
+  pending
+  accepted
+  declined
+  blocked
+}
+
 model Profile {
-  id        String     @id @db.Uuid
-  username  String?    @unique
-  avatarUrl String?    @map("avatar_url")
-  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at")
-  wishlists Wishlist[]
-  oauthCodes OAuthCode[]
+  id                  String       @id @db.Uuid
+  email               String?      @unique
+  username            String?      @unique
+  avatarUrl           String?      @map("avatar_url")
+  friendCode          String?      @unique @map("friend_code")
+  updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at")
+  wishlists           Wishlist[]
+  oauthCodes          OAuthCode[]
+  sentFriendships     Friendship[] @relation("SentFriendships")
+  receivedFriendships Friendship[] @relation("ReceivedFriendships")
 
   @@map("profiles")
+}
+
+model Friendship {
+  id           Int              @id @default(autoincrement())
+  requesterId  String           @map("requester_id") @db.Uuid
+  addresseeId  String           @map("addressee_id") @db.Uuid
+  status       FriendshipStatus @default(pending)
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @default(now()) @updatedAt @map("updated_at")
+
+  requester    Profile          @relation("SentFriendships", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee    Profile          @relation("ReceivedFriendships", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
+  @@map("friendships")
 }
 
 model OAuthCode {

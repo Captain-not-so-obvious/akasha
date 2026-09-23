@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma.js';
+import { generateFriendCode, generateInitialUsername } from '../lib/friendCode.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import jwt from 'jsonwebtoken';
 
@@ -92,19 +93,39 @@ export async function authMiddleware(
 
     request.userId = userId;
 
-    // Garante que o profile existe no banco, para que a foreign key do wishlist não falhe.
-    await prisma.profile.upsert({
+    // Garante que o profile existe no banco com email e friendCode inicializados
+    const existing = await prisma.profile.findUnique({
       where: { id: request.userId },
-      update: {},
-      create: { 
-        id: request.userId,
-        username: email || 'Viajante',
-        avatarUrl: null
-      }
+      select: { id: true, email: true, friendCode: true },
     });
+
+    if (!existing) {
+      const friendCode = generateFriendCode();
+      const initialUsername = generateInitialUsername(email, friendCode);
+
+      await prisma.profile.create({
+        data: {
+          id: request.userId,
+          email: email || null,
+          username: initialUsername,
+          friendCode,
+          avatarUrl: null,
+        },
+      });
+    } else if (!existing.friendCode || (email && !existing.email)) {
+      await prisma.profile.update({
+        where: { id: request.userId },
+        data: {
+          ...(email && !existing.email ? { email } : {}),
+          ...(!existing.friendCode ? { friendCode: generateFriendCode() } : {}),
+        },
+      });
+    }
   } catch (err: any) {
     request.log.error('Erro de validação do token: %o', err);
     reply.header('WWW-Authenticate', 'Bearer realm="akasha", error="invalid_token"');
     await reply.status(401).send({ error: 'Token inválido ou expirado.' });
   }
 }
+
+export const verifySupabaseAuth = authMiddleware;

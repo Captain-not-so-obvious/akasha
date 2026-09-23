@@ -130,11 +130,19 @@
 ## FASE 5 — Futuro (Pós-MVP)
 **Objetivo:** Módulos avançados que exigem o histórico real de uso gerado nas fases anteriores.
 
+> 📄 **Spec Social (Amizades Bilaterais & Privacidade):** [`specs/SPEC-002-social-friendship-network.md`](specs/SPEC-002-social-friendship-network.md)
+
 | # | Feature | Complexidade | Dependência | Status |
 |---|---|---|---|---|
 | 5.1 | **Motor de Recomendação ML:** Modelo treinado com histórico + notas do usuário | 🔴 | 3+ meses de dados | Concluído |
 | 5.2 | Tela de Recomendações: "Akasha sugere para você" | 🔴 | 5.1 | Concluído |
-| 5.3 | **Camada Social:** Sistema de amizades (seguir/ser seguido) | 🔴 | Fase 3 estável | Pendente |
+| 5.3 | **Camada Social:** Sistema de amizades bilateral (solicitação estilo MSN/Friend Code TV) | 🔴 | Fase 3 estável | **Done** |
+| 5.3.1 | Ajuste no Perfil: visualização/edição de `@username` e exibição de `Friend Code` seguro | 🟡 | 5.3 | **Done** |
+| 5.3.2 | Schema Prisma: model `Friendship` + campos `friendCode` e `email` em `Profile` | 🟡 | 5.3 | **Done** |
+| 5.3.3 | Endpoints Fastify: envio de pedido, listagem, aceite/recusa e regeneração de código | 🟢 | 5.3.2 | **Done** |
+| 5.3.4 | Tela Social (Web/Mobile & Android TV com D-Pad e atalho QR Code) | 🟡 | 5.3.3 | **Done** |
+| 5.3.5 | Personalização de Avatar: upload local com crop/canvas, presets Akasha e restauração OAuth | 🟡 | 5.3.1 | **Done** |
+| 5.3.6 | Gestão de Bloqueio & Desbloqueio bilateral de usuários | 🟢 | 5.3 | **Done** |
 | 5.4 | Feed de Atividades: o que a sua rede está assistindo | 🔴 | 5.3 | Pendente |
 | 5.5 | Comparar listas e avaliações com amigos | 🔴 | 5.3 | Pendente |
 | 5.6 | Notificações push (novo episódio, amigo avaliou algo) | 🔴 | 5.3, 5.4 | Pendente |

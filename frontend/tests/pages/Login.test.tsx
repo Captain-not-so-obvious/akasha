@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Login } from '../../src/pages/Login';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -20,14 +21,22 @@ describe('Componente de Login', () => {
   });
 
   it('deve renderizar a logo do Akasha e o botão de autenticação do Google', () => {
-    render(<Login />);
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>
+    );
     
     expect(screen.getByText('AKASHA')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /entrar com o google/i })).toBeInTheDocument();
   });
 
   it('deve chamar signInWithGoogle ao clicar no botão de autenticação', () => {
-    render(<Login />);
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>
+    );
     
     const button = screen.getByRole('button', { name: /entrar com o google/i });
     fireEvent.click(button);
@@ -39,7 +48,11 @@ describe('Componente de Login', () => {
     // Retorna uma Promise que não se resolve para podermos validar o estado persistente de carregamento
     mockSignInWithGoogle.mockReturnValue(new Promise(() => {}));
 
-    render(<Login />);
+    render(
+      <MemoryRouter>
+        <Login />
+      </MemoryRouter>
+    );
     
     const button = screen.getByRole('button', { name: /entrar com o google/i });
     fireEvent.click(button);
