@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSocial } from '../hooks/useSocial';
 import { useProfile } from '../hooks/useProfile';
 import { GlassPanel } from '../components/ui/GlassPanel';
+import { ActivityFeed } from '../components/ActivityFeed';
 import {
   Users,
   UserPlus,
@@ -15,6 +16,7 @@ import {
   CheckCircle2,
   Ban,
   ShieldCheck,
+  Activity,
 } from 'lucide-react';
 
 export const Social: React.FC = () => {
@@ -32,7 +34,7 @@ export const Social: React.FC = () => {
 
   const { profile, isLoading: isProfileLoading } = useProfile();
 
-  const [activeTab, setActiveTab] = useState<'friends' | 'received' | 'sent' | 'blocked'>('friends');
+  const [activeTab, setActiveTab] = useState<'feed' | 'friends' | 'received' | 'sent' | 'blocked'>('feed');
   const [targetInput, setTargetInput] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -209,6 +211,19 @@ export const Social: React.FC = () => {
       {/* Abas de Navegação Social */}
       <div className="flex border-b border-white/10 gap-2 overflow-x-auto pb-1">
         <button
+          onClick={() => setActiveTab('feed')}
+          tabIndex={0}
+          className={`px-4 py-3 font-outfit text-sm font-semibold rounded-t-xl transition-all cursor-pointer tv-focus-glow flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'feed'
+              ? 'bg-white/10 text-[var(--color-caramelo-claro)] border-b-2 border-[var(--color-caramelo-claro)]'
+              : 'text-[var(--color-seda-milharal)] opacity-60 hover:opacity-100 hover:bg-white/5'
+          }`}
+        >
+          <Activity className="w-4 h-4 text-amber-400" />
+          <span>Feed da Rede</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('friends')}
           tabIndex={0}
           className={`px-4 py-3 font-outfit text-sm font-semibold rounded-t-xl transition-all cursor-pointer tv-focus-glow flex items-center gap-2 whitespace-nowrap ${
@@ -267,13 +282,15 @@ export const Social: React.FC = () => {
       </div>
 
       {/* Conteúdo da Aba */}
-      {isSocialLoading && (
+      {activeTab === 'feed' && <ActivityFeed />}
+
+      {isSocialLoading && activeTab !== 'feed' && (
         <div className="py-12 text-center text-sm font-outfit text-[var(--color-seda-milharal)] opacity-50">
           Carregando conexões...
         </div>
       )}
 
-      {/* ABA 1: AMIGOS CONFIRMADOS */}
+      {/* ABA: AMIGOS CONFIRMADOS */}
       {!isSocialLoading && activeTab === 'friends' && (
         <div>
           {friends.length === 0 ? (

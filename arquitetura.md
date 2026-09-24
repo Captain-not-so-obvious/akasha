@@ -1,7 +1,8 @@
 # Contexto e Escopo do Projeto: Akasha
 
 > 📄 **Especificação Técnica de Expansão (Módulos Universais):** [`specs/SPEC-001-universal-media-expansion.md`](specs/SPEC-001-universal-media-expansion.md)  
-> 📄 **Especificação Técnica Camada Social (Amizades Bilaterais):** [`specs/SPEC-002-social-friendship-network.md`](specs/SPEC-002-social-friendship-network.md)
+> 📄 **Especificação Técnica Camada Social (Amizades Bilaterais):** [`specs/SPEC-002-social-friendship-network.md`](specs/SPEC-002-social-friendship-network.md)  
+> 📄 **Especificação Técnica Feed de Atividades Sociais:** [`specs/SPEC-003-activity-feed.md`](specs/SPEC-003-activity-feed.md)
 
 ## 1. Visão Geral da Arquitetura
 

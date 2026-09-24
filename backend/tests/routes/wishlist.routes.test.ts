@@ -8,9 +8,13 @@ vi.mock('../../src/lib/prisma.js', () => ({
   prisma: {
     wishlist: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       upsert: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+    },
+    activity: {
+      create: vi.fn(),
     },
   },
 }));
@@ -81,7 +85,9 @@ describe('Integration: Wishlist Routes', () => {
   });
 
   it('PATCH /wishlist/:id - deve atualizar um item', async () => {
-    const mockItem = { id: 1, status: 'completed', userRating: 5 };
+    const existingItem = { id: 1, userId: 'user-123', tmdbId: 123, mediaType: 'movie', status: 'watching', userRating: 3 };
+    const mockItem = { id: 1, userId: 'user-123', tmdbId: 123, mediaType: 'movie', status: 'completed', userRating: 5 };
+    vi.mocked(prisma.wishlist.findUnique).mockResolvedValue(existingItem as any);
     vi.mocked(prisma.wishlist.update).mockResolvedValue(mockItem as any);
 
     const response = await fastify.inject({

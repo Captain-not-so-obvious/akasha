@@ -5,6 +5,8 @@ import {
   createWishlistItemSchema,
   updateWishlistItemSchema,
 } from '../schemas/wishlist.schema.js';
+import { recordActivity } from '../services/activity.service.js';
+import { ActivityType } from '@prisma/client';
 
 export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
   // Protege todas as rotas deste plugin com o middleware de autenticação
@@ -29,6 +31,16 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
         .send({ error: 'Dados inválidos.', details: parsed.error.flatten().fieldErrors });
     }
 
+    const existing = await prisma.wishlist.findUnique({
+      where: {
+        userId_tmdbId_mediaType: {
+          userId: request.userId,
+          tmdbId: parsed.data.tmdbId,
+          mediaType: parsed.data.mediaType,
+        },
+      },
+    });
+
     // Upsert: se já existe, atualiza; se não, cria
     const item = await prisma.wishlist.upsert({
       where: {
@@ -44,10 +56,37 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
         notes: parsed.data.notes,
       },
       create: {
-        ...parsed.data,
         userId: request.userId,
+        tmdbId: parsed.data.tmdbId,
+        mediaType: parsed.data.mediaType,
+        status: parsed.data.status,
+        userRating: parsed.data.userRating,
+        notes: parsed.data.notes,
       },
     });
+
+    // Determinar o tipo de atividade para registrar no feed
+    let type: ActivityType = 'ADDED_TO_LIST';
+    if (parsed.data.userRating !== undefined && (!existing || existing.userRating !== parsed.data.userRating)) {
+      type = 'RATED_MEDIA';
+    } else if (existing && existing.status !== parsed.data.status) {
+      type = 'STATUS_CHANGED';
+    }
+
+    try {
+      await recordActivity({
+        userId: request.userId,
+        type,
+        tmdbId: item.tmdbId,
+        mediaType: item.mediaType,
+        title: parsed.data.title || null,
+        posterPath: parsed.data.posterPath || null,
+        userRating: item.userRating,
+        status: item.status,
+      });
+    } catch (err) {
+      fastify.log.warn({ err }, 'Falha ao gravar registro de atividade no feed.');
+    }
 
     return reply.status(201).send(item);
   });
@@ -64,13 +103,46 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
     }
 
     try {
+      const existing = await prisma.wishlist.findUnique({
+        where: { id: Number(id), userId: request.userId },
+      });
+
+      if (!existing) {
+        return reply.status(404).send({ error: 'Item não encontrado.' });
+      }
+
       const item = await prisma.wishlist.update({
         where: {
           id: Number(id),
           userId: request.userId, // garante que só atualiza o próprio item
         },
-        data: parsed.data,
+        data: {
+          status: parsed.data.status,
+          userRating: parsed.data.userRating,
+          notes: parsed.data.notes,
+        },
       });
+
+      let type: ActivityType = 'STATUS_CHANGED';
+      if (parsed.data.userRating !== undefined && parsed.data.userRating !== existing.userRating) {
+        type = 'RATED_MEDIA';
+      }
+
+      try {
+        await recordActivity({
+          userId: request.userId,
+          type,
+          tmdbId: item.tmdbId,
+          mediaType: item.mediaType,
+          title: parsed.data.title || null,
+          posterPath: parsed.data.posterPath || null,
+          userRating: item.userRating,
+          status: item.status,
+        });
+      } catch (err) {
+        fastify.log.warn({ err }, 'Falha ao gravar registro de atividade no feed.');
+      }
+
       return reply.send(item);
     } catch {
       return reply.status(404).send({ error: 'Item não encontrado.' });

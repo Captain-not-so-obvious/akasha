@@ -43,7 +43,11 @@ export const Library: React.FC = () => {
       setRatingModalOpen(true);
       // O submit do modal atualizará status e rating
     } else {
-      updateListItem(item.id, { status: newStatus });
+      updateListItem(item.id, { 
+        status: newStatus,
+        title: item.media.title,
+        posterPath: item.media.posterUrl || undefined,
+      });
     }
   };
 
@@ -51,7 +55,9 @@ export const Library: React.FC = () => {
     if (editingItem) {
       updateListItem(editingItem.id, { 
         userRating: rating,
-        status: editingItem.status !== 'completed' ? 'completed' : undefined // Se não era concluído, agora é
+        status: editingItem.status !== 'completed' ? 'completed' : undefined, // Se não era concluído, agora é
+        title: editingItem.media.title,
+        posterPath: editingItem.media.posterUrl || undefined,
       });
     }
   };

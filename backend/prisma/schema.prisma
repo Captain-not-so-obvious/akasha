@@ -26,6 +26,7 @@ model Profile {
   updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at")
   wishlists           Wishlist[]
   oauthCodes          OAuthCode[]
+  activities          Activity[]
   sentFriendships     Friendship[] @relation("SentFriendships")
   receivedFriendships Friendship[] @relation("ReceivedFriendships")
 
@@ -91,3 +92,28 @@ model Wishlist {
   @@unique([userId, tmdbId, mediaType]) // Evita duplicatas por usuário
   @@map("wishlist")
 }
+
+enum ActivityType {
+  ADDED_TO_LIST
+  STATUS_CHANGED
+  RATED_MEDIA
+}
+
+model Activity {
+  id         Int          @id @default(autoincrement())
+  userId     String       @map("user_id") @db.Uuid
+  type       ActivityType
+  tmdbId     Int          @map("tmdb_id")
+  mediaType  MediaType    @map("media_type")
+  title      String?
+  posterPath String?      @map("poster_path")
+  userRating Int?         @map("user_rating")
+  status     WatchStatus?
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  profile Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("activities")
+}
+

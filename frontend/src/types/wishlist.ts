@@ -20,12 +20,16 @@ export interface CreateWishlistItemInput {
   status?: WishlistStatus;
   userRating?: number;
   notes?: string;
+  title?: string;
+  posterPath?: string;
 }
 
 export interface UpdateWishlistItemInput {
   status?: WishlistStatus;
   userRating?: number;
   notes?: string;
+  title?: string;
+  posterPath?: string;
 }
 
 export type LibraryItem = WishlistItem & {

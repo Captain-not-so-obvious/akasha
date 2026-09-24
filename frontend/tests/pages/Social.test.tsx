@@ -12,6 +12,19 @@ vi.mock('../../src/hooks/useProfile', () => ({
   useProfile: vi.fn(),
 }));
 
+vi.mock('../../src/hooks/useActivityFeed', () => ({
+  useActivityFeed: () => ({
+    activities: [],
+    isLoading: false,
+    error: null,
+    page: 1,
+    totalPages: 1,
+    total: 0,
+    loadMore: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}));
+
 describe('Página Social (Camada de Amizade & TV D-Pad - SPEC-002)', () => {
   const mockSendFriendRequest = vi.fn();
   const mockRespondRequest = vi.fn();
@@ -101,8 +114,17 @@ describe('Página Social (Camada de Amizade & TV D-Pad - SPEC-002)', () => {
     expect(connectBtn).toHaveAttribute('tabIndex', '0');
   });
 
-  it('deve listar amigos confirmados com quantidade de mídias no acervo', () => {
+  it('deve carregar a aba Feed da Rede como visualização padrão ao abrir a página Social', () => {
     render(<Social />);
+
+    expect(screen.getByText('Feed da Sua Rede')).toBeInTheDocument();
+  });
+
+  it('deve listar amigos confirmados com quantidade de mídias no acervo ao selecionar a aba Amigos', () => {
+    render(<Social />);
+
+    const friendsTab = screen.getByRole('button', { name: /Amigos/i });
+    fireEvent.click(friendsTab);
 
     expect(screen.getByText('cinefilo_neo')).toBeInTheDocument();
     expect(screen.getByText(/42 mídias/i)).toBeInTheDocument();
@@ -200,6 +222,9 @@ describe('Página Social (Camada de Amizade & TV D-Pad - SPEC-002)', () => {
 
     render(<Social />);
 
+    const friendsTab = screen.getByRole('button', { name: /Amigos/i });
+    fireEvent.click(friendsTab);
+
     const removeBtn = screen.getByRole('button', { name: /Desfazer amizade com cinefilo_neo/i });
     fireEvent.click(removeBtn);
 
@@ -216,6 +241,9 @@ describe('Página Social (Camada de Amizade & TV D-Pad - SPEC-002)', () => {
     });
 
     render(<Social />);
+
+    const friendsTab = screen.getByRole('button', { name: /Amigos/i });
+    fireEvent.click(friendsTab);
 
     const blockBtn = screen.getByRole('button', { name: /Bloquear cinefilo_neo/i });
     fireEvent.click(blockBtn);

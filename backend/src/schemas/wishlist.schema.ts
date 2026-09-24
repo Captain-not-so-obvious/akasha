@@ -10,12 +10,16 @@ export const createWishlistItemSchema = z.object({
     .default('plan_to_watch'),
   userRating: z.number().int().min(1).max(5).optional(), // 1 a 5 estrelas
   notes: z.string().max(500).optional(),
+  title: z.string().optional(),
+  posterPath: z.string().optional(),
 });
 
 export const updateWishlistItemSchema = z.object({
   status: z.enum(['plan_to_watch', 'watching', 'completed', 'dropped']).optional(),
   userRating: z.number().int().min(1).max(5).optional(), // 1 a 5 estrelas
   notes: z.string().max(500).optional(),
+  title: z.string().optional(),
+  posterPath: z.string().optional(),
 });
 
 // Tipos inferidos automaticamente do schema Zod

@@ -78,6 +78,8 @@ export const SearchPage: React.FC = () => {
             tmdbId: media.id,
             mediaType: media.mediaType,
             status: 'plan_to_watch',
+            title: media.title,
+            posterPath: media.posterUrl || undefined,
           });
         }}
       />

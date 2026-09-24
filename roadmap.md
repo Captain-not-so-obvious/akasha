@@ -131,6 +131,7 @@
 **Objetivo:** Módulos avançados que exigem o histórico real de uso gerado nas fases anteriores.
 
 > 📄 **Spec Social (Amizades Bilaterais & Privacidade):** [`specs/SPEC-002-social-friendship-network.md`](specs/SPEC-002-social-friendship-network.md)
+> 📄 **Spec Feed de Atividades:** [`specs/SPEC-003-activity-feed.md`](specs/SPEC-003-activity-feed.md)
 
 | # | Feature | Complexidade | Dependência | Status |
 |---|---|---|---|---|
@@ -143,7 +144,11 @@
 | 5.3.4 | Tela Social (Web/Mobile & Android TV com D-Pad e atalho QR Code) | 🟡 | 5.3.3 | **Done** |
 | 5.3.5 | Personalização de Avatar: upload local com crop/canvas, presets Akasha e restauração OAuth | 🟡 | 5.3.1 | **Done** |
 | 5.3.6 | Gestão de Bloqueio & Desbloqueio bilateral de usuários | 🟢 | 5.3 | **Done** |
-| 5.4 | Feed de Atividades: o que a sua rede está assistindo | 🔴 | 5.3 | Pendente |
+| 5.4 | **Feed de Atividades:** O que sua rede está assistindo e avaliando | 🔴 | 5.3 | **Done** |
+| 5.4.1 | Schema Prisma: model `Activity` e enum `ActivityType` | 🟢 | 5.4 | **Done** |
+| 5.4.2 | Ingestão Automática de Eventos no Backend ao alterar Wishlist | 🟡 | 5.4.1 | **Done** |
+| 5.4.3 | Endpoint Fastify `GET /feed` paginado com privacidade por amizade | 🟢 | 5.4.2 | **Done** |
+| 5.4.4 | Componentes Frontend: `ActivityCard` e `ActivityFeed` (TV D-Pad & Mobile) | 🟡 | 5.4.3 | **Done** |
 | 5.5 | Comparar listas e avaliações com amigos | 🔴 | 5.3 | Pendente |
 | 5.6 | Notificações push (novo episódio, amigo avaliou algo) | 🔴 | 5.3, 5.4 | Pendente |
 
