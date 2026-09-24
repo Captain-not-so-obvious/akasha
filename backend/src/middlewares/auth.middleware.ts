@@ -16,6 +16,14 @@ interface SupabaseJwtPayload {
   role?: string;
   iat?: number;
   exp?: number;
+  user_metadata?: {
+    avatar_url?: string;
+    picture?: string;
+    full_name?: string;
+    name?: string;
+  };
+  avatar_url?: string;
+  picture?: string;
 }
 
 export async function authMiddleware(
@@ -60,12 +68,18 @@ export async function authMiddleware(
   try {
     let userId: string | null = null;
     let email: string | undefined = undefined;
+    let avatarUrl: string | undefined = undefined;
 
     // 1. Tentar validar o token localmente (Stateless)
     try {
       const decoded = jwt.verify(token, jwtSecret) as SupabaseJwtPayload;
       userId = decoded.sub;
       email = decoded.email;
+      avatarUrl =
+        decoded.user_metadata?.avatar_url ||
+        decoded.user_metadata?.picture ||
+        decoded.avatar_url ||
+        decoded.picture;
     } catch (jwtErr) {
       // 2. Fallback: se a validação local falhar (ex: segredo JWT incorreto ou chave assimétrica), valida diretamente na API do Supabase
       const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
@@ -80,6 +94,7 @@ export async function authMiddleware(
         const user = await res.json();
         userId = user.id;
         email = user.email;
+        avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
       } else {
         throw jwtErr;
       }
@@ -93,10 +108,10 @@ export async function authMiddleware(
 
     request.userId = userId;
 
-    // Garante que o profile existe no banco com email e friendCode inicializados
+    // Garante que o profile existe no banco com email, friendCode e avatarUrl inicializados
     const existing = await prisma.profile.findUnique({
       where: { id: request.userId },
-      select: { id: true, email: true, friendCode: true },
+      select: { id: true, email: true, friendCode: true, avatarUrl: true },
     });
 
     if (!existing) {
@@ -109,15 +124,20 @@ export async function authMiddleware(
           email: email || null,
           username: initialUsername,
           friendCode,
-          avatarUrl: null,
+          avatarUrl: avatarUrl || null,
         },
       });
-    } else if (!existing.friendCode || (email && !existing.email)) {
+    } else if (
+      !existing.friendCode ||
+      (email && !existing.email) ||
+      (!existing.avatarUrl && avatarUrl)
+    ) {
       await prisma.profile.update({
         where: { id: request.userId },
         data: {
           ...(email && !existing.email ? { email } : {}),
           ...(!existing.friendCode ? { friendCode: generateFriendCode() } : {}),
+          ...(!existing.avatarUrl && avatarUrl ? { avatarUrl } : {}),
         },
       });
     }

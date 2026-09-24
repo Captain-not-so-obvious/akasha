@@ -5,6 +5,19 @@
 
 export type MediaType = 'movie' | 'tv';
 
+export interface WatchProvider {
+  id: number;
+  name: string;
+  logoUrl: string;
+}
+
+export interface WatchProvidersData {
+  link?: string | null;
+  flatrate: WatchProvider[];
+  rent: WatchProvider[];
+  buy: WatchProvider[];
+}
+
 export interface MediaDetails {
   id: number;
   title: string;
@@ -14,6 +27,7 @@ export interface MediaDetails {
   releaseDate: string | null;
   mediaType: MediaType;
   voteAverage: number | null;
+  watchProviders?: WatchProvidersData | null;
 }
 
 export interface SearchResult {

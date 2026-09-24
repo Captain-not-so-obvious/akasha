@@ -87,6 +87,7 @@
 | 3.3.3 | Componente `MovieCard`: pôster, título, ano — com foco TV animado | 🟡 | 3.1.3, 3.1.5 | **Done** |
 | 3.3.4 | Grid de resultados de busca com estado de loading e vazio | 🟡 | 3.3.2, 3.3.3 | **Done** |
 | 3.3.5 | Modal/Drawer de detalhes da mídia (backdrop, sinopse, botão "Adicionar") | 🟡 | 3.3.3 | **Done** |
+| 3.3.6 | Provedores de Streaming onde o filme / série está disponível (JustWatch via TMDB) | 🟢 | 3.3.5 | **Done** |
 
 ### 3.4 — Biblioteca (Wishlist)
 

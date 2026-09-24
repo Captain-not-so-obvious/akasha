@@ -2,6 +2,24 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
 // Tipos brutos da API do TMDB (campos que nos interessam)
+interface TmdbWatchProviderRaw {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+  display_priority?: number;
+}
+
+interface TmdbWatchProvidersCountryRaw {
+  link?: string;
+  flatrate?: TmdbWatchProviderRaw[];
+  rent?: TmdbWatchProviderRaw[];
+  buy?: TmdbWatchProviderRaw[];
+}
+
+interface TmdbWatchProvidersResponseRaw {
+  results?: Record<string, TmdbWatchProvidersCountryRaw>;
+}
+
 interface TmdbMediaRaw {
   id: number;
   title?: string;        // Filmes usam 'title'
@@ -15,10 +33,29 @@ interface TmdbMediaRaw {
   genre_ids?: number[];
 }
 
+interface TmdbDetailsResponseRaw extends TmdbMediaRaw {
+  genres?: { id: number; name: string }[];
+  'watch/providers'?: TmdbWatchProvidersResponseRaw;
+}
+
 interface TmdbSearchResponse {
   results: TmdbMediaRaw[];
   total_results: number;
   total_pages: number;
+}
+
+// Provedor de streaming normalizado
+export interface WatchProvider {
+  id: number;
+  name: string;
+  logoUrl: string;
+}
+
+export interface WatchProvidersData {
+  link?: string | null;
+  flatrate: WatchProvider[];
+  rent: WatchProvider[];
+  buy: WatchProvider[];
 }
 
 // Tipo normalizado que expõe o restante do sistema
@@ -32,6 +69,7 @@ export interface MediaDetails {
   mediaType: 'movie' | 'tv';
   voteAverage: number | null;
   genreIds?: number[];
+  watchProviders?: WatchProvidersData | null;
 }
 
 export interface SearchResult {
@@ -51,7 +89,11 @@ function getHeaders(): Record<string, string> {
   };
 }
 
-function normalizeMedia(raw: TmdbMediaRaw, mediaType: 'movie' | 'tv'): MediaDetails {
+function normalizeMedia(
+  raw: TmdbMediaRaw,
+  mediaType: 'movie' | 'tv',
+  watchProviders: WatchProvidersData | null = null
+): MediaDetails {
   const releaseDate =
     (raw.release_date && raw.release_date.trim()) ||
     (raw.first_air_date && raw.first_air_date.trim()) ||
@@ -67,6 +109,7 @@ function normalizeMedia(raw: TmdbMediaRaw, mediaType: 'movie' | 'tv'): MediaDeta
     mediaType,
     voteAverage: raw.vote_average ?? null,
     genreIds: raw.genre_ids,
+    watchProviders,
   };
 }
 
@@ -74,7 +117,7 @@ export async function fetchMediaDetails(
   tmdbId: number,
   mediaType: 'movie' | 'tv'
 ): Promise<MediaDetails | null> {
-  const url = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}?language=pt-BR`;
+  const url = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}?language=pt-BR&append_to_response=watch/providers`;
 
   try {
     const response = await fetch(url, { headers: getHeaders() });
@@ -83,9 +126,28 @@ export async function fetchMediaDetails(
       throw new Error(`Erro TMDB: ${response.status}`);
     }
 
-    const data: TmdbMediaRaw & { genres?: { id: number; name: string }[] } = await response.json() as any;
+    const data = (await response.json()) as TmdbDetailsResponseRaw;
     const genreIds = data.genres ? data.genres.map((g) => g.id) : data.genre_ids;
-    return normalizeMedia({ ...data, genre_ids: genreIds }, mediaType);
+
+    let watchProviders: WatchProvidersData | null = null;
+    const brProviders = data['watch/providers']?.results?.BR;
+
+    if (brProviders) {
+      const mapProvider = (item: TmdbWatchProviderRaw): WatchProvider => ({
+        id: item.provider_id,
+        name: item.provider_name,
+        logoUrl: `${TMDB_IMAGE_BASE}/w185${item.logo_path}`,
+      });
+
+      watchProviders = {
+        link: brProviders.link ?? null,
+        flatrate: (brProviders.flatrate ?? []).map(mapProvider),
+        rent: (brProviders.rent ?? []).map(mapProvider),
+        buy: (brProviders.buy ?? []).map(mapProvider),
+      };
+    }
+
+    return normalizeMedia({ ...data, genre_ids: genreIds }, mediaType, watchProviders);
   } catch (error) {
     console.error('Falha ao buscar detalhes no TMDB:', error);
     return null;
@@ -159,7 +221,7 @@ export async function fetchTrendingMedia(
     const response = await fetch(url, { headers: getHeaders() });
     if (!response.ok) return [];
 
-    const data: { results: (TmdbMediaRaw & { media_type?: string })[] } = await response.json() as any;
+    const data = (await response.json()) as { results: (TmdbMediaRaw & { media_type?: string })[] };
     return data.results
       .filter((item) => item.media_type === 'movie' || item.media_type === 'tv' || mediaType !== 'all')
       .map((item) => {

@@ -311,9 +311,16 @@ export const Social: React.FC = () => {
                           src={friend.avatarUrl}
                           alt={friend.username}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(friend.username)}`;
+                          }}
                         />
                       ) : (
-                        <Users className="w-6 h-6 text-[var(--color-caramelo-claro)] opacity-60" />
+                        <img
+                          src={`https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(friend.username)}`}
+                          alt={friend.username}
+                          className="w-full h-full object-cover"
+                        />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -379,9 +386,16 @@ export const Social: React.FC = () => {
                         src={req.user.avatarUrl}
                         alt={req.user.username}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(req.user.username)}`;
+                        }}
                       />
                     ) : (
-                      <Users className="w-6 h-6 text-[var(--color-caramelo-claro)] opacity-60" />
+                      <img
+                        src={`https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(req.user.username)}`}
+                        alt={req.user.username}
+                        className="w-full h-full object-cover"
+                      />
                     )}
                   </div>
                   <div>
@@ -447,9 +461,16 @@ export const Social: React.FC = () => {
                         src={req.user.avatarUrl}
                         alt={req.user.username}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(req.user.username)}`;
+                        }}
                       />
                     ) : (
-                      <Users className="w-5 h-5 text-[var(--color-caramelo-claro)] opacity-40" />
+                      <img
+                        src={`https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(req.user.username)}`}
+                        alt={req.user.username}
+                        className="w-full h-full object-cover"
+                      />
                     )}
                   </div>
                   <div>

@@ -367,13 +367,30 @@ export interface MediaDetails {
   posterUrl: string | null;
   backdropUrl: string | null;
   releaseDate: string | null;
+  mediaType: 'movie' | 'tv';
+  voteAverage: number | null;
+  genreIds?: number[];
+  watchProviders?: WatchProvidersData | null;
+}
+
+export interface WatchProvider {
+  id: number;
+  name: string;
+  logoUrl: string;
+}
+
+export interface WatchProvidersData {
+  link?: string | null;
+  flatrate: WatchProvider[];
+  rent: WatchProvider[];
+  buy: WatchProvider[];
 }
 
 export async function fetchMediaDetails(
   tmdbId: number,
   mediaType: 'movie' | 'tv'
 ): Promise<MediaDetails | null> {
-  const url = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}?language=pt-BR`;
+  const url = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}?language=pt-BR&append_to_response=watch/providers`;
 
   try {
     const response = await fetch(url, {
@@ -387,16 +404,9 @@ export async function fetchMediaDetails(
       throw new Error(`Erro TMDB: ${response.status}`);
     }
 
-    const data: TmdbMediaDetails = await response.json();
-
-    return {
-      id: data.id,
-      title: data.title ?? data.name ?? 'Título indisponível',
-      overview: data.overview || 'Sinopse não disponível em português.',
-      posterUrl: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : null,
-      backdropUrl: data.backdrop_path ? `https://image.tmdb.org/t/p/original${data.backdrop_path}` : null,
-      releaseDate: data.release_date ?? data.first_air_date ?? null,
-    };
+    const data = await response.json();
+    // Mapeia metadados e provedores da região 'BR' (JustWatch via TMDB)
+    return normalizeMedia(data, mediaType, watchProviders);
   } catch (error) {
     console.error('Falha ao integrar com TMDB:', error);
     return null;

@@ -14,6 +14,23 @@ describe('MediaDetailsModal Component', () => {
     releaseDate: '1999-10-15',
     mediaType: 'movie',
     voteAverage: 8.4,
+    watchProviders: {
+      link: 'https://www.themoviedb.org/movie/550-fight-club/watch?locale=BR',
+      flatrate: [
+        {
+          id: 8,
+          name: 'Netflix',
+          logoUrl: 'https://image.tmdb.org/t/p/w185/netflix.png',
+        },
+        {
+          id: 119,
+          name: 'Amazon Prime Video',
+          logoUrl: 'https://image.tmdb.org/t/p/w185/prime.png',
+        },
+      ],
+      rent: [],
+      buy: [],
+    },
   };
 
   const mockLibraryItem: LibraryItem = {
@@ -120,5 +137,83 @@ describe('MediaDetailsModal Component', () => {
     // Testa ação Remover
     fireEvent.click(removeBtn);
     expect(mockOnRemove).toHaveBeenCalledWith(mockLibraryItem);
+  });
+
+  it('deve renderizar logos de streaming e link do JustWatch quando watchProviders estiver disponível', () => {
+    render(
+      <MediaDetailsModal
+        media={mockMedia}
+        isOpen={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+      />
+    );
+
+    expect(screen.getByText(/Onde Assistir/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /via JustWatch/i })).toBeInTheDocument();
+
+    const netflixLink = screen.getByRole('link', { name: 'Netflix' });
+    const primeLink = screen.getByRole('link', { name: 'Amazon Prime Video' });
+
+    expect(netflixLink).toBeInTheDocument();
+    expect(primeLink).toBeInTheDocument();
+    expect(netflixLink).toHaveAttribute('tabIndex', '0');
+    expect(netflixLink).toHaveClass('tv-focus-glow');
+
+    const netflixImg = screen.getByAltText('Netflix');
+    expect(netflixImg).toHaveAttribute('src', 'https://image.tmdb.org/t/p/w185/netflix.png');
+  });
+
+  it('deve renderizar mensagem amigável quando não houver streaming disponível no Brasil', () => {
+    const mediaWithoutProviders: MediaDetails = {
+      ...mockMedia,
+      watchProviders: {
+        link: null,
+        flatrate: [],
+        rent: [],
+        buy: [],
+      },
+    };
+
+    render(
+      <MediaDetailsModal
+        media={mediaWithoutProviders}
+        isOpen={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+      />
+    );
+
+    expect(screen.getByText(/Não disponível em streaming no Brasil no momento/i)).toBeInTheDocument();
+  });
+
+  it('deve renderizar opção de aluguel/compra se não houver flatrate mas houver rent ou buy', () => {
+    const mediaWithRent: MediaDetails = {
+      ...mockMedia,
+      watchProviders: {
+        link: 'https://justwatch.com/movie/test',
+        flatrate: [],
+        rent: [
+          {
+            id: 2,
+            name: 'Apple TV',
+            logoUrl: 'https://image.tmdb.org/t/p/w185/appletv.png',
+          },
+        ],
+        buy: [],
+      },
+    };
+
+    render(
+      <MediaDetailsModal
+        media={mediaWithRent}
+        isOpen={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+      />
+    );
+
+    expect(screen.getByText(/Disponível para aluguel ou compra:/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Apple TV' })).toBeInTheDocument();
   });
 });
