@@ -55,8 +55,19 @@ describe('Zod Schema: updateWishlistItemSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('deve aceitar notes como null ou texto de até 300 caracteres', () => {
+    const validWithNull = updateWishlistItemSchema.safeParse({ notes: null });
+    const validWithText = updateWishlistItemSchema.safeParse({ notes: 'Opinião excelente sobre a obra' });
+    const invalidTooLong = updateWishlistItemSchema.safeParse({ notes: 'a'.repeat(301) });
+
+    expect(validWithNull.success).toBe(true);
+    expect(validWithText.success).toBe(true);
+    expect(invalidTooLong.success).toBe(false);
+  });
+
   it('deve rejeitar valores incorretos', () => {
     const result = updateWishlistItemSchema.safeParse({ status: 'invalid_status' });
     expect(result.success).toBe(false);
   });
 });
+

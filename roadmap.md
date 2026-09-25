@@ -102,6 +102,7 @@
 | 3.4.7 | Ação "Remover da Biblioteca" com confirmação | 🟢 | 3.4.1 | **Done** |
 | 3.4.8 | Componente `RatingStars`: exibição read-only das estrelas (1–5) | 🟢 | 3.1.2 | **Done** |
 | 3.4.9 | Testes de componente: `RatingModal`, `useWishlist` mock de API | 🔴 | 3.4.6, 3.4.1 | **Done** |
+| 3.4.10 | Campo opcional de opinião na avaliação com propagação para o feed de atividades (SPEC-005) | 🟡 | 3.4.6, 5.4 | **Done** |
 
 ### 3.5 — Página de Perfil
 

@@ -47,4 +47,15 @@ describe('ActivityCard Component', () => {
     render(<ActivityCard activity={watchingActivity} />);
     expect(screen.getByText('Começou a assistir')).toBeInTheDocument();
   });
+
+  it('deve exibir a opinião / resenha do usuário quando presente', () => {
+    const activityWithReview: ActivityItem = {
+      ...mockActivity,
+      review: 'Filme impactante com final surpreendente!',
+    };
+
+    render(<ActivityCard activity={activityWithReview} />);
+    expect(screen.getByText('Filme impactante com final surpreendente!')).toBeInTheDocument();
+  });
 });
+

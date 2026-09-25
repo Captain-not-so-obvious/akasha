@@ -15,7 +15,7 @@ interface LibraryItemCardProps {
 }
 
 export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSelect }: LibraryItemCardProps) {
-  const { media, status, userRating } = item;
+  const { media, status, userRating, notes } = item;
   const year = getReleaseYear(media.releaseDate);
   
   const getNextStatusInfo = (currentStatus: WishlistStatus): { next: WishlistStatus; label: string } | null => {
@@ -160,6 +160,11 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
               <RatingStars rating={userRating} size={11} />
               <span className="text-[10px] font-bold text-[var(--color-seda-milharal)]/40 font-outfit">({userRating}/5)</span>
             </div>
+          )}
+          {notes && (
+            <p className="text-[10px] sm:text-[11px] font-outfit text-stone-400 italic line-clamp-1 border-l-2 border-[var(--color-caramelo-claro)]/40 pl-1.5 mt-0.5" title={notes}>
+              “{notes}”
+            </p>
           )}
         </div>
       </div>

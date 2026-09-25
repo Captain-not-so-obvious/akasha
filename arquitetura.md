@@ -103,7 +103,7 @@ model Wishlist {
   tmdbId     Int         @map("tmdb_id")
   mediaType  MediaType   @map("media_type")
   status     WatchStatus @default(plan_to_watch)
-  userRating Int?        @map("user_rating") // 1-10, validado via Zod no backend
+  userRating Int?        @map("user_rating") // 1-5, validado via Zod no backend
   notes      String?
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @default(now()) @updatedAt @map("updated_at")
@@ -111,6 +111,31 @@ model Wishlist {
 
   @@unique([userId, tmdbId, mediaType]) // Evita duplicatas
   @@map("wishlist")
+}
+
+enum ActivityType {
+  ADDED_TO_LIST
+  STATUS_CHANGED
+  RATED_MEDIA
+}
+
+model Activity {
+  id         Int          @id @default(autoincrement())
+  userId     String       @map("user_id") @db.Uuid
+  type       ActivityType
+  tmdbId     Int          @map("tmdb_id")
+  mediaType  MediaType    @map("media_type")
+  title      String?
+  posterPath String?      @map("poster_path")
+  userRating Int?         @map("user_rating")
+  status     WatchStatus?
+  review     String?      // Opinião / Resenha opcional do usuário (máx 300 chars)
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  profile    Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("activities")
 }
 ```
 
@@ -201,13 +226,13 @@ export const createWishlistItemSchema = z.object({
   mediaType: z.enum(['movie', 'tv']),
   status: z.enum(['plan_to_watch', 'watching', 'completed', 'dropped']).default('plan_to_watch'),
   userRating: z.number().int().min(1).max(5).optional(),
-  notes: z.string().max(500).optional(),
+  notes: z.string().max(300).nullable().optional(),
 });
 
 export const updateWishlistItemSchema = z.object({
   status: z.enum(['plan_to_watch', 'watching', 'completed', 'dropped']).optional(),
-  userRating: z.number().int().min(1).max(10).optional(),
-  notes: z.string().max(500).optional(),
+  userRating: z.number().int().min(1).max(5).optional(),
+  notes: z.string().max(300).nullable().optional(),
 });
 
 // Tipos inferidos do Zod — usados nas assinaturas de função e no Prisma

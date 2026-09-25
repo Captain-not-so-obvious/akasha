@@ -18,6 +18,7 @@ export interface ActivityItem {
   posterPath: string | null;
   userRating: number | null;
   status: WatchStatus | null;
+  review?: string | null;
   createdAt: string;
   profile: ActivityProfile;
 }

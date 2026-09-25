@@ -109,6 +109,7 @@ model Activity {
   posterPath String?      @map("poster_path")
   userRating Int?         @map("user_rating")
   status     WatchStatus?
+  review     String?      // Opinião / Resenha opcional do usuário (máx 300 chars)
   createdAt  DateTime     @default(now()) @map("created_at")
 
   profile Profile @relation(fields: [userId], references: [id], onDelete: Cascade)

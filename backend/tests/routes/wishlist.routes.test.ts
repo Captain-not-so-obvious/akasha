@@ -84,9 +84,9 @@ describe('Integration: Wishlist Routes', () => {
     expect(response.json()).toHaveProperty('error', 'Dados inválidos.');
   });
 
-  it('PATCH /wishlist/:id - deve atualizar um item', async () => {
-    const existingItem = { id: 1, userId: 'user-123', tmdbId: 123, mediaType: 'movie', status: 'watching', userRating: 3 };
-    const mockItem = { id: 1, userId: 'user-123', tmdbId: 123, mediaType: 'movie', status: 'completed', userRating: 5 };
+  it('PATCH /wishlist/:id - deve atualizar um item com nota e opinião', async () => {
+    const existingItem = { id: 1, userId: 'user-123', tmdbId: 123, mediaType: 'movie', status: 'watching', userRating: 3, notes: null };
+    const mockItem = { id: 1, userId: 'user-123', tmdbId: 123, mediaType: 'movie', status: 'completed', userRating: 5, notes: 'Filme excepcional!' };
     vi.mocked(prisma.wishlist.findUnique).mockResolvedValue(existingItem as any);
     vi.mocked(prisma.wishlist.update).mockResolvedValue(mockItem as any);
 
@@ -96,6 +96,7 @@ describe('Integration: Wishlist Routes', () => {
       payload: {
         status: 'completed',
         userRating: 5,
+        notes: 'Filme excepcional!',
       },
     });
 
@@ -104,7 +105,7 @@ describe('Integration: Wishlist Routes', () => {
     expect(prisma.wishlist.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 1, userId: 'user-123' },
-        data: { status: 'completed', userRating: 5 },
+        data: { status: 'completed', userRating: 5, notes: 'Filme excepcional!' },
       })
     );
   });

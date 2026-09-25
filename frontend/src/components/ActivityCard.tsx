@@ -23,7 +23,7 @@ function formatRelativeTime(dateString: string): string {
 }
 
 export const ActivityCard: React.FC<ActivityCardProps> = ({ activity }) => {
-  const { profile, type, status, userRating, title, posterPath, mediaType, createdAt } = activity;
+  const { profile, type, status, userRating, review, title, posterPath, mediaType, createdAt } = activity;
 
   const renderActionHeader = () => {
     if (type === 'RATED_MEDIA' && userRating) {
@@ -141,6 +141,15 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity }) => {
           <h4 className="text-base font-semibold text-stone-100 line-clamp-1 group-hover:text-amber-300 transition-colors">
             {title || `Mídia #${activity.tmdbId}`}
           </h4>
+
+          {/* Opinião / Resenha do Usuário */}
+          {review && (
+            <div className="mt-2.5 p-2.5 rounded-lg bg-stone-950/60 border border-stone-800/80 text-xs sm:text-sm text-stone-300 italic font-outfit relative">
+              <span className="text-[var(--color-caramelo-claro)] font-serif mr-1 text-sm font-bold">“</span>
+              <span>{review}</span>
+              <span className="text-[var(--color-caramelo-claro)] font-serif ml-1 text-sm font-bold">”</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

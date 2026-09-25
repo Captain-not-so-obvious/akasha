@@ -30,7 +30,7 @@ describe('Activity Service - Unit Tests', () => {
     vi.clearAllMocks();
   });
 
-  it('deve registrar uma atividade com sucesso', async () => {
+  it('deve registrar uma atividade com sucesso incluindo opinião/resenha', async () => {
     const mockActivityData = {
       id: 1,
       userId: mockUserId,
@@ -41,6 +41,7 @@ describe('Activity Service - Unit Tests', () => {
       posterPath: '/poster.jpg',
       userRating: 5,
       status: 'completed' as const,
+      review: 'Obra-prima do cinema moderno',
       createdAt: new Date(),
     };
 
@@ -55,6 +56,7 @@ describe('Activity Service - Unit Tests', () => {
       posterPath: '/poster.jpg',
       userRating: 5,
       status: 'completed',
+      review: 'Obra-prima do cinema moderno',
     });
 
     expect(result).toEqual(mockActivityData);
@@ -68,6 +70,7 @@ describe('Activity Service - Unit Tests', () => {
         posterPath: '/poster.jpg',
         userRating: 5,
         status: 'completed',
+        review: 'Obra-prima do cinema moderno',
       },
     });
   });

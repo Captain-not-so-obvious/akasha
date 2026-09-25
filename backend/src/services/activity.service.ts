@@ -11,6 +11,7 @@ export interface RecordActivityInput {
   posterPath?: string | null;
   userRating?: number | null;
   status?: WatchStatus | null;
+  review?: string | null;
 }
 
 export async function recordActivity(input: RecordActivityInput) {
@@ -40,6 +41,7 @@ export async function recordActivity(input: RecordActivityInput) {
       posterPath: posterPath || null,
       userRating: input.userRating,
       status: input.status,
+      review: input.review || null,
     },
   });
 }

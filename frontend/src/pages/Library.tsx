@@ -51,10 +51,11 @@ export const Library: React.FC = () => {
     }
   };
 
-  const handleRatingSubmit = (rating: number) => {
+  const handleRatingSubmit = (rating: number, review?: string) => {
     if (editingItem) {
       updateListItem(editingItem.id, { 
         userRating: rating,
+        notes: review !== undefined ? review : (editingItem.notes || undefined),
         status: editingItem.status !== 'completed' ? 'completed' : undefined, // Se não era concluído, agora é
         title: editingItem.media.title,
         posterPath: editingItem.media.posterUrl || undefined,
@@ -155,6 +156,7 @@ export const Library: React.FC = () => {
         }}
         onSubmit={handleRatingSubmit}
         initialRating={editingItem?.userRating}
+        initialReview={editingItem?.notes}
         title={`Avaliar ${editingItem?.media.title || 'Mídia'}`}
       />
 

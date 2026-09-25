@@ -69,6 +69,8 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
     let type: ActivityType = 'ADDED_TO_LIST';
     if (parsed.data.userRating !== undefined && (!existing || existing.userRating !== parsed.data.userRating)) {
       type = 'RATED_MEDIA';
+    } else if (parsed.data.notes !== undefined && (!existing || existing.notes !== parsed.data.notes) && (parsed.data.userRating || existing?.userRating)) {
+      type = 'RATED_MEDIA';
     } else if (existing && existing.status !== parsed.data.status) {
       type = 'STATUS_CHANGED';
     }
@@ -83,6 +85,7 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
         posterPath: parsed.data.posterPath || null,
         userRating: item.userRating,
         status: item.status,
+        review: item.notes,
       });
     } catch (err) {
       fastify.log.warn({ err }, 'Falha ao gravar registro de atividade no feed.');
@@ -126,6 +129,8 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
       let type: ActivityType = 'STATUS_CHANGED';
       if (parsed.data.userRating !== undefined && parsed.data.userRating !== existing.userRating) {
         type = 'RATED_MEDIA';
+      } else if (parsed.data.notes !== undefined && parsed.data.notes !== existing.notes && item.userRating) {
+        type = 'RATED_MEDIA';
       }
 
       try {
@@ -138,6 +143,7 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
           posterPath: parsed.data.posterPath || null,
           userRating: item.userRating,
           status: item.status,
+          review: item.notes,
         });
       } catch (err) {
         fastify.log.warn({ err }, 'Falha ao gravar registro de atividade no feed.');
