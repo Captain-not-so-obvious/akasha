@@ -29,3 +29,7 @@ Compatibilidade nativa com assistentes agênticos (como Google Spark) para geren
 ### Camada de Interação Social & Sincronia Cósmica
 > 📄 **Especificação Técnica:** [`specs/SPEC-006-social-library-comparison.md`](specs/SPEC-006-social-library-comparison.md)  
 Rede fechada entre viajantes Akasha: feeds de atividades transmídia, cálculo de Afinidade Cósmica (*Resonance Score*), identificação de obras para assistir juntos no sofá (*Watchlist Match*), consensos/duelos de notas e recomendações orgânicas entre amigos.
+
+### Central de Notificações Multiplataforma & Push
+> 📄 **Especificação Técnica:** [`specs/SPEC-007-push-notifications.md`](specs/SPEC-007-push-notifications.md)  
+Canal de comunicação ativo e não invasivo integrado em todas as plataformas (Android TV, Mobile e Desktop): alertas de novos episódios de séries em acompanhamento ativo (`watching`), avisos de novas avaliações e opiniões na rede de amigos e solicitações de conexão social.

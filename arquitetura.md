@@ -3,7 +3,8 @@
 > 📄 **Especificação Técnica de Expansão (Módulos Universais):** [`specs/SPEC-001-universal-media-expansion.md`](specs/SPEC-001-universal-media-expansion.md)  
 > 📄 **Especificação Técnica Camada Social (Amizades Bilaterais):** [`specs/SPEC-002-social-friendship-network.md`](specs/SPEC-002-social-friendship-network.md)  
 > 📄 **Especificação Técnica Feed de Atividades Sociais:** [`specs/SPEC-003-activity-feed.md`](specs/SPEC-003-activity-feed.md)  
-> 📄 **Especificação Técnica Sincronia Cósmica (Comparação de Acervos):** [`specs/SPEC-006-social-library-comparison.md`](specs/SPEC-006-social-library-comparison.md)
+> 📄 **Especificação Técnica Sincronia Cósmica (Comparação de Acervos):** [`specs/SPEC-006-social-library-comparison.md`](specs/SPEC-006-social-library-comparison.md)  
+> 📄 **Especificação Técnica Central de Notificações & Push:** [`specs/SPEC-007-push-notifications.md`](specs/SPEC-007-push-notifications.md)
 
 ## 1. Visão Geral da Arquitetura
 
@@ -137,6 +138,44 @@ model Activity {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("activities")
+}
+
+enum NotificationType {
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+  FRIEND_RATED
+  NEW_EPISODE
+  SYSTEM
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  profile   Profile          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  profile   Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 ```
 

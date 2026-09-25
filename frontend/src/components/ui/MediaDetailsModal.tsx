@@ -43,8 +43,8 @@ export function MediaDetailsModal({
     setExtendedMedia(null);
     if (!isOpen || !media) return;
 
-    // Se já temos a informação de watchProviders (mesmo que seja null), não precisa de fetch extra
-    if (media.watchProviders !== undefined) {
+    // Se já temos a informação de watchProviders carregada (objeto populado), não precisa de fetch extra
+    if (media.watchProviders) {
       setExtendedMedia(media);
       return;
     }
@@ -71,7 +71,7 @@ export function MediaDetailsModal({
     return () => {
       isSubscribed = false;
     };
-  }, [isOpen, media?.id, media?.mediaType, media?.watchProviders]);
+  }, [isOpen, media]);
 
   const currentMedia = extendedMedia || media;
   const providers = currentMedia?.watchProviders;
@@ -82,16 +82,16 @@ export function MediaDetailsModal({
       (provider, index, self) =>
         index === self.findIndex((p) => p.logoUrl === provider.logoUrl || p.id === provider.id)
     );
-  }, [providers?.flatrate]);
+  }, [providers]);
 
   const uniqueRentBuy = useMemo(() => {
-    if (!providers) return [];
+    if (!providers?.rent && !providers?.buy) return [];
     const combined = [...(providers.rent || []), ...(providers.buy || [])];
     return combined.filter(
       (provider, index, self) =>
         index === self.findIndex((p) => p.logoUrl === provider.logoUrl || p.id === provider.id)
     );
-  }, [providers?.rent, providers?.buy]);
+  }, [providers]);
 
   if (!isOpen || !media) return null;
 

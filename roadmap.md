@@ -129,11 +129,14 @@
 
 ---
 
-## FASE 5 — Futuro (Pós-MVP)
-**Objetivo:** Módulos avançados que exigem o histórico real de uso gerado nas fases anteriores.
+## FASE 5 — Social, Recomendações & Notificações (100% Concluída)
+**Objetivo:** Módulos avançados que conectam a experiência individual do acervo à rede social de viajantes e alertas de novos lançamentos.
 
-> 📄 **Spec Social (Amizades Bilaterais & Privacidade):** [`specs/SPEC-002-social-friendship-network.md`](specs/SPEC-002-social-friendship-network.md)
-> 📄 **Spec Feed de Atividades:** [`specs/SPEC-003-activity-feed.md`](specs/SPEC-003-activity-feed.md)
+> 📄 **Spec Social (Amizades Bilaterais & Privacidade):** [`specs/SPEC-002-social-friendship-network.md`](specs/SPEC-002-social-friendship-network.md)  
+> 📄 **Spec Feed de Atividades:** [`specs/SPEC-003-activity-feed.md`](specs/SPEC-003-activity-feed.md)  
+> 📄 **Spec Avaliação com Opinião/Resenha:** [`specs/SPEC-005-media-opinion-review-feed.md`](specs/SPEC-005-media-opinion-review-feed.md)  
+> 📄 **Spec Sincronia Cósmica:** [`specs/SPEC-006-social-library-comparison.md`](specs/SPEC-006-social-library-comparison.md)  
+> 📄 **Spec Notificações Multiplataforma & Push:** [`specs/SPEC-007-push-notifications.md`](specs/SPEC-007-push-notifications.md)
 
 | # | Feature | Complexidade | Dependência | Status |
 |---|---|---|---|---|
@@ -156,7 +159,11 @@
 | 5.5.2 | Endpoint Fastify `GET /friends/:id/compare` com autorização bilateral estrita | 🟢 | 5.5.1 | **Done** |
 | 5.5.3 | Hook e Componentes Frontend: `AffinityBadge`, `ComparisonView` (3 abas) com TV D-Pad | 🟡 | 5.5.2 | **Done** |
 | 5.5.4 | Ação rápida "+ Quero Ver" e integração fluida na página `/social` | 🟢 | 5.5.3 | **Done** |
-| 5.6 | Notificações push (novo episódio, amigo avaliou algo) | 🔴 | 5.3, 5.4 | Pendente |
+| 5.6 | **Central de Notificações & Push:** Novos episódios e avaliações de amigos ([`SPEC-007`](specs/SPEC-007-push-notifications.md)) | 🔴 | 5.3, 5.4 | **Done** |
+| 5.6.1 | Schema Prisma: model `Notification`, `PushSubscription` e enum `NotificationType` | 🟢 | 5.6 | **Done** |
+| 5.6.2 | Serviços de Backend: persistência, checagem TMDB de episódios e disparos sociais | 🟡 | 5.6.1 | **Done** |
+| 5.6.3 | Endpoints Fastify com Zod: listagem, unread-count, marcar lidas e push subscriptions | 🟢 | 5.6.2 | **Done** |
+| 5.6.4 | Frontend Universal: Sino com badge na Navbar, `NotificationCenter` (TV D-Pad & Mobile) | 🟡 | 5.6.3 | **Done** |
 
 ---
 

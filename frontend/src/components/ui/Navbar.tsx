@@ -1,12 +1,25 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Menu, X, Film, Search, User, LogOut, Users } from 'lucide-react';
+import { Menu, X, Film, Search, User, LogOut, Users, Bell } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotifications } from '../../hooks/useNotifications';
+import { NotificationCenter } from '../notifications/NotificationCenter';
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const { signOut, user } = useAuth();
   const location = useLocation();
+
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    checkEpisodes,
+  } = useNotifications();
 
   // Fecha o menu mobile quando mudar de rota
   useEffect(() => {
@@ -23,6 +36,11 @@ export function Navbar() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
+
+  const openNotifications = () => {
+    setIsNotificationOpen(true);
+    fetchNotifications();
+  };
 
   const navLinkClassMobile = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 px-4 py-3 rounded-xl font-outfit text-base transition-colors duration-200 ${
@@ -49,16 +67,35 @@ export function Navbar() {
           </h1>
         </div>
 
-        {/* Botão Hamburger com touch target generoso (mínimo 44px x 44px) */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label={isOpen ? 'Fechar menu de navegação' : 'Abrir menu de navegação'}
-          aria-expanded={isOpen}
-          tabIndex={0}
-          className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[var(--color-seda-milharal)] hover:text-[var(--color-caramelo-claro)] hover:bg-white/10 active:scale-95 transition-all tv-focus-glow flex items-center justify-center min-w-[44px] min-h-[44px] cursor-pointer"
-        >
-          {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Botão Sino Mobile */}
+          {user && (
+            <button
+              onClick={openNotifications}
+              aria-label={`Notificações${unreadCount > 0 ? ` (${unreadCount} não lidas)` : ''}`}
+              tabIndex={0}
+              className="relative p-2.5 rounded-xl bg-white/5 border border-white/10 text-[var(--color-seda-milharal)] hover:text-[var(--color-caramelo-claro)] hover:bg-white/10 active:scale-95 transition-all tv-focus-glow flex items-center justify-center min-w-[44px] min-h-[44px] cursor-pointer"
+            >
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-black ring-2 ring-[var(--color-floresta-negra)] animate-pulse">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Botão Hamburger com touch target generoso (mínimo 44px x 44px) */}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? 'Fechar menu de navegação' : 'Abrir menu de navegação'}
+            aria-expanded={isOpen}
+            tabIndex={0}
+            className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[var(--color-seda-milharal)] hover:text-[var(--color-caramelo-claro)] hover:bg-white/10 active:scale-95 transition-all tv-focus-glow flex items-center justify-center min-w-[44px] min-h-[44px] cursor-pointer"
+          >
+            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </header>
 
       {/* GAVETA / OVERLAY - Menu Mobile Overlay (< md) */}
@@ -93,6 +130,27 @@ export function Navbar() {
 
             {/* Links do Menu Mobile */}
             <nav className="flex flex-col gap-2" aria-label="Navegação mobile">
+              {user && (
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    openNotifications();
+                  }}
+                  tabIndex={0}
+                  className="flex items-center justify-between px-4 py-3 rounded-xl font-outfit text-base transition-colors duration-200 text-[var(--color-seda-milharal)] opacity-80 hover:opacity-100 hover:bg-white/5 w-full text-left cursor-pointer min-h-[44px]"
+                >
+                  <div className="flex items-center gap-3">
+                    <Bell className="w-5 h-5 text-[var(--color-caramelo-claro)]" />
+                    <span>Notificações</span>
+                  </div>
+                  {unreadCount > 0 && (
+                    <span className="px-2 py-0.5 text-xs font-semibold bg-amber-400 text-black rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              )}
+
               <NavLink to="/" end className={navLinkClassMobile} tabIndex={0}>
                 <Film className="w-5 h-5 text-[var(--color-caramelo-claro)]" />
                 <span>Biblioteca</span>
@@ -145,6 +203,25 @@ export function Navbar() {
             </h1>
           </div>
           <div className="flex flex-col gap-1">
+            {user && (
+              <button
+                onClick={openNotifications}
+                tabIndex={0}
+                className="flex items-center justify-between font-outfit text-lg transition-colors duration-200 tv-focus-glow rounded-lg px-3 py-2 -mx-3 text-[var(--color-seda-milharal)] opacity-70 hover:opacity-100 hover:text-[var(--color-cobre)] w-full text-left cursor-pointer mb-1"
+                aria-label={`Abrir notificações${unreadCount > 0 ? ` (${unreadCount} não lidas)` : ''}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Bell className="w-5 h-5 text-[var(--color-caramelo-claro)]" />
+                  <span>Notificações</span>
+                </div>
+                {unreadCount > 0 && (
+                  <span className="px-2 py-0.5 text-xs font-semibold bg-amber-400 text-black rounded-full shadow-sm animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+            )}
+
             <NavLink to="/" end className={navLinkClassDesktop} tabIndex={0}>
               Biblioteca
             </NavLink>
@@ -173,6 +250,18 @@ export function Navbar() {
           </div>
         )}
       </nav>
+
+      {/* Central de Notificações Universal (Modal / Dialog) */}
+      <NotificationCenter
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        notifications={notifications}
+        unreadCount={unreadCount}
+        isLoading={isLoading}
+        onMarkAsRead={markAsRead}
+        onMarkAllAsRead={markAllAsRead}
+        onCheckEpisodes={checkEpisodes}
+      />
     </>
   );
 }

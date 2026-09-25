@@ -3,6 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MediaDetailsModal } from '../../../src/components/ui/MediaDetailsModal';
 import type { MediaDetails } from '../../../src/types/media';
 import type { LibraryItem } from '../../../src/types/wishlist';
+import * as apiModule from '../../../src/lib/api';
+
+vi.mock('../../../src/lib/api', () => ({
+  apiFetch: vi.fn(),
+}));
 
 describe('MediaDetailsModal Component', () => {
   const mockMedia: MediaDetails = {
@@ -215,5 +220,49 @@ describe('MediaDetailsModal Component', () => {
 
     expect(screen.getByText(/Disponível para aluguel ou compra:/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Apple TV' })).toBeInTheDocument();
+  });
+
+  it('deve buscar provedores via apiFetch quando aberta a partir da busca (com watchProviders nulo)', async () => {
+    const searchResultMedia: MediaDetails = {
+      ...mockMedia,
+      id: 95396,
+      title: 'Ruptura',
+      mediaType: 'tv',
+      watchProviders: null, // como retornado por searchMedia
+    };
+
+    const mockDetailsWithProviders: MediaDetails = {
+      ...searchResultMedia,
+      watchProviders: {
+        link: 'https://watch.link/ruptura',
+        flatrate: [
+          {
+            id: 350,
+            name: 'Apple TV',
+            logoUrl: 'https://image.tmdb.org/t/p/w185/appletv.png',
+          },
+        ],
+        rent: [],
+        buy: [],
+      },
+    };
+
+    vi.mocked(apiModule.apiFetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockDetailsWithProviders,
+    } as Response);
+
+    render(
+      <MediaDetailsModal
+        media={searchResultMedia}
+        isOpen={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+      />
+    );
+
+    expect(apiModule.apiFetch).toHaveBeenCalledWith('/tmdb/tv/95396');
+    const appleTvLink = await screen.findByRole('link', { name: 'Apple TV' });
+    expect(appleTvLink).toBeInTheDocument();
   });
 });

@@ -234,3 +234,56 @@ export async function fetchTrendingMedia(
   }
 }
 
+export interface TvEpisodeInfo {
+  id: number;
+  name: string;
+  overview: string;
+  airDate: string;
+  episodeNumber: number;
+  seasonNumber: number;
+  stillUrl: string | null;
+  seriesTitle: string;
+  posterUrl: string | null;
+}
+
+export async function fetchTvLatestEpisode(tvId: number): Promise<TvEpisodeInfo | null> {
+  const url = `${TMDB_BASE_URL}/tv/${tvId}?language=pt-BR`;
+
+  try {
+    const response = await fetch(url, { headers: getHeaders() });
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as {
+      name?: string;
+      poster_path?: string | null;
+      last_episode_to_air?: {
+        id: number;
+        name?: string;
+        overview?: string;
+        air_date?: string;
+        episode_number: number;
+        season_number: number;
+        still_path?: string | null;
+      } | null;
+    };
+
+    const ep = data.last_episode_to_air;
+    if (!ep) return null;
+
+    return {
+      id: ep.id,
+      name: ep.name || `Episódio ${ep.episode_number}`,
+      overview: ep.overview || '',
+      airDate: ep.air_date || '',
+      episodeNumber: ep.episode_number,
+      seasonNumber: ep.season_number,
+      stillUrl: ep.still_path ? `${TMDB_IMAGE_BASE}/w500${ep.still_path}` : null,
+      seriesTitle: data.name || 'Série',
+      posterUrl: data.poster_path ? `${TMDB_IMAGE_BASE}/w500${data.poster_path}` : null,
+    };
+  } catch (error) {
+    console.error('Falha ao buscar último episódio da série no TMDB:', error);
+    return null;
+  }
+}
+

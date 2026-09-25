@@ -11,6 +11,7 @@ import {
 } from '../schemas/friends.schema.js';
 import { compareFriendParamSchema } from '../schemas/comparison.schema.js';
 import { compareUserLibraries } from '../services/comparison.service.js';
+import { notifyFriendRequest, notifyFriendAccepted } from '../services/notification.service.js';
 
 export const friendsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   // Todas as rotas sociais exigem autenticação prévia
@@ -114,6 +115,10 @@ export const friendsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
         status: 'pending',
       },
     });
+
+    notifyFriendRequest(request.userId, targetProfile.id).catch((err) =>
+      fastify.log.warn({ err }, 'Falha ao gerar notificação de solicitação de amizade.')
+    );
 
     return reply.status(201).send({
       success: true,
@@ -286,6 +291,12 @@ export const friendsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       where: { id: friendship.id },
       data: { status: action === 'accept' ? 'accepted' : 'declined' },
     });
+
+    if (action === 'accept') {
+      notifyFriendAccepted(friendship.requesterId, friendship.addresseeId).catch((err) =>
+        fastify.log.warn({ err }, 'Falha ao gerar notificação de amizade aceita.')
+      );
+    }
 
     return reply.send({
       success: true,

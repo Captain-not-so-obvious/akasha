@@ -6,6 +6,7 @@ import {
   updateWishlistItemSchema,
 } from '../schemas/wishlist.schema.js';
 import { recordActivity } from '../services/activity.service.js';
+import { notifyFriendsOnRating } from '../services/notification.service.js';
 import { ActivityType } from '@prisma/client';
 
 export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
@@ -87,6 +88,18 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
         status: item.status,
         review: item.notes,
       });
+
+      if (type === 'RATED_MEDIA' && item.userRating) {
+        notifyFriendsOnRating(
+          request.userId,
+          item.tmdbId,
+          item.mediaType,
+          item.userRating,
+          item.notes,
+          parsed.data.title || null,
+          parsed.data.posterPath || null
+        ).catch((err) => fastify.log.warn({ err }, 'Falha ao notificar amigos sobre avaliação.'));
+      }
     } catch (err) {
       fastify.log.warn({ err }, 'Falha ao gravar registro de atividade no feed.');
     }
@@ -145,6 +158,18 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
           status: item.status,
           review: item.notes,
         });
+
+        if (type === 'RATED_MEDIA' && item.userRating) {
+          notifyFriendsOnRating(
+            request.userId,
+            item.tmdbId,
+            item.mediaType,
+            item.userRating,
+            item.notes,
+            parsed.data.title || null,
+            parsed.data.posterPath || null
+          ).catch((err) => fastify.log.warn({ err }, 'Falha ao notificar amigos sobre avaliação.'));
+        }
       } catch (err) {
         fastify.log.warn({ err }, 'Falha ao gravar registro de atividade no feed.');
       }
