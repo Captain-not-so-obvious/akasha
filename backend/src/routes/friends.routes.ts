@@ -9,6 +9,8 @@ import {
   friendParamSchema,
   updateProfileSchema,
 } from '../schemas/friends.schema.js';
+import { compareFriendParamSchema } from '../schemas/comparison.schema.js';
+import { compareUserLibraries } from '../services/comparison.service.js';
 
 export const friendsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   // Todas as rotas sociais exigem autenticação prévia
@@ -450,5 +452,51 @@ export const friendsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       friendCode: updated.friendCode,
       message: 'Novo Código de Amigo gerado com sucesso. O código anterior foi invalidado.',
     });
+  });
+
+  // 10. Sincronia Cósmica: Comparação de Acervos entre amigos (SPEC-006)
+  fastify.get('/:id/compare', async (request, reply) => {
+    const paramResult = compareFriendParamSchema.safeParse(request.params);
+    if (!paramResult.success) {
+      return reply.status(400).send({
+        error: 'ID de amigo inválido.',
+        details: paramResult.error.format(),
+      });
+    }
+
+    const friendId = paramResult.data.id;
+
+    if (friendId === request.userId) {
+      return reply.status(400).send({
+        error: 'Não é possível comparar seu acervo consigo mesmo.',
+      });
+    }
+
+    // Validação estrita de autorização e amizade bilateral
+    const friendship = await prisma.friendship.findFirst({
+      where: {
+        OR: [
+          { requesterId: request.userId, addresseeId: friendId },
+          { requesterId: friendId, addresseeId: request.userId },
+        ],
+      },
+    });
+
+    if (!friendship || friendship.status !== 'accepted') {
+      if (friendship && friendship.status === 'blocked') {
+        return reply.status(404).send({ error: 'Usuário não encontrado.' });
+      }
+      return reply.status(403).send({
+        error: 'Você só pode comparar acervos com viajantes que sejam seus amigos confirmados.',
+      });
+    }
+
+    const comparison = await compareUserLibraries(request.userId, friendId);
+
+    if (!comparison) {
+      return reply.status(404).send({ error: 'Perfil de amigo não encontrado.' });
+    }
+
+    return reply.send(comparison);
   });
 };

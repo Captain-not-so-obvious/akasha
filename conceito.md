@@ -26,5 +26,6 @@ O Akasha opera motores de recomendação dedicados por domínio (TMDB para cinem
 ### Agente Autônomo e Camada MCP (Model Context Protocol)
 Compatibilidade nativa com assistentes agênticos (como Google Spark) para gerenciar o acervo, catalogar mídias e solicitar recomendações personalizadas via comandos conversacionais.
 
-### Camada de Interação Social (Visão Futura)
-Evolução para uma rede fechada entre amigos: feeds de atividade transmídia, comparação de bibliotecas e recomendações orgânicas entre contatos.
+### Camada de Interação Social & Sincronia Cósmica
+> 📄 **Especificação Técnica:** [`specs/SPEC-006-social-library-comparison.md`](specs/SPEC-006-social-library-comparison.md)  
+Rede fechada entre viajantes Akasha: feeds de atividades transmídia, cálculo de Afinidade Cósmica (*Resonance Score*), identificação de obras para assistir juntos no sofá (*Watchlist Match*), consensos/duelos de notas e recomendações orgânicas entre amigos.

@@ -17,7 +17,10 @@ import {
   Ban,
   ShieldCheck,
   Activity,
+  Sparkles,
 } from 'lucide-react';
+import { ComparisonView } from '../components/social/ComparisonView';
+import type { Friend } from '../types/social';
 
 export const Social: React.FC = () => {
   const {
@@ -39,6 +42,7 @@ export const Social: React.FC = () => {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [comparingFriend, setComparingFriend] = useState<Friend | null>(null);
 
   const handleSendRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,6 +123,18 @@ export const Social: React.FC = () => {
   };
 
   const pendingReceivedCount = requests.received.length;
+
+  if (comparingFriend) {
+    return (
+      <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto h-full pb-12">
+        <ComparisonView
+          friendId={comparingFriend.id}
+          friendName={comparingFriend.username}
+          onBack={() => setComparingFriend(null)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto h-full pb-12">
@@ -359,6 +375,16 @@ export const Social: React.FC = () => {
                       </button>
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setComparingFriend(friend)}
+                    tabIndex={0}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[var(--color-caramelo-claro)]/15 hover:bg-[var(--color-caramelo-claro)]/25 border border-[var(--color-caramelo-claro)]/30 text-[var(--color-caramelo-claro)] text-xs font-semibold transition tv-focus-glow cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Sincronia Cósmica</span>
+                  </button>
                 </GlassPanel>
               ))}
             </div>

@@ -151,7 +151,11 @@
 | 5.4.2 | Ingestão Automática de Eventos no Backend ao alterar Wishlist | 🟡 | 5.4.1 | **Done** |
 | 5.4.3 | Endpoint Fastify `GET /feed` paginado com privacidade por amizade | 🟢 | 5.4.2 | **Done** |
 | 5.4.4 | Componentes Frontend: `ActivityCard` e `ActivityFeed` (TV D-Pad & Mobile) | 🟡 | 5.4.3 | **Done** |
-| 5.5 | Comparar listas e avaliações com amigos | 🔴 | 5.3 | Pendente |
+| 5.5 | **Sincronia Cósmica:** Comparar listas, notas e afinidade com amigos ([`SPEC-006`](specs/SPEC-006-social-library-comparison.md)) | 🔴 | 5.3 | **Done** |
+| 5.5.1 | Algoritmo de Afinidade Cósmica e agregação de acervo no backend (`comparison.service`) | 🟢 | 5.5 | **Done** |
+| 5.5.2 | Endpoint Fastify `GET /friends/:id/compare` com autorização bilateral estrita | 🟢 | 5.5.1 | **Done** |
+| 5.5.3 | Hook e Componentes Frontend: `AffinityBadge`, `ComparisonView` (3 abas) com TV D-Pad | 🟡 | 5.5.2 | **Done** |
+| 5.5.4 | Ação rápida "+ Quero Ver" e integração fluida na página `/social` | 🟢 | 5.5.3 | **Done** |
 | 5.6 | Notificações push (novo episódio, amigo avaliou algo) | 🔴 | 5.3, 5.4 | Pendente |
 
 ---

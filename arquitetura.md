@@ -2,7 +2,8 @@
 
 > 📄 **Especificação Técnica de Expansão (Módulos Universais):** [`specs/SPEC-001-universal-media-expansion.md`](specs/SPEC-001-universal-media-expansion.md)  
 > 📄 **Especificação Técnica Camada Social (Amizades Bilaterais):** [`specs/SPEC-002-social-friendship-network.md`](specs/SPEC-002-social-friendship-network.md)  
-> 📄 **Especificação Técnica Feed de Atividades Sociais:** [`specs/SPEC-003-activity-feed.md`](specs/SPEC-003-activity-feed.md)
+> 📄 **Especificação Técnica Feed de Atividades Sociais:** [`specs/SPEC-003-activity-feed.md`](specs/SPEC-003-activity-feed.md)  
+> 📄 **Especificação Técnica Sincronia Cósmica (Comparação de Acervos):** [`specs/SPEC-006-social-library-comparison.md`](specs/SPEC-006-social-library-comparison.md)
 
 ## 1. Visão Geral da Arquitetura
 
