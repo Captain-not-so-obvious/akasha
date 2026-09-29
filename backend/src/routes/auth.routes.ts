@@ -48,14 +48,20 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Rota usada pelo frontend para restaurar o estado de autenticação após recarregar a página
   fastify.get('/me', async (request, reply) => {
-    let token = request.cookies?.access_token;
-
-    // Fallback: aceita o token no header Authorization caso o navegador bloqueie cookies cross-site
-    if (!token && request.headers.authorization?.startsWith('Bearer ')) {
-      token = request.headers.authorization.split(' ')[1];
+    // Prioriza o token no header Authorization, com fallback para o cookie
+    const candidateTokens: string[] = [];
+    if (request.headers.authorization?.startsWith('Bearer ')) {
+      const bearer = request.headers.authorization.split(' ')[1]?.trim();
+      if (bearer) candidateTokens.push(bearer);
+    }
+    if (request.cookies?.access_token) {
+      const cookieToken = request.cookies.access_token.trim();
+      if (cookieToken && !candidateTokens.includes(cookieToken)) {
+        candidateTokens.push(cookieToken);
+      }
     }
 
-    if (!token) {
+    if (candidateTokens.length === 0 && !request.cookies?.refresh_token) {
       return reply.status(401).send({ error: 'Não autenticado' });
     }
 
@@ -63,20 +69,64 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     const anonKey = process.env.SUPABASE_ANON_KEY;
 
     try {
-      const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: anonKey || '',
-        },
-      });
+      let authenticatedUser: unknown = null;
 
-      if (!res.ok) {
+      for (const token of candidateTokens) {
+        const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: anonKey || '',
+          },
+        });
+
+        if (res.ok) {
+          authenticatedUser = await res.json();
+          break;
+        }
+      }
+
+      // Se falhou mas temos refresh_token em cookie, tenta renovar a sessão
+      if (!authenticatedUser && request.cookies?.refresh_token) {
+        try {
+          const refreshRes = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
+            method: 'POST',
+            headers: {
+              apikey: anonKey || '',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ refresh_token: request.cookies.refresh_token }),
+          });
+
+          if (refreshRes.ok) {
+            const refreshed = (await refreshRes.json()) as {
+              access_token: string;
+              refresh_token: string;
+              user: unknown;
+            };
+
+            authenticatedUser = refreshed.user;
+
+            const cookieOptions = {
+              path: '/',
+              httpOnly: true,
+              secure: isProduction,
+              sameSite: isProduction ? ('none' as const) : ('lax' as const),
+              maxAge: 60 * 60 * 24 * 7, // 7 dias
+            };
+            reply.setCookie('access_token', refreshed.access_token, cookieOptions);
+            reply.setCookie('refresh_token', refreshed.refresh_token, cookieOptions);
+          }
+        } catch {
+          // Ignora erro no refresh
+        }
+      }
+
+      if (!authenticatedUser) {
         return reply.status(401).send({ error: 'Sessão inválida ou expirada' });
       }
 
-      const user = await res.json();
-      return reply.send({ user });
+      return reply.send({ user: authenticatedUser });
     } catch (err) {
       return reply.status(500).send({ error: 'Erro ao validar sessão' });
     }

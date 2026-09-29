@@ -15,12 +15,15 @@ Permite que o usuário organize suas obras em status de consumo padronizados e s
 * **Abandonados (Dropped):** Obras interrompidas (sinal negativo forte para o motor de recomendação).
 
 ### 2.2 Sistema de Avaliação Cirúrgico
-Ao concluir qualquer mídia, o usuário atribui uma nota de 1 a 5 estrelas. Essas notas, combinadas com o status de consumo, constroem o mapa comportamental e o perfil de gosto do usuário.
+> 📄 **Especificação Técnica:** [`specs/SPEC-009-auth-resilience-and-game-rating-workflow.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-009-auth-resilience-and-game-rating-workflow.md)  
+Ao concluir qualquer mídia ou marcar como "Já Zerei" / "Concluído" diretamente pela busca ou catálogo, o usuário atribui uma nota de 1 a 5 estrelas e comentários opcionais. Essas notas, combinadas com o status de consumo, constroem o mapa comportamental e alimentam imediatamente o motor de recomendação inteligente.
 
 ## 3. Escalabilidade e Motores de Inteligência
 
 ### Motores de Recomendação Especialistas & Transmídia
-O Akasha opera motores de recomendação dedicados por domínio (TMDB para cinema, IGDB para games, Google Books para livros e Comic Vine/AniList para HQs/mangás), complementados por um **Motor Transmídia**:
+> 📄 **Especificação Técnica de Jogos e Tendências Twitch:** [`specs/SPEC-010-twitch-helix-trending-games-and-zero-mock-architecture.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-010-twitch-helix-trending-games-and-zero-mock-architecture.md)  
+O Akasha opera motores de recomendação dedicados por domínio (TMDB para cinema, Twitch Helix + IGDB para games, Google Books para livros e Comic Vine/AniList para HQs/mangás), complementados por um **Motor Transmídia**:
+* **Jogos e Tendências em Tempo Real:** O catálogo e cold start de games refletem o pulso da Twitch Helix API (`/helix/games/top`) sem dependência de dados mockados estáticos, enriquecidos com capas e metadados oficiais do IGDB v4.
 * Descoberta cruzada de franquias e universos expandidos (ex: conectar games a livros e adaptações cinematográficas baseadas nas notas do usuário).
 
 ### Agente Autônomo e Camada MCP (Model Context Protocol)

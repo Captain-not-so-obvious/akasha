@@ -167,32 +167,35 @@
 
 ---
 
-## FASE 6 — Fundação & Modelo Polimórfico Universal
-> 📄 **Spec:** [`specs/SPEC-001-universal-media-expansion.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-001-universal-media-expansion.md)
+## FASE 6 — Fundação & Modelo Polimórfico Universal (100% Concluída)
+> 📄 **Spec Polimórfica & Games:** [`specs/SPEC-008-polymorphic-wishlist-and-games.md`](specs/SPEC-008-polymorphic-wishlist-and-games.md)  
+> 📄 **Spec Transmídia Geral:** [`specs/SPEC-001-universal-media-expansion.md`](specs/SPEC-001-universal-media-expansion.md)  
 **Objetivo:** Adaptar o banco e backend para suportar Games, Livros e HQs sem quebrar os dados existentes de Cinema/TV.
 
 | # | Feature | Complexidade | Dependência | Status |
 |---|---|---|---|---|
-| 6.1 | Atualizar `schema.prisma` com enums `DomainType` e `ConsumptionStatus` + campos de metadados | 🟡 | Fase 2 | Em Planejamento |
-| 6.2 | Migration sem perda de dados (`prisma migrate dev`) mapeando dados legados do TMDB | 🟡 | 6.1 | Em Planejamento |
-| 6.3 | Atualizar schemas Zod de Wishlist para aceitar `domain` e metadados cacheados | 🟢 | 6.1 | Em Planejamento |
-| 6.4 | Adaptar rotas `/wishlist` para suportar filtros por domínio (`?domain=...`) | 🟢 | 6.3 | Em Planejamento |
-| 6.5 | Testes unitários com Vitest para schemas polimórficos e migração | 🟡 | 6.4 | Em Planejamento |
+| 6.1 | Atualizar `schema.prisma` com enums `DomainType` e `ConsumptionStatus` + campos de metadados | 🟡 | Fase 2 | **Done** |
+| 6.2 | Migration sem perda de dados (`prisma migrate dev`) mapeando dados legados do TMDB | 🟡 | 6.1 | **Done** |
+| 6.3 | Atualizar schemas Zod de Wishlist para aceitar `domain` e metadados cacheados | 🟢 | 6.1 | **Done** |
+| 6.4 | Adaptar rotas `/wishlist` para suportar filtros por domínio (`?domain=...`) | 🟢 | 6.3 | **Done** |
+| 6.5 | Testes unitários com Vitest para schemas polimórficos e migração | 🟡 | 6.4 | **Done** |
 
 ---
 
 ## FASE 7 — Módulo de Jogos (Games)
-> 📄 **Spec:** [`specs/SPEC-001-universal-media-expansion.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-001-universal-media-expansion.md)
+> 📄 **Specs:** [`specs/SPEC-008-polymorphic-wishlist-and-games.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-008-polymorphic-wishlist-and-games.md), [`specs/SPEC-009-auth-resilience-and-game-rating-workflow.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-009-auth-resilience-and-game-rating-workflow.md) & [`specs/SPEC-010-twitch-helix-trending-games-and-zero-mock-architecture.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-010-twitch-helix-trending-games-and-zero-mock-architecture.md)  
 **Objetivo:** Ingestão de jogos via IGDB, motor de recomendação por jogabilidade e interface na TV/Web.
 
 | # | Feature | Complexidade | Dependência | Status |
 |---|---|---|---|---|
-| 7.1 | Serviço IGDB (`igdb.service.ts`) com autenticação Twitch OAuth e tipagem estrita | 🟡 | Fase 6 | Pendente |
-| 7.2 | Rotas Fastify: `GET /games/search` e `GET /games/:id` | 🟢 | 7.1 | Pendente |
-| 7.3 | Motor de Recomendação de Jogos baseado em gêneros e `similar_games` da IGDB | 🔴 | 7.1, Fase 6 | Pendente |
-| 7.4 | Componente `GameCard` com badges de plataforma e foco D-Pad para TV | 🟡 | 7.2 | Pendente |
-| 7.5 | Tela de Busca e Rails de Recomendação de Jogos no Frontend | 🟡 | 7.3, 7.4 | Pendente |
-| 7.6 | Testes unitários e de componente para módulo de Jogos | 🟡 | 7.5 | Pendente |
+| 7.1 | Serviço IGDB (`igdb.service.ts`) com autenticação Twitch OAuth e tipagem estrita | 🟡 | Fase 6 | **Done** |
+| 7.2 | Rotas Fastify: `GET /games/search` e `GET /games/:id` | 🟢 | 7.1 | **Done** |
+| 7.3 | Motor de Recomendação de Jogos baseado em ponderação de notas e `similar_games` da IGDB | 🔴 | 7.1, Fase 6 | **Done** |
+| 7.4 | Componente `GameCard` com badges de plataforma, busca universal e foco D-Pad para TV | 🟡 | 7.2 | **Done** |
+| 7.5 | Tela da Biblioteca com abas Jogando/Quero Jogar/Zerados e Rail de Recomendação de Jogos | 🟡 | 7.3, 7.4 | **Done** |
+| 7.6 | Testes unitários e de componente para módulo de Jogos | 🟡 | 7.5 | **Done** |
+| 7.7 | Resiliência de autenticação e fluxo de avaliação de jogos na busca (`RatingModal` em "Já Zerei") | 🟢 | 7.5 | **Done** |
+| 7.8 | Tendências em tempo real da Twitch Helix API e arquitetura Zero-Mock (sem catálogo estático em prod) | 🟢 | 7.1, 7.3 | **Done** |
 
 ---
 

@@ -87,19 +87,21 @@ export async function executeAkashaMcpTool(name: string, args: any, userId: stri
 
   if (name === 'start_watching') {
     const tmdbId = args?.tmdbId as number;
-    const mediaType = args?.mediaType as 'movie' | 'tv';
+    const mediaType = (args?.mediaType as 'movie' | 'tv') || 'movie';
 
     const wishlist = await prisma.wishlist.upsert({
       where: {
-        userId_tmdbId_mediaType: {
+        userId_domain_externalId: {
           userId,
-          tmdbId,
-          mediaType,
+          domain: mediaType,
+          externalId: String(tmdbId),
         },
       },
       update: { status: 'watching' },
       create: {
         userId,
+        domain: mediaType,
+        externalId: String(tmdbId),
         tmdbId,
         mediaType,
         status: 'watching',
@@ -111,14 +113,14 @@ export async function executeAkashaMcpTool(name: string, args: any, userId: stri
 
   if (name === 'remove_from_list') {
     const tmdbId = args?.tmdbId as number;
-    const mediaType = args?.mediaType as 'movie' | 'tv';
+    const mediaType = (args?.mediaType as 'movie' | 'tv') || 'movie';
 
     await prisma.wishlist.delete({
       where: {
-        userId_tmdbId_mediaType: {
+        userId_domain_externalId: {
           userId,
-          tmdbId,
-          mediaType,
+          domain: mediaType,
+          externalId: String(tmdbId),
         },
       },
     });
@@ -128,7 +130,7 @@ export async function executeAkashaMcpTool(name: string, args: any, userId: stri
 
   if (name === 'rate_media') {
     const tmdbId = args?.tmdbId as number;
-    const mediaType = args?.mediaType as 'movie' | 'tv';
+    const mediaType = (args?.mediaType as 'movie' | 'tv') || 'movie';
     const rating = args?.rating as number;
 
     if (rating < 1 || rating > 5) {
@@ -137,15 +139,17 @@ export async function executeAkashaMcpTool(name: string, args: any, userId: stri
 
     const wishlist = await prisma.wishlist.upsert({
       where: {
-        userId_tmdbId_mediaType: {
+        userId_domain_externalId: {
           userId,
-          tmdbId,
-          mediaType,
+          domain: mediaType,
+          externalId: String(tmdbId),
         },
       },
       update: { userRating: rating },
       create: {
         userId,
+        domain: mediaType,
+        externalId: String(tmdbId),
         tmdbId,
         mediaType,
         userRating: rating,

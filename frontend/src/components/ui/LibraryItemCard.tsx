@@ -18,9 +18,11 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
   const { media, status, userRating, notes } = item;
   const year = getReleaseYear(media.releaseDate);
   
+  const isGame = item.domain === 'game';
+
   const getNextStatusInfo = (currentStatus: WishlistStatus): { next: WishlistStatus; label: string } | null => {
-    if (currentStatus === 'plan_to_watch') return { next: 'watching', label: 'Começar' };
-    if (currentStatus === 'watching') return { next: 'completed', label: 'Concluir' };
+    if (currentStatus === 'plan_to_watch') return { next: 'watching', label: isGame ? 'Jogar' : 'Começar' };
+    if (currentStatus === 'watching') return { next: 'completed', label: isGame ? 'Zerar' : 'Concluir' };
     return null;
   };
 
@@ -153,7 +155,7 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
         </div>
         <div className="flex flex-col gap-1.5 mt-auto">
           <div className="flex items-center">
-            <StatusBadge status={status} />
+            <StatusBadge status={status} domain={item.domain} />
           </div>
           {userRating && (
             <div className="flex items-center gap-1.5">

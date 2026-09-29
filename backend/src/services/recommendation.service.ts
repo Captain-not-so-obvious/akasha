@@ -64,18 +64,26 @@ export async function getUserRecommendations(
   const limit = options.limit ?? 10;
   const targetType = options.mediaType ?? 'all';
 
-  // 1. Busca histórico do usuário no banco
+  // 1. Busca histórico do usuário no banco (mídias de cinema/TV com tmdbId)
   const wishlistItems = await prisma.wishlist.findMany({
-    where: { userId },
+    where: {
+      userId,
+      domain: { in: ['movie', 'tv'] },
+      tmdbId: { not: null },
+      mediaType: { not: null },
+    },
   });
 
   // Conjunto de itens já na wishlist para filtragem rápida
   const existingSet = new Set(
-    wishlistItems.map((item) => `${item.mediaType}:${item.tmdbId}`)
+    wishlistItems
+      .filter((item) => item.mediaType && item.tmdbId)
+      .map((item) => `${item.mediaType}:${item.tmdbId}`)
   );
 
   // 2. Se a wishlist estiver vazia ou sem avaliações positivas, dispara Cold Start
   const positiveItems = wishlistItems.filter((item) => {
+    if (!item.tmdbId || !item.mediaType) return false;
     const weight = calculateItemWeight({
       tmdbId: item.tmdbId,
       mediaType: item.mediaType as 'movie' | 'tv',
@@ -102,13 +110,13 @@ export async function getUserRecommendations(
     }
 
     const wA = calculateItemWeight({
-      tmdbId: a.tmdbId,
+      tmdbId: a.tmdbId!,
       mediaType: a.mediaType as 'movie' | 'tv',
       userRating: a.userRating,
       status: a.status as any,
     });
     const wB = calculateItemWeight({
-      tmdbId: b.tmdbId,
+      tmdbId: b.tmdbId!,
       mediaType: b.mediaType as 'movie' | 'tv',
       userRating: b.userRating,
       status: b.status as any,
@@ -146,10 +154,10 @@ export async function getUserRecommendations(
   // 3. Para cada semente, busca recomendações da API do TMDB
   for (const seed of seedItems) {
     const seedMediaType = seed.mediaType as 'movie' | 'tv';
-    const rawRecs = await fetchMediaRecommendations(seed.tmdbId, seedMediaType);
+    const rawRecs = await fetchMediaRecommendations(seed.tmdbId!, seedMediaType);
 
     const seedWeight = calculateItemWeight({
-      tmdbId: seed.tmdbId,
+      tmdbId: seed.tmdbId!,
       mediaType: seedMediaType,
       userRating: seed.userRating,
       status: seed.status as any,

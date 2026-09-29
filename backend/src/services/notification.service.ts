@@ -232,12 +232,13 @@ export async function notifyFriendAccepted(requesterId: string, addresseeId: str
 }
 
 export async function checkNewEpisodesForWatching(userId: string) {
-  // 1. Obter obras que estão sendo assistidas no momento (mediaType = tv e status = watching)
+  // 1. Obter obras que estão sendo assistidas no momento (mediaType = tv, status = watching e tmdbId não nulo)
   const watchingSeries = await prisma.wishlist.findMany({
     where: {
       userId,
       mediaType: 'tv',
       status: 'watching',
+      tmdbId: { not: null },
     },
   });
 
@@ -250,6 +251,7 @@ export async function checkNewEpisodesForWatching(userId: string) {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   for (const item of watchingSeries) {
+    if (!item.tmdbId) continue;
     const episodeInfo = await fetchTvLatestEpisode(item.tmdbId);
     if (!episodeInfo || !episodeInfo.airDate) continue;
 

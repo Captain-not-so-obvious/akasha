@@ -4,25 +4,42 @@ import { authMiddleware } from '../middlewares/auth.middleware.js';
 import {
   createWishlistItemSchema,
   updateWishlistItemSchema,
+  listWishlistQuerySchema,
 } from '../schemas/wishlist.schema.js';
 import { recordActivity } from '../services/activity.service.js';
 import { notifyFriendsOnRating } from '../services/notification.service.js';
-import { ActivityType } from '@prisma/client';
+import { ActivityType, DomainType, Prisma, WatchStatus } from '@prisma/client';
 
 export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
   // Protege todas as rotas deste plugin com o middleware de autenticação
   fastify.addHook('preHandler', authMiddleware);
 
-  // GET /wishlist — Lista todos os itens do usuário autenticado
+  // GET /wishlist — Lista itens do usuário autenticado (com suporte opcional a ?domain= e ?status=)
   fastify.get('/', async (request, reply) => {
+    const query = listWishlistQuerySchema.safeParse(request.query);
+    const whereClause: {
+      userId: string;
+      domain?: DomainType;
+      status?: WatchStatus;
+    } = { userId: request.userId };
+
+    if (query.success) {
+      if (query.data.domain) {
+        whereClause.domain = query.data.domain as DomainType;
+      }
+      if (query.data.status) {
+        whereClause.status = query.data.status as WatchStatus;
+      }
+    }
+
     const items = await prisma.wishlist.findMany({
-      where: { userId: request.userId },
+      where: whereClause,
       orderBy: { updatedAt: 'desc' },
     });
     return reply.send(items);
   });
 
-  // POST /wishlist — Adiciona um item à biblioteca
+  // POST /wishlist — Adiciona ou atualiza um item na biblioteca (polimórfico)
   fastify.post('/', async (request, reply) => {
     const parsed = createWishlistItemSchema.safeParse(request.body);
 
@@ -32,12 +49,14 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
         .send({ error: 'Dados inválidos.', details: parsed.error.flatten().fieldErrors });
     }
 
+    const data = parsed.data;
+
     const existing = await prisma.wishlist.findUnique({
       where: {
-        userId_tmdbId_mediaType: {
+        userId_domain_externalId: {
           userId: request.userId,
-          tmdbId: parsed.data.tmdbId,
-          mediaType: parsed.data.mediaType,
+          domain: data.domain as DomainType,
+          externalId: data.externalId,
         },
       },
     });
@@ -45,34 +64,44 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
     // Upsert: se já existe, atualiza; se não, cria
     const item = await prisma.wishlist.upsert({
       where: {
-        userId_tmdbId_mediaType: {
+        userId_domain_externalId: {
           userId: request.userId,
-          tmdbId: parsed.data.tmdbId,
-          mediaType: parsed.data.mediaType,
+          domain: data.domain as DomainType,
+          externalId: data.externalId,
         },
       },
       update: {
-        status: parsed.data.status,
-        userRating: parsed.data.userRating,
-        notes: parsed.data.notes,
+        status: data.status as WatchStatus,
+        userRating: data.userRating,
+        notes: data.notes,
+        ...(data.title ? { title: data.title } : {}),
+        ...(data.coverUrl ? { coverUrl: data.coverUrl } : {}),
+        ...(data.releaseYear ? { releaseYear: data.releaseYear } : {}),
+        ...(data.extraMeta ? { extraMeta: data.extraMeta as Prisma.InputJsonValue } : {}),
       },
       create: {
         userId: request.userId,
-        tmdbId: parsed.data.tmdbId,
-        mediaType: parsed.data.mediaType,
-        status: parsed.data.status,
-        userRating: parsed.data.userRating,
-        notes: parsed.data.notes,
+        domain: data.domain as DomainType,
+        externalId: data.externalId,
+        tmdbId: data.tmdbId ?? null,
+        mediaType: data.mediaType ?? null,
+        status: data.status as WatchStatus,
+        userRating: data.userRating,
+        notes: data.notes,
+        title: data.title || 'Sem título',
+        coverUrl: data.coverUrl || null,
+        releaseYear: data.releaseYear || null,
+        extraMeta: data.extraMeta ? (data.extraMeta as Prisma.InputJsonValue) : Prisma.JsonNull,
       },
     });
 
     // Determinar o tipo de atividade para registrar no feed
     let type: ActivityType = 'ADDED_TO_LIST';
-    if (parsed.data.userRating !== undefined && (!existing || existing.userRating !== parsed.data.userRating)) {
+    if (data.userRating !== undefined && (!existing || existing.userRating !== data.userRating)) {
       type = 'RATED_MEDIA';
-    } else if (parsed.data.notes !== undefined && (!existing || existing.notes !== parsed.data.notes) && (parsed.data.userRating || existing?.userRating)) {
+    } else if (data.notes !== undefined && (!existing || existing.notes !== data.notes) && (data.userRating || existing?.userRating)) {
       type = 'RATED_MEDIA';
-    } else if (existing && existing.status !== parsed.data.status) {
+    } else if (existing && existing.status !== data.status) {
       type = 'STATUS_CHANGED';
     }
 
@@ -80,24 +109,32 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
       await recordActivity({
         userId: request.userId,
         type,
+        domain: item.domain,
+        externalId: item.externalId,
         tmdbId: item.tmdbId,
         mediaType: item.mediaType,
-        title: parsed.data.title || null,
-        posterPath: parsed.data.posterPath || null,
+        title: item.title || data.title || null,
+        posterPath: item.coverUrl || data.coverUrl || data.posterPath || null,
         userRating: item.userRating,
         status: item.status,
         review: item.notes,
       });
 
-      if (type === 'RATED_MEDIA' && item.userRating) {
+      if (
+        type === 'RATED_MEDIA' &&
+        item.userRating &&
+        (item.domain === 'movie' || item.domain === 'tv') &&
+        item.tmdbId &&
+        item.mediaType
+      ) {
         notifyFriendsOnRating(
           request.userId,
           item.tmdbId,
           item.mediaType,
           item.userRating,
           item.notes,
-          parsed.data.title || null,
-          parsed.data.posterPath || null
+          item.title || data.title || null,
+          item.coverUrl || data.posterPath || null
         ).catch((err) => fastify.log.warn({ err }, 'Falha ao notificar amigos sobre avaliação.'));
       }
     } catch (err) {
@@ -133,9 +170,13 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
           userId: request.userId, // garante que só atualiza o próprio item
         },
         data: {
-          status: parsed.data.status,
+          ...(parsed.data.status ? { status: parsed.data.status as WatchStatus } : {}),
           userRating: parsed.data.userRating,
           notes: parsed.data.notes,
+          ...(parsed.data.title ? { title: parsed.data.title } : {}),
+          ...(parsed.data.coverUrl || parsed.data.posterPath ? { coverUrl: parsed.data.coverUrl || parsed.data.posterPath } : {}),
+          ...(parsed.data.releaseYear ? { releaseYear: parsed.data.releaseYear } : {}),
+          ...(parsed.data.extraMeta ? { extraMeta: parsed.data.extraMeta as Prisma.InputJsonValue } : {}),
         },
       });
 
@@ -150,24 +191,32 @@ export async function wishlistRoutes(fastify: FastifyInstance): Promise<void> {
         await recordActivity({
           userId: request.userId,
           type,
+          domain: item.domain,
+          externalId: item.externalId,
           tmdbId: item.tmdbId,
           mediaType: item.mediaType,
-          title: parsed.data.title || null,
-          posterPath: parsed.data.posterPath || null,
+          title: item.title || parsed.data.title || null,
+          posterPath: item.coverUrl || parsed.data.coverUrl || parsed.data.posterPath || null,
           userRating: item.userRating,
           status: item.status,
           review: item.notes,
         });
 
-        if (type === 'RATED_MEDIA' && item.userRating) {
+        if (
+          type === 'RATED_MEDIA' &&
+          item.userRating &&
+          (item.domain === 'movie' || item.domain === 'tv') &&
+          item.tmdbId &&
+          item.mediaType
+        ) {
           notifyFriendsOnRating(
             request.userId,
             item.tmdbId,
             item.mediaType,
             item.userRating,
             item.notes,
-            parsed.data.title || null,
-            parsed.data.posterPath || null
+            item.title || parsed.data.title || null,
+            item.coverUrl || parsed.data.posterPath || null
           ).catch((err) => fastify.log.warn({ err }, 'Falha ao notificar amigos sobre avaliação.'));
         }
       } catch (err) {

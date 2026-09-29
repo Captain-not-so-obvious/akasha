@@ -1,12 +1,14 @@
-import { ActivityType, MediaType, WatchStatus } from '@prisma/client';
+import { ActivityType, DomainType, MediaType, WatchStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { fetchMediaDetails } from './tmdb.service.js';
 
 export interface RecordActivityInput {
   userId: string;
   type: ActivityType;
-  tmdbId: number;
-  mediaType: MediaType;
+  domain?: DomainType;
+  externalId?: string;
+  tmdbId?: number | null;
+  mediaType?: MediaType | null;
   title?: string | null;
   posterPath?: string | null;
   userRating?: number | null;
@@ -15,11 +17,13 @@ export interface RecordActivityInput {
 }
 
 export async function recordActivity(input: RecordActivityInput) {
+  const domain = input.domain || (input.mediaType as DomainType) || 'movie';
+  const externalId = input.externalId || (input.tmdbId ? String(input.tmdbId) : '');
   let title = input.title;
   let posterPath = input.posterPath;
 
-  // Se o título ou poster não foram enviados, consulta o TMDB para garantir metadados reais
-  if (!title || !posterPath) {
+  // Se o título ou poster não foram enviados e for filme/série com tmdbId, consulta o TMDB para garantir metadados reais
+  if ((!title || !posterPath) && input.tmdbId && input.mediaType) {
     try {
       const details = await fetchMediaDetails(input.tmdbId, input.mediaType);
       if (details) {
@@ -35,8 +39,10 @@ export async function recordActivity(input: RecordActivityInput) {
     data: {
       userId: input.userId,
       type: input.type,
-      tmdbId: input.tmdbId,
-      mediaType: input.mediaType,
+      domain,
+      externalId,
+      tmdbId: input.tmdbId ?? null,
+      mediaType: input.mediaType ?? null,
       title: title || null,
       posterPath: posterPath || null,
       userRating: input.userRating,
@@ -108,7 +114,7 @@ export async function getFeedForUser(userId: string, page = 1, limit = 20) {
   // Cura e enriquece registros que estejam sem título ou pôster (ex: legados ou criados sem metadados)
   const enrichedActivities = await Promise.all(
     activities.map(async (act) => {
-      if (!act.title || !act.posterPath) {
+      if ((!act.title || !act.posterPath) && act.tmdbId && act.mediaType) {
         try {
           const details = await fetchMediaDetails(act.tmdbId, act.mediaType);
           if (details) {

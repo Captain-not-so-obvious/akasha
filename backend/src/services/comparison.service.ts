@@ -54,8 +54,10 @@ export interface ComparisonResult {
 interface WishlistRecord {
   id: number;
   userId: string;
-  tmdbId: number;
-  mediaType: MediaType;
+  tmdbId?: number | null;
+  mediaType?: MediaType | null;
+  domain?: string;
+  externalId?: string;
   status: WatchStatus;
   userRating: number | null;
   notes: string | null;
@@ -74,10 +76,12 @@ export function calculateAffinity(
   const friendMap = new Map<string, WishlistRecord>();
 
   for (const item of myItems) {
-    myMap.set(`${item.mediaType}:${item.tmdbId}`, item);
+    const key = item.domain && item.externalId ? `${item.domain}:${item.externalId}` : `${item.mediaType}:${item.tmdbId}`;
+    myMap.set(key, item);
   }
   for (const item of friendItems) {
-    friendMap.set(`${item.mediaType}:${item.tmdbId}`, item);
+    const key = item.domain && item.externalId ? `${item.domain}:${item.externalId}` : `${item.mediaType}:${item.tmdbId}`;
+    friendMap.set(key, item);
   }
 
   const allKeys = new Set<string>([...myMap.keys(), ...friendMap.keys()]);
@@ -246,12 +250,16 @@ export async function compareUserLibraries(
   // Mapeamentos rápidos
   const myMap = new Map<string, WishlistRecord>();
   for (const item of myItems) {
-    myMap.set(`${item.mediaType}:${item.tmdbId}`, item);
+    if (item.mediaType && item.tmdbId) {
+      myMap.set(`${item.mediaType}:${item.tmdbId}`, item);
+    }
   }
 
   const friendMap = new Map<string, WishlistRecord>();
   for (const item of friendItems) {
-    friendMap.set(`${item.mediaType}:${item.tmdbId}`, item);
+    if (item.mediaType && item.tmdbId) {
+      friendMap.set(`${item.mediaType}:${item.tmdbId}`, item);
+    }
   }
 
   // 4. Identificar obras para cada aba
@@ -276,7 +284,13 @@ export async function compareUserLibraries(
   // A. O que ver juntos: ambos com status 'plan_to_watch'
   for (const [key, myItem] of myMap.entries()) {
     const friendItem = friendMap.get(key);
-    if (friendItem && myItem.status === 'plan_to_watch' && friendItem.status === 'plan_to_watch') {
+    if (
+      friendItem &&
+      myItem.status === 'plan_to_watch' &&
+      friendItem.status === 'plan_to_watch' &&
+      myItem.tmdbId &&
+      myItem.mediaType
+    ) {
       rawWatchTogether.push({ tmdbId: myItem.tmdbId, mediaType: myItem.mediaType });
     }
   }
@@ -284,7 +298,13 @@ export async function compareUserLibraries(
   // B. Consenso & Duelo: ambos avaliaram (userRating !== null)
   for (const [key, myItem] of myMap.entries()) {
     const friendItem = friendMap.get(key);
-    if (friendItem && myItem.userRating !== null && friendItem.userRating !== null) {
+    if (
+      friendItem &&
+      myItem.userRating !== null &&
+      friendItem.userRating !== null &&
+      myItem.tmdbId &&
+      myItem.mediaType
+    ) {
       rawRatedOverlap.push({
         tmdbId: myItem.tmdbId,
         mediaType: myItem.mediaType,
@@ -303,7 +323,12 @@ export async function compareUserLibraries(
   // C. Recomendações do Amigo: obras que o amigo avaliou com 4 ou 5 estrelas
   // e que o usuário ainda não avaliou
   for (const [key, friendItem] of friendMap.entries()) {
-    if (friendItem.userRating !== null && friendItem.userRating >= 4) {
+    if (
+      friendItem.userRating !== null &&
+      friendItem.userRating >= 4 &&
+      friendItem.tmdbId &&
+      friendItem.mediaType
+    ) {
       const myItem = myMap.get(key);
       const userAlreadyRated = myItem && myItem.userRating !== null;
       if (!userAlreadyRated) {

@@ -10,6 +10,7 @@ import { friendsRoutes } from './routes/friends.routes.js';
 import { profileRoutes } from './routes/profile.routes.js';
 import { feedRoutes } from './routes/feed.routes.js';
 import { notificationRoutes } from './routes/notification.routes.js';
+import { gamesRoutes } from './routes/games.routes.js';
 import cookie from '@fastify/cookie';
 
 const fastify = Fastify({
@@ -21,16 +22,37 @@ const fastify = Fastify({
   },
 });
 
+// Registrar parser tolerante para application/json (aceita corpo vazio sem lançar FST_ERR_CTP_EMPTY_JSON_BODY)
+fastify.addContentTypeParser(
+  'application/json',
+  { parseAs: 'string' },
+  (_req, body, done) => {
+    if (!body || (typeof body === 'string' && body.trim() === '')) {
+      done(null, undefined);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(body as string);
+      done(null, parsed);
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error('Corpo da requisição JSON inválido');
+      Object.assign(error, { statusCode: 400 });
+      done(error, undefined);
+    }
+  }
+);
+
 // Registrar parser para application/x-www-form-urlencoded (padrão de requisições OAuth)
 fastify.addContentTypeParser(
   'application/x-www-form-urlencoded',
   { parseAs: 'string' },
-  (req, body, done) => {
+  (_req, body, done) => {
     try {
       const parsed = Object.fromEntries(new URLSearchParams(body as string));
       done(null, parsed);
-    } catch (err: any) {
-      done(err, undefined);
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error('Corpo url-encoded inválido');
+      done(error, undefined);
     }
   }
 );
@@ -57,6 +79,7 @@ await fastify.register(friendsRoutes, { prefix: '/friends' });
 await fastify.register(profileRoutes, { prefix: '/profile' });
 await fastify.register(feedRoutes, { prefix: '/feed' });
 await fastify.register(notificationRoutes, { prefix: '/notifications' });
+await fastify.register(gamesRoutes, { prefix: '/games' });
 
 // Helper para obter a URL base dinâmica
 const getBaseUrl = (request: FastifyRequest) => {
@@ -167,3 +190,4 @@ try {
   process.exit(1);
 }
 
+// Dev server reload: token resilience and polymorphic wishlist sync

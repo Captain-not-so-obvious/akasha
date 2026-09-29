@@ -13,7 +13,8 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}): Pro
   
   const headers = new Headers(options.headers || {});
   
-  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+  const hasBody = options.body !== undefined && options.body !== null && options.body !== '';
+  if (hasBody && !headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -25,9 +26,28 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}): Pro
     ? endpoint
     : `${BACKEND_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 
-  return fetch(url, {
+  let res = await fetch(url, {
     ...options,
     headers,
     credentials: 'include',
   });
+
+  // Se a requisição falhar com 401 (token expirado), tenta renovar a sessão uma vez e retentar
+  if (res.status === 401) {
+    try {
+      const { data: refreshData } = await supabase.auth.refreshSession();
+      if (refreshData?.session?.access_token) {
+        headers.set('Authorization', `Bearer ${refreshData.session.access_token}`);
+        res = await fetch(url, {
+          ...options,
+          headers,
+          credentials: 'include',
+        });
+      }
+    } catch {
+      // Ignora erro no refresh e preserva a resposta original
+    }
+  }
+
+  return res;
 }

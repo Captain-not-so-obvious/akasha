@@ -72,6 +72,16 @@ export default function App() {
               }
             />
             <Route
+              path="/library"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Library />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/profile"
               element={
                 <ProtectedRoute>

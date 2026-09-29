@@ -63,4 +63,15 @@ describe('Componente SearchBar', () => {
     render(<SearchBar {...defaultProps} query="" />);
     expect(screen.queryByRole('button', { name: /limpar busca/i })).not.toBeInTheDocument();
   });
+
+  it('deve permitir selecionar a opção "Jogos" e atualizar o placeholder contextual', () => {
+    const onSearchTypeChange = vi.fn();
+    render(<SearchBar {...defaultProps} searchType="game" onSearchTypeChange={onSearchTypeChange} />);
+
+    expect(screen.getByRole('radio', { name: /jogos/i })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByPlaceholderText(/buscar jogos/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('radio', { name: /jogos/i }));
+    expect(onSearchTypeChange).toHaveBeenCalledWith('game');
+  });
 });

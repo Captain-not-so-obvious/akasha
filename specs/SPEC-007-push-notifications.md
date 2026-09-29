@@ -163,6 +163,7 @@ Todas as rotas são protegidas pelo middleware `verifySupabaseAuth` e operam sob
 
 ### 4.4 Marcar Todas como Lidas
 * **Rota:** `PATCH /notifications/read-all`
+* **Payload:** Vazio (sem corpo). O cliente HTTP (`apiFetch`) não deve injetar `Content-Type: application/json` quando o corpo não for fornecido. Adicionalmente, o backend possui parser tolerante para evitar erros `FST_ERR_CTP_EMPTY_JSON_BODY` caso clientes enviem o cabeçalho com corpo vazio.
 * **Resposta (200 OK):**
   ```json
   {

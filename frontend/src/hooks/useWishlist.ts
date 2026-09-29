@@ -21,10 +21,43 @@ export function useWishlist() {
       // Buscando detalhes da mídia para cada item
       const libraryItems: LibraryItem[] = await Promise.all(
         wishlistItems.map(async (item) => {
-          const mediaRes = await apiFetch(`/tmdb/${item.mediaType}/${item.tmdbId}`);
-          if (!mediaRes.ok) throw new Error(`Erro ao buscar mídia ${item.tmdbId}`);
-          const media: MediaDetails = await mediaRes.json();
-          return { ...item, media };
+          if (item.domain === 'game' || (!item.tmdbId && item.externalId)) {
+            const gameMedia: MediaDetails = {
+              id: Number(item.externalId) || item.id,
+              title: item.title || 'Jogo sem título',
+              overview: (item.extraMeta as any)?.summary || '',
+              posterUrl: item.coverUrl || '',
+              backdropUrl: (item.extraMeta as any)?.backdropUrl || '',
+              mediaType: 'movie', // compatibilidade de tipo
+              releaseDate: item.releaseYear ? `${item.releaseYear}-01-01` : '',
+              voteAverage: (item.extraMeta as any)?.rating ? (item.extraMeta as any).rating / 10 : 0,
+            };
+            return { ...item, media: gameMedia };
+          }
+
+          if (item.tmdbId && item.mediaType) {
+            try {
+              const mediaRes = await apiFetch(`/tmdb/${item.mediaType}/${item.tmdbId}`);
+              if (mediaRes.ok) {
+                const media: MediaDetails = await mediaRes.json();
+                return { ...item, media };
+              }
+            } catch {
+              // fallback em caso de erro no TMDB
+            }
+          }
+
+          const fallbackMedia: MediaDetails = {
+            id: Number(item.externalId) || item.tmdbId || item.id,
+            title: item.title || 'Sem título',
+            overview: '',
+            posterUrl: item.coverUrl || '',
+            backdropUrl: '',
+            mediaType: 'movie',
+            releaseDate: item.releaseYear ? `${item.releaseYear}-01-01` : '',
+            voteAverage: 0,
+          };
+          return { ...item, media: fallbackMedia };
         })
       );
 

@@ -52,7 +52,26 @@ describe('Integration: Wishlist Routes', () => {
     });
   });
 
-  it('POST /wishlist - deve adicionar um item válido', async () => {
+  it('GET /wishlist?domain=game - deve filtrar itens pelo domínio especificado', async () => {
+    const mockGames = [
+      { id: 2, domain: 'game', externalId: '1024', title: 'The Witcher 3', status: 'watching' },
+    ];
+    vi.mocked(prisma.wishlist.findMany).mockResolvedValue(mockGames as any);
+
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/wishlist?domain=game',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual(mockGames);
+    expect(prisma.wishlist.findMany).toHaveBeenCalledWith({
+      where: { userId: 'user-123', domain: 'game' },
+      orderBy: { updatedAt: 'desc' },
+    });
+  });
+
+  it('POST /wishlist - deve adicionar um item válido de cinema', async () => {
     const mockItem = { id: 1, tmdbId: 123, mediaType: 'movie', status: 'watching' };
     vi.mocked(prisma.wishlist.upsert).mockResolvedValue(mockItem as any);
 
@@ -68,6 +87,48 @@ describe('Integration: Wishlist Routes', () => {
 
     expect(response.statusCode).toBe(201);
     expect(response.json()).toEqual(mockItem);
+  });
+
+  it('POST /wishlist - deve adicionar um jogo (game) com metadados polimórficos', async () => {
+    const mockGameItem = {
+      id: 5,
+      domain: 'game',
+      externalId: '1024',
+      status: 'watching',
+      userRating: 5,
+      notes: 'Um dos melhores RPGs da história',
+      title: 'The Witcher 3: Wild Hunt',
+      coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.jpg',
+    };
+    vi.mocked(prisma.wishlist.upsert).mockResolvedValue(mockGameItem as any);
+
+    const response = await fastify.inject({
+      method: 'POST',
+      url: '/wishlist',
+      payload: {
+        domain: 'game',
+        externalId: '1024',
+        status: 'in_progress', // normaliza para watching
+        userRating: 5,
+        notes: 'Um dos melhores RPGs da história',
+        title: 'The Witcher 3: Wild Hunt',
+        coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.jpg',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual(mockGameItem);
+    expect(prisma.wishlist.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          userId_domain_externalId: {
+            userId: 'user-123',
+            domain: 'game',
+            externalId: '1024',
+          },
+        },
+      })
+    );
   });
 
   it('POST /wishlist - deve rejeitar dados inválidos', async () => {

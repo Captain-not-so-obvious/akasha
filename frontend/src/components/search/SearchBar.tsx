@@ -1,15 +1,17 @@
 import React, { useId } from 'react';
-import type { MediaType } from '../../types/media';
+import type { MediaType, SearchCategory } from '../../types/media';
 
-interface SearchBarProps {
+export interface SearchBarProps {
   query: string;
-  mediaType: MediaType;
+  mediaType?: MediaType;
+  searchType?: SearchCategory;
   onQueryChange: (value: string) => void;
-  onMediaTypeChange: (type: MediaType) => void;
+  onMediaTypeChange?: (type: MediaType) => void;
+  onSearchTypeChange?: (type: SearchCategory) => void;
 }
 
 /**
- * Barra de busca com toggle Filmes/Séries.
+ * Barra de busca com toggle Filmes / Séries / Jogos.
  *
  * Compatibilidade de plataforma:
  * - TV/D-Pad: Todos os elementos têm tabIndex={0}. O input tem foco automático
@@ -21,28 +23,49 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({
   query,
   mediaType,
+  searchType,
   onQueryChange,
   onMediaTypeChange,
+  onSearchTypeChange,
 }) => {
   const searchInputId = useId();
+  const currentType: SearchCategory = searchType ?? mediaType ?? 'movie';
+
+  const handleSelectType = (type: SearchCategory) => {
+    onSearchTypeChange?.(type);
+    if (type === 'movie' || type === 'tv') {
+      onMediaTypeChange?.(type);
+    }
+  };
+
+  const getPlaceholder = () => {
+    if (currentType === 'movie') return 'Buscar filmes...';
+    if (currentType === 'tv') return 'Buscar séries...';
+    return 'Buscar jogos (ex: Elden Ring, Zelda)...';
+  };
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* Toggle Filmes / Séries */}
+      {/* Toggle Filmes / Séries / Jogos */}
       <div
         role="group"
         aria-label="Tipo de mídia"
-        className="flex gap-2 self-start"
+        className="flex flex-wrap gap-2 self-start"
       >
         <ToggleButton
           label="🎬 Filmes"
-          active={mediaType === 'movie'}
-          onClick={() => onMediaTypeChange('movie')}
+          active={currentType === 'movie'}
+          onClick={() => handleSelectType('movie')}
         />
         <ToggleButton
           label="📺 Séries"
-          active={mediaType === 'tv'}
-          onClick={() => onMediaTypeChange('tv')}
+          active={currentType === 'tv'}
+          onClick={() => handleSelectType('tv')}
+        />
+        <ToggleButton
+          label="🎮 Jogos"
+          active={currentType === 'game'}
+          onClick={() => handleSelectType('game')}
         />
       </div>
 
@@ -74,10 +97,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           type="search"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder={`Buscar ${mediaType === 'movie' ? 'filmes' : 'séries'}...`}
+          placeholder={getPlaceholder()}
           autoComplete="off"
           tabIndex={0}
-          aria-label={`Buscar ${mediaType === 'movie' ? 'filmes' : 'séries'}`}
+          aria-label={getPlaceholder().replace('...', '')}
           className="
             tv-focus-glow w-full rounded-xl
             bg-white/10 border border-white/15

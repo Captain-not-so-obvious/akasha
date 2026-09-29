@@ -41,6 +41,44 @@ describe('Zod Schema: createWishlistItemSchema', () => {
     expect(resultLow.success).toBe(false);
     expect(resultHigh.success).toBe(false);
   });
+
+  it('deve aceitar e validar um item de jogo (game) com externalId e metadados', () => {
+    const payload = {
+      domain: 'game',
+      externalId: '1024',
+      status: 'in_progress', // alias de watching
+      userRating: 5,
+      notes: 'Jogabilidade impecável!',
+      title: 'The Witcher 3: Wild Hunt',
+      coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.jpg',
+      releaseYear: 2015,
+      extraMeta: { platforms: ['PC', 'PlayStation 5'], genres: ['RPG'] },
+    };
+
+    const result = createWishlistItemSchema.safeParse(payload);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.domain).toBe('game');
+      expect(result.data.externalId).toBe('1024');
+      expect(result.data.status).toBe('watching'); // normalizado de in_progress
+      expect(result.data.title).toBe('The Witcher 3: Wild Hunt');
+      expect(result.data.coverUrl).toBe('https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.jpg');
+      expect(result.data.releaseYear).toBe(2015);
+    }
+  });
+
+  it('deve converter alias backlog para plan_to_watch', () => {
+    const payload = {
+      domain: 'game',
+      externalId: '2048',
+      status: 'backlog',
+    };
+    const result = createWishlistItemSchema.safeParse(payload);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.status).toBe('plan_to_watch');
+    }
+  });
 });
 
 describe('Zod Schema: updateWishlistItemSchema', () => {

@@ -64,6 +64,8 @@ describe('Activity Service - Unit Tests', () => {
       data: {
         userId: mockUserId,
         type: 'RATED_MEDIA',
+        domain: 'movie',
+        externalId: '100',
         tmdbId: 100,
         mediaType: 'movie',
         title: 'Clube da Luta',

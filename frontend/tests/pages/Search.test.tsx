@@ -2,11 +2,14 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SearchPage } from '../../src/pages/Search';
 import { useSearch } from '../../src/hooks/useSearch';
+import { useGameSearch } from '../../src/hooks/useGameSearch';
 import { useWishlist } from '../../src/hooks/useWishlist';
 import type { MediaDetails } from '../../src/types/media';
 import type { LibraryItem } from '../../src/types/wishlist';
+import type { GameDetails } from '../../src/types/game';
 
 vi.mock('../../src/hooks/useSearch');
+vi.mock('../../src/hooks/useGameSearch');
 vi.mock('../../src/hooks/useWishlist');
 
 const mockMovieInLibrary: MediaDetails = {
@@ -29,6 +32,18 @@ const mockMovieNotInLibrary: MediaDetails = {
   releaseDate: '2010-07-16',
   mediaType: 'movie',
   voteAverage: 8.8,
+};
+
+const mockGameResult: GameDetails = {
+  id: '1022',
+  title: 'The Legend of Zelda',
+  summary: 'Aventuras em Hyrule.',
+  coverUrl: 'https://images.igdb.com/cover.jpg',
+  backdropUrl: null,
+  releaseYear: 1986,
+  genres: ['Aventura'],
+  platforms: ['NES'],
+  rating: 85,
 };
 
 const mockLibraryItem: LibraryItem = {
@@ -59,6 +74,14 @@ describe('Página SearchPage', () => {
       addToList: mockAddToList,
       updateListItem: vi.fn(),
       removeFromList: vi.fn(),
+    });
+
+    vi.mocked(useGameSearch).mockReturnValue({
+      results: [],
+      popularGames: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
     });
   });
 
@@ -119,5 +142,124 @@ describe('Página SearchPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Já está na sua Biblioteca')).toBeInTheDocument();
     });
+  });
+
+  it('permite alternar para a aba "Jogos", renderizar resultados de games e abrir modal de detalhes', async () => {
+    vi.mocked(useSearch).mockReturnValue({
+      results: [],
+      totalResults: 0,
+      totalPages: 0,
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    vi.mocked(useGameSearch).mockReturnValue({
+      results: [mockGameResult],
+      popularGames: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    render(<SearchPage />);
+
+    // Alterna para jogos
+    const jogosTab = screen.getByRole('radio', { name: /jogos/i });
+    fireEvent.click(jogosTab);
+
+    expect(screen.getByPlaceholderText(/buscar jogos/i)).toBeInTheDocument();
+
+    const input = screen.getByPlaceholderText(/buscar jogos/i);
+    fireEvent.change(input, { target: { value: 'Zelda' } });
+
+    expect(screen.getByText('The Legend of Zelda')).toBeInTheDocument();
+
+    // Clica no card do jogo
+    const gameCard = screen.getByRole('button', { name: /the legend of zelda/i });
+    fireEvent.click(gameCard);
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /quero jogar/i })).toBeInTheDocument();
+    });
+
+    // Clica em Quero Jogar
+    fireEvent.click(screen.getByRole('button', { name: /quero jogar/i }));
+    expect(mockAddToList).toHaveBeenCalledWith(
+      expect.objectContaining({
+        domain: 'game',
+        externalId: '1022',
+        status: 'plan_to_watch',
+        title: 'The Legend of Zelda',
+      })
+    );
+  });
+
+  it('ao clicar em "Já Zerei", abre o RatingModal para avaliar e envia o jogo com status completed, userRating e notes', async () => {
+    vi.mocked(useSearch).mockReturnValue({
+      results: [],
+      totalResults: 0,
+      totalPages: 0,
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    vi.mocked(useGameSearch).mockReturnValue({
+      results: [mockGameResult],
+      popularGames: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    render(<SearchPage />);
+
+    // Alterna para jogos
+    fireEvent.click(screen.getByRole('radio', { name: /jogos/i }));
+
+    const input = screen.getByPlaceholderText(/buscar jogos/i);
+    fireEvent.change(input, { target: { value: 'Zelda' } });
+
+    // Clica no card do jogo
+    const gameCard = screen.getByRole('button', { name: /the legend of zelda/i });
+    fireEvent.click(gameCard);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /já zerei/i })).toBeInTheDocument();
+    });
+
+    // Clica em "Já Zerei"
+    fireEvent.click(screen.getByRole('button', { name: /já zerei/i }));
+
+    // Deve abrir o modal de avaliação
+    await waitFor(() => {
+      expect(screen.getByText('Quer deixar uma opinião?')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /salvar avaliação/i })).toBeInTheDocument();
+    });
+
+    // Seleciona 5 estrelas
+    const star5 = screen.getByRole('button', { name: /5 estrelas/i });
+    fireEvent.click(star5);
+
+    // Digita uma resenha
+    const reviewInput = screen.getByPlaceholderText(/o que você achou dessa obra\?/i);
+    fireEvent.change(reviewInput, { target: { value: 'Obra-prima atemporal!' } });
+
+    // Salva a avaliação
+    const saveBtn = screen.getByRole('button', { name: /salvar avaliação/i });
+    fireEvent.click(saveBtn);
+
+    expect(mockAddToList).toHaveBeenCalledWith(
+      expect.objectContaining({
+        domain: 'game',
+        externalId: '1022',
+        status: 'completed',
+        userRating: 5,
+        notes: 'Obra-prima atemporal!',
+        title: 'The Legend of Zelda',
+      })
+    );
   });
 });

@@ -1,27 +1,40 @@
 import type { MediaType } from './media';
 
+export type DomainType = 'movie' | 'tv' | 'game';
+
 export type WishlistStatus = 'plan_to_watch' | 'watching' | 'completed' | 'dropped';
 
 export interface WishlistItem {
   id: number;
   userId: string;
-  tmdbId: number;
-  mediaType: MediaType;
+  domain: DomainType;
+  externalId: string;
+  tmdbId?: number | null;
+  mediaType?: MediaType | null;
   status: WishlistStatus;
   userRating: number | null;
   notes: string | null;
+  title: string;
+  coverUrl?: string | null;
+  releaseYear?: number | null;
+  extraMeta?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateWishlistItemInput {
-  tmdbId: number;
-  mediaType: MediaType;
+  domain?: DomainType;
+  externalId?: string;
+  tmdbId?: number;
+  mediaType?: MediaType;
   status?: WishlistStatus;
   userRating?: number;
   notes?: string;
   title?: string;
   posterPath?: string;
+  coverUrl?: string;
+  releaseYear?: number;
+  extraMeta?: Record<string, unknown>;
 }
 
 export interface UpdateWishlistItemInput {
@@ -30,6 +43,9 @@ export interface UpdateWishlistItemInput {
   notes?: string;
   title?: string;
   posterPath?: string;
+  coverUrl?: string;
+  releaseYear?: number;
+  extraMeta?: Record<string, unknown>;
 }
 
 export type LibraryItem = WishlistItem & {
