@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { X, Plus, Image as ImageIcon, Check, Star, Trash2 } from 'lucide-react';
+import { X, Image as ImageIcon, Check, Star, Trash2, Play, Bookmark } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
+import { StatusBadge } from './StatusBadge';
 import type { MediaDetails } from '../../types/media';
 import type { LibraryItem, WishlistStatus } from '../../types/wishlist';
 import { getReleaseYear } from '../../utils/date';
@@ -10,7 +11,7 @@ interface MediaDetailsModalProps {
   media: MediaDetails | null;
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (media: MediaDetails) => void;
+  onAdd: (media: MediaDetails, status?: WishlistStatus) => void;
   isInLibrary?: boolean;
   libraryItem?: LibraryItem;
   onRemove?: (item: LibraryItem) => void;
@@ -46,6 +47,11 @@ export function MediaDetailsModal({
     // Se já temos a informação de watchProviders carregada (objeto populado), não precisa de fetch extra
     if (media.watchProviders) {
       setExtendedMedia(media);
+      return;
+    }
+
+    // Se o item pertencer ao domínio de games ou livros, não consulta TMDB
+    if (libraryItem?.domain === 'game' || libraryItem?.domain === 'book') {
       return;
     }
 
@@ -251,46 +257,104 @@ export function MediaDetailsModal({
 
             <div className="mt-auto pt-4 flex gap-4">
               {isInLibrary && libraryItem ? (
-                <div className="flex-1 md:flex-none flex flex-col md:flex-row gap-4 w-full">
-                  {libraryItem.status !== 'completed' && onStatusChange && (
-                    <button
-                      tabIndex={0}
-                      onClick={() => {
-                        onStatusChange(libraryItem, 'completed');
-                        onClose();
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-6 py-4 rounded-xl font-bold font-outfit text-base lg:text-lg tv-focus-glow hover:bg-emerald-500 hover:text-white transition-colors cursor-pointer"
-                    >
-                      <Check size={20} />
-                      Concluir
-                    </button>
-                  )}
-                  {onEdit && (
-                    <button
-                      tabIndex={0}
-                      onClick={() => {
-                        onClose();
-                        onEdit(libraryItem);
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 bg-[var(--color-caramelo-claro)] text-black px-6 py-4 rounded-xl font-bold font-outfit text-base lg:text-lg tv-focus-glow hover:bg-[var(--color-cobre)] hover:text-white transition-colors cursor-pointer"
-                    >
-                      <Star size={20} className="fill-current" />
-                      Avaliar
-                    </button>
-                  )}
-                  {onRemove && (
-                    <button
-                      tabIndex={0}
-                      onClick={() => {
-                        onRemove(libraryItem);
-                        onClose();
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 bg-red-500/20 border border-red-500/40 text-red-300 px-6 py-4 rounded-xl font-bold font-outfit text-base lg:text-lg tv-focus-glow hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
-                    >
-                      <Trash2 size={20} />
-                      Remover
-                    </button>
-                  )}
+                <div className="flex flex-col gap-3 w-full">
+                  {/* Status atual do item na biblioteca */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 shrink-0">
+                        <Check size={14} />
+                      </span>
+                      <p className="text-xs md:text-sm font-outfit font-bold text-white">Já está na sua Biblioteca</p>
+                      <div className="ml-1">
+                        <StatusBadge status={libraryItem.status} domain={libraryItem.domain || 'movie'} />
+                      </div>
+                    </div>
+                    {libraryItem.userRating && (
+                      <div className="flex items-center gap-1.5 text-xs font-outfit text-[var(--color-caramelo-claro)]">
+                        <Star size={14} className="fill-current" />
+                        <span className="font-bold">{libraryItem.userRating}/5</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Todas as Ações Unificadas no Mesmo Lugar */}
+                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2.5 w-full">
+                    {/* 1. Começar a Assistir / Jogar / Ler */}
+                    {libraryItem.status !== 'watching' && onStatusChange && (
+                      <button
+                        type="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          onStatusChange(libraryItem, 'watching');
+                          onClose();
+                        }}
+                        className="col-span-2 sm:flex-1 min-h-[44px] flex items-center justify-center gap-2 bg-[var(--color-caramelo-claro)] text-black px-4 py-2.5 rounded-xl font-bold font-outfit text-sm tv-focus-glow hover:bg-[var(--color-cobre)] hover:text-white transition-all shadow-md shadow-yellow-900/20 cursor-pointer"
+                        aria-label={
+                          libraryItem.status === 'completed'
+                            ? libraryItem.domain === 'game' ? 'Jogar Novamente' : libraryItem.domain === 'book' ? 'Ler Novamente' : 'Assistir Novamente'
+                            : libraryItem.domain === 'game' ? 'Começar a Jogar' : libraryItem.domain === 'book' ? 'Começar a Ler' : 'Começar a Assistir'
+                        }
+                      >
+                        <Play size={18} className="fill-current shrink-0" />
+                        <span>
+                          {libraryItem.status === 'completed'
+                            ? libraryItem.domain === 'game' ? 'Jogar Novamente' : libraryItem.domain === 'book' ? 'Ler Novamente' : 'Assistir Novamente'
+                            : libraryItem.domain === 'game' ? 'Começar a Jogar' : libraryItem.domain === 'book' ? 'Começar a Ler' : 'Começar a Assistir'}
+                        </span>
+                      </button>
+                    )}
+
+                    {/* 2. Concluir / Zerar / Lido */}
+                    {libraryItem.status !== 'completed' && onStatusChange && (
+                      <button
+                        type="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          onStatusChange(libraryItem, 'completed');
+                          onClose();
+                        }}
+                        className="flex-1 min-h-[44px] flex items-center justify-center gap-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-4 py-2.5 rounded-xl font-bold font-outfit text-sm tv-focus-glow hover:bg-emerald-500 hover:text-white transition-all cursor-pointer"
+                        aria-label={libraryItem.domain === 'game' ? 'Marcar como Zerado' : libraryItem.domain === 'book' ? 'Marcar como Lido' : 'Concluir'}
+                      >
+                        <Check size={18} className="shrink-0" />
+                        <span>{libraryItem.domain === 'game' ? 'Marcar como Zerado' : libraryItem.domain === 'book' ? 'Marcar como Lido' : 'Concluir'}</span>
+                      </button>
+                    )}
+
+                    {/* 3. Avaliar */}
+                    {onEdit && (
+                      <button
+                        type="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          onClose();
+                          onEdit(libraryItem);
+                        }}
+                        className="flex-1 min-h-[44px] flex items-center justify-center gap-2 bg-white/10 border border-white/20 text-white px-4 py-2.5 rounded-xl font-bold font-outfit text-sm tv-focus-glow hover:bg-[var(--color-caramelo-claro)] hover:text-black transition-all cursor-pointer"
+                        aria-label="Avaliar"
+                      >
+                        <Star size={18} className="fill-current text-[var(--color-caramelo-claro)] shrink-0" />
+                        <span>{libraryItem.userRating ? 'Reavaliar' : 'Avaliar'}</span>
+                      </button>
+                    )}
+
+                    {/* 4. Remover */}
+                    {onRemove && (
+                      <button
+                        type="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          onRemove(libraryItem);
+                          onClose();
+                        }}
+                        className="col-span-2 sm:col-span-1 sm:w-auto min-h-[44px] flex items-center justify-center gap-2 bg-red-500/20 border border-red-500/40 text-red-300 px-4 py-2.5 rounded-xl font-bold font-outfit text-sm tv-focus-glow hover:bg-red-500 hover:text-white transition-all cursor-pointer"
+                        aria-label="Remover"
+                      >
+                        <Trash2 size={18} className="shrink-0" />
+                        <span>Remover</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : isInLibrary ? (
                 <div className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-8 py-4 rounded-xl font-bold font-outfit text-lg">
@@ -298,17 +362,52 @@ export function MediaDetailsModal({
                   Já está na sua Biblioteca
                 </div>
               ) : (
-                <button
-                  tabIndex={0}
-                  onClick={() => {
-                    onAdd(media);
-                    onClose();
-                  }}
-                  className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[var(--color-caramelo-claro)] text-[var(--color-floresta-negra)] px-8 py-4 rounded-xl font-bold font-outfit text-lg tv-focus-glow hover:bg-[var(--color-cobre)] hover:text-white transition-colors cursor-pointer"
-                >
-                  <Plus size={24} />
-                  Adicionar à Biblioteca
-                </button>
+                <div className="flex flex-col gap-2 w-full">
+                  <span className="text-xs font-outfit text-[var(--color-seda-milharal)]/70">
+                    Adicionar à sua Biblioteca:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
+                    <button
+                      type="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        onAdd(media);
+                        onClose();
+                      }}
+                      aria-label="Adicionar à Biblioteca"
+                      className="min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 font-outfit font-semibold text-sm tv-focus-glow transition cursor-pointer"
+                    >
+                      <Bookmark size={18} className="text-[var(--color-caramelo-claro)]" />
+                      <span>Quero Ver</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        onAdd(media, 'watching');
+                        onClose();
+                      }}
+                      className="min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[var(--color-caramelo-claro)] text-black font-outfit font-bold text-sm tv-focus-glow hover:bg-[var(--color-cobre)] hover:text-white transition cursor-pointer shadow-md shadow-yellow-900/20"
+                    >
+                      <Play size={18} className="fill-current" />
+                      <span>Começar a Assistir</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        onAdd(media, 'completed');
+                        onClose();
+                      }}
+                      className="min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600/80 hover:bg-emerald-600 text-white border border-emerald-500/30 font-outfit font-semibold text-sm tv-focus-glow transition cursor-pointer"
+                    >
+                      <Check size={18} />
+                      <span>Já Assisti</span>
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           </div>

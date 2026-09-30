@@ -4,7 +4,7 @@
  */
 
 export type MediaType = 'movie' | 'tv';
-export type SearchCategory = 'movie' | 'tv' | 'game';
+export type SearchCategory = 'movie' | 'tv' | 'game' | 'book';
 
 export interface WatchProvider {
   id: number;

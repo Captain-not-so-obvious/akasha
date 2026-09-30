@@ -2,18 +2,22 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { SearchBar } from '../components/search/SearchBar';
 import { MovieCard } from '../components/search/MovieCard';
 import { GameCard } from '../components/search/GameCard';
+import { BookCard } from '../components/search/BookCard';
 import { useSearch } from '../hooks/useSearch';
 import { useGameSearch } from '../hooks/useGameSearch';
+import { useBookSearch } from '../hooks/useBookSearch';
 import { useWishlist } from '../hooks/useWishlist';
 import { MediaDetailsModal } from '../components/ui/MediaDetailsModal';
 import { GameDetailsModal } from '../components/ui/GameDetailsModal';
+import { BookDetailsModal } from '../components/ui/BookDetailsModal';
 import { RatingModal } from '../components/ui/RatingModal';
 import type { MediaType, MediaDetails, SearchCategory } from '../types/media';
 import type { GameDetails } from '../types/game';
+import type { BookDetails } from '../types/book';
 import type { LibraryItem, WishlistStatus } from '../types/wishlist';
 
 /**
- * Página de Busca Universal — reúne busca de Filmes, Séries e Jogos.
+ * Página de Busca Universal — reúne busca de Filmes, Séries, Jogos e Livros.
  *
  * Compatibilidade de plataforma:
  * - TV/D-Pad: Grid responsivo com foco acessível (tabIndex={0}) em cada card.
@@ -26,11 +30,12 @@ export const SearchPage: React.FC = () => {
   const [searchCategory, setSearchCategory] = useState<SearchCategory>('movie');
   const [selectedMedia, setSelectedMedia] = useState<MediaDetails | null>(null);
   const [selectedGame, setSelectedGame] = useState<GameDetails | null>(null);
+  const [selectedBook, setSelectedBook] = useState<BookDetails | null>(null);
 
   // Hook de busca tradicional de Cinema / TV
   const currentMediaType: MediaType = searchCategory === 'tv' ? 'tv' : 'movie';
   const { results: mediaResults, totalResults, isLoading: isMediaLoading, error: mediaError } = useSearch(
-    searchCategory === 'game' ? '' : query,
+    searchCategory === 'game' || searchCategory === 'book' ? '' : query,
     currentMediaType
   );
 
@@ -42,15 +47,27 @@ export const SearchPage: React.FC = () => {
     error: gameError,
   } = useGameSearch(searchCategory === 'game' ? query : '');
 
+  // Hook de busca de Livros via Google Books
+  const {
+    results: bookResults,
+    popularBooks,
+    isLoading: isBookLoading,
+    error: bookError,
+  } = useBookSearch(searchCategory === 'book' ? query : '');
+
   const { items, fetchWishlist, addToList, removeFromList, updateListItem } = useWishlist();
 
   useEffect(() => {
     fetchWishlist();
   }, [fetchWishlist]);
 
-  // Chaves de biblioteca para filmes/séries e jogos
+  // Chaves de biblioteca para filmes/séries, jogos e livros
   const libraryMediaKeys = useMemo(() => {
-    return new Set(items.filter((item) => item.domain !== 'game').map((item) => `${item.mediaType}-${item.tmdbId}`));
+    return new Set(
+      items
+        .filter((item) => item.domain !== 'game' && item.domain !== 'book')
+        .map((item) => `${item.mediaType}-${item.tmdbId}`)
+    );
   }, [items]);
 
   const libraryGameMap = useMemo(() => {
@@ -63,24 +80,51 @@ export const SearchPage: React.FC = () => {
     return map;
   }, [items]);
 
+  const libraryBookMap = useMemo(() => {
+    const map = new Map<string, (typeof items)[0]>();
+    items.forEach((item) => {
+      if (item.domain === 'book' && item.externalId) {
+        map.set(String(item.externalId), item);
+      }
+    });
+    return map;
+  }, [items]);
+
   const selectedIsInLibrary = useMemo(() => {
     if (!selectedMedia) return false;
     return libraryMediaKeys.has(`${selectedMedia.mediaType}-${selectedMedia.id}`);
   }, [selectedMedia, libraryMediaKeys]);
+
+  const selectedMediaLibraryItem = useMemo(() => {
+    if (!selectedMedia) return undefined;
+    return items.find(
+      (item) =>
+        (item.domain === 'movie' || !item.domain) &&
+        item.tmdbId === selectedMedia.id &&
+        item.mediaType === selectedMedia.mediaType
+    );
+  }, [items, selectedMedia]);
 
   const selectedGameLibraryItem = useMemo(() => {
     if (!selectedGame) return undefined;
     return libraryGameMap.get(String(selectedGame.id));
   }, [selectedGame, libraryGameMap]);
 
+  const selectedBookLibraryItem = useMemo(() => {
+    if (!selectedBook) return undefined;
+    return libraryBookMap.get(String(selectedBook.id));
+  }, [selectedBook, libraryBookMap]);
+
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [pendingRatingMedia, setPendingRatingMedia] = useState<MediaDetails | null>(null);
   const [pendingRatingGame, setPendingRatingGame] = useState<GameDetails | null>(null);
+  const [pendingRatingBook, setPendingRatingBook] = useState<BookDetails | null>(null);
   const [editingLibraryItem, setEditingLibraryItem] = useState<LibraryItem | null>(null);
 
   const handleAddGame = async (game: GameDetails, status: WishlistStatus) => {
-    // Se o usuário selecionou "Já Zerei", abre o modal de avaliação para catalogar com nota
     if (status === 'completed') {
       setPendingRatingGame(game);
+      setPendingRatingBook(null);
       setEditingLibraryItem(null);
       setSelectedGame(null);
       setRatingModalOpen(true);
@@ -105,8 +149,52 @@ export const SearchPage: React.FC = () => {
     });
   };
 
+  const handleAddBook = async (book: BookDetails, status: WishlistStatus) => {
+    if (status === 'completed') {
+      setPendingRatingBook(book);
+      setPendingRatingGame(null);
+      setEditingLibraryItem(null);
+      setSelectedBook(null);
+      setRatingModalOpen(true);
+      return;
+    }
+
+    await addToList({
+      domain: 'book',
+      externalId: String(book.id),
+      status,
+      title: book.title,
+      coverUrl: book.coverUrl || undefined,
+      releaseYear: book.releaseYear || undefined,
+      extraMeta: {
+        subtitle: book.subtitle,
+        authors: book.authors,
+        publisher: book.publisher,
+        publishedDate: book.publishedDate,
+        pageCount: book.pageCount,
+        categories: book.categories,
+        isbn10: book.isbn10,
+        isbn13: book.isbn13,
+        description: book.description,
+      },
+    });
+  };
+
   const handleRatingSubmit = async (rating: number, review?: string) => {
-    if (pendingRatingGame) {
+    if (pendingRatingMedia) {
+      const media = pendingRatingMedia;
+      await addToList({
+        tmdbId: media.id,
+        mediaType: media.mediaType,
+        status: 'completed',
+        userRating: rating,
+        notes: review,
+        title: media.title,
+        posterPath: media.posterUrl || undefined,
+      });
+      setPendingRatingMedia(null);
+      setRatingModalOpen(false);
+    } else if (pendingRatingGame) {
       const game = pendingRatingGame;
       await addToList({
         domain: 'game',
@@ -127,6 +215,31 @@ export const SearchPage: React.FC = () => {
         },
       });
       setPendingRatingGame(null);
+      setRatingModalOpen(false);
+    } else if (pendingRatingBook) {
+      const book = pendingRatingBook;
+      await addToList({
+        domain: 'book',
+        externalId: String(book.id),
+        status: 'completed',
+        userRating: rating,
+        notes: review,
+        title: book.title,
+        coverUrl: book.coverUrl || undefined,
+        releaseYear: book.releaseYear || undefined,
+        extraMeta: {
+          subtitle: book.subtitle,
+          authors: book.authors,
+          publisher: book.publisher,
+          publishedDate: book.publishedDate,
+          pageCount: book.pageCount,
+          categories: book.categories,
+          isbn10: book.isbn10,
+          isbn13: book.isbn13,
+          description: book.description,
+        },
+      });
+      setPendingRatingBook(null);
       setRatingModalOpen(false);
     } else if (editingLibraryItem) {
       await updateListItem(editingLibraryItem.id, {
@@ -163,11 +276,12 @@ export const SearchPage: React.FC = () => {
           setSearchCategory(type);
           setSelectedMedia(null);
           setSelectedGame(null);
+          setSelectedBook(null);
         }}
         onMediaTypeChange={(type) => setSearchCategory(type)}
       />
 
-      {/* Renderização condicional Cinema/Séries vs Games */}
+      {/* Renderização condicional Cinema/Séries vs Games vs Livros */}
       {searchCategory === 'game' ? (
         <GameSearchResults
           query={query}
@@ -177,6 +291,16 @@ export const SearchPage: React.FC = () => {
           popularGames={popularGames}
           libraryGameMap={libraryGameMap}
           onSelectGame={setSelectedGame}
+        />
+      ) : searchCategory === 'book' ? (
+        <BookSearchResults
+          query={query}
+          isLoading={isBookLoading}
+          error={bookError}
+          results={bookResults}
+          popularBooks={popularBooks}
+          libraryBookMap={libraryBookMap}
+          onSelectBook={setSelectedBook}
         />
       ) : (
         <SearchResults
@@ -196,11 +320,51 @@ export const SearchPage: React.FC = () => {
         media={selectedMedia}
         onClose={() => setSelectedMedia(null)}
         isInLibrary={selectedIsInLibrary}
-        onAdd={(media) => {
+        libraryItem={selectedMediaLibraryItem}
+        onRemove={(item) => {
+          removeFromList(item.id);
+          setSelectedMedia(null);
+        }}
+        onStatusChange={(item, newStatus) => {
+          if (newStatus === 'completed') {
+            setEditingLibraryItem(item);
+            setPendingRatingMedia(null);
+            setPendingRatingGame(null);
+            setPendingRatingBook(null);
+            setSelectedMedia(null);
+            setRatingModalOpen(true);
+            return;
+          }
+
+          updateListItem(item.id, {
+            status: newStatus,
+            title: item.title,
+            posterPath: item.coverUrl || undefined,
+          });
+        }}
+        onEdit={(item) => {
+          setEditingLibraryItem(item);
+          setPendingRatingMedia(null);
+          setPendingRatingGame(null);
+          setPendingRatingBook(null);
+          setSelectedMedia(null);
+          setRatingModalOpen(true);
+        }}
+        onAdd={(media, status = 'plan_to_watch') => {
+          if (status === 'completed') {
+            setPendingRatingMedia(media);
+            setPendingRatingGame(null);
+            setPendingRatingBook(null);
+            setEditingLibraryItem(null);
+            setSelectedMedia(null);
+            setRatingModalOpen(true);
+            return;
+          }
+
           addToList({
             tmdbId: media.id,
             mediaType: media.mediaType,
-            status: 'plan_to_watch',
+            status,
             title: media.title,
             posterPath: media.posterUrl || undefined,
           });
@@ -219,10 +383,18 @@ export const SearchPage: React.FC = () => {
           removeFromList(item.id);
           setSelectedGame(null);
         }}
+        onEdit={(item) => {
+          setEditingLibraryItem(item);
+          setPendingRatingGame(null);
+          setPendingRatingBook(null);
+          setSelectedGame(null);
+          setRatingModalOpen(true);
+        }}
         onStatusChange={(item, newStatus) => {
           if (newStatus === 'completed') {
             setEditingLibraryItem(item);
             setPendingRatingGame(null);
+            setPendingRatingBook(null);
             setSelectedGame(null);
             setRatingModalOpen(true);
             return;
@@ -236,16 +408,54 @@ export const SearchPage: React.FC = () => {
         }}
       />
 
-      {/* Modal de Avaliação para jogos zerados */}
+      {/* Modal de detalhes de Livros */}
+      <BookDetailsModal
+        isOpen={selectedBook !== null}
+        book={selectedBook}
+        onClose={() => setSelectedBook(null)}
+        isInLibrary={Boolean(selectedBookLibraryItem)}
+        libraryItem={selectedBookLibraryItem}
+        onAdd={handleAddBook}
+        onRemove={(item) => {
+          removeFromList(item.id);
+          setSelectedBook(null);
+        }}
+        onEdit={(item) => {
+          setEditingLibraryItem(item);
+          setPendingRatingBook(null);
+          setPendingRatingGame(null);
+          setSelectedBook(null);
+          setRatingModalOpen(true);
+        }}
+        onStatusChange={(item, newStatus) => {
+          if (newStatus === 'completed') {
+            setEditingLibraryItem(item);
+            setPendingRatingBook(null);
+            setPendingRatingGame(null);
+            setSelectedBook(null);
+            setRatingModalOpen(true);
+            return;
+          }
+
+          updateListItem(item.id, {
+            status: newStatus,
+            title: item.title,
+            coverUrl: item.coverUrl || undefined,
+          });
+        }}
+      />
+
+      {/* Modal de Avaliação para jogos zerados ou livros lidos */}
       <RatingModal
         isOpen={ratingModalOpen}
         onClose={() => {
           setRatingModalOpen(false);
           setPendingRatingGame(null);
+          setPendingRatingBook(null);
           setEditingLibraryItem(null);
         }}
         onSubmit={handleRatingSubmit}
-        title={pendingRatingGame?.title || editingLibraryItem?.title || 'Avaliar Jogo'}
+        title={pendingRatingBook?.title || pendingRatingGame?.title || editingLibraryItem?.title || 'Avaliar Obra'}
         initialRating={editingLibraryItem?.userRating || 0}
         initialReview={editingLibraryItem?.notes || ''}
       />
@@ -361,7 +571,7 @@ function GameSearchResults({
           <div className="flex items-center justify-between pb-1 border-b border-white/5">
             <div>
               <h3 className="font-cinzel text-lg font-bold text-[var(--color-caramelo-claro)]">
-                🔥 Tendências na Twitch
+                🔥 Jogos em Alta
               </h3>
               <p className="font-outfit text-xs text-[var(--color-seda-milharal)]/70">
                 Títulos mais assistidos e em alta na Twitch para inspirar sua biblioteca
@@ -452,6 +662,134 @@ function GameSearchResults({
           return (
             <div key={game.id} role="listitem">
               <GameCard game={game} onSelect={onSelectGame} isInLibrary={isInLibrary} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// --- Sub-componente interno para Livros ---
+
+interface BookSearchResultsProps {
+  query: string;
+  isLoading: boolean;
+  error: string | null;
+  results: BookDetails[];
+  popularBooks: BookDetails[];
+  libraryBookMap: Map<string, any>;
+  onSelectBook: (book: BookDetails) => void;
+}
+
+function BookSearchResults({
+  query,
+  isLoading,
+  error,
+  results,
+  popularBooks,
+  libraryBookMap,
+  onSelectBook,
+}: BookSearchResultsProps) {
+  // Estado de cold-start (sem query): exibe livros populares/clássicos
+  if (query.trim().length < 2 && !isLoading) {
+    if (popularBooks.length > 0) {
+      return (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-1 border-b border-white/5">
+            <div>
+              <h3 className="font-cinzel text-lg font-bold text-[var(--color-caramelo-claro)]">
+                🔥 Leituras em Destaque
+              </h3>
+              <p className="font-outfit text-xs text-[var(--color-seda-milharal)]/70">
+                Grandes obras e clássicos da literatura para inspirar sua estante
+              </p>
+            </div>
+          </div>
+
+          <div
+            className="
+              grid gap-4
+              grid-cols-2
+              sm:grid-cols-3
+              md:grid-cols-4
+              lg:grid-cols-5
+              xl:grid-cols-6
+              2xl:grid-cols-7
+            "
+            role="list"
+            aria-label="Livros em destaque"
+          >
+            {popularBooks.map((book) => {
+              const isInLibrary = libraryBookMap.has(String(book.id));
+              return (
+                <div key={book.id} role="listitem">
+                  <BookCard book={book} onSelect={onSelectBook} isInLibrary={isInLibrary} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <EmptyState
+        icon="📚"
+        title="O que você quer ler?"
+        description="Digite o título de um livro, nome do autor ou código ISBN..."
+      />
+    );
+  }
+
+  if (isLoading) {
+    return <LoadingGrid />;
+  }
+
+  if (error) {
+    return (
+      <EmptyState
+        icon="⚠️"
+        title="Algo deu errado na busca de livros"
+        description={error}
+        isError
+      />
+    );
+  }
+
+  if (results.length === 0 && query.trim().length >= 2) {
+    return (
+      <EmptyState
+        icon="📖"
+        title="Nenhum livro encontrado"
+        description={`Não encontramos nenhum livro com "${query}". Tente buscar pelo autor ou pelo ISBN.`}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="font-outfit text-xs text-[var(--color-seda-milharal)] opacity-50">
+        {results.length} livro{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}
+      </p>
+      <div
+        className="
+          grid gap-4
+          grid-cols-2
+          sm:grid-cols-3
+          md:grid-cols-4
+          lg:grid-cols-5
+          xl:grid-cols-6
+          2xl:grid-cols-7
+        "
+        role="list"
+        aria-label="Resultados de busca de livros"
+      >
+        {results.map((book) => {
+          const isInLibrary = libraryBookMap.has(String(book.id));
+          return (
+            <div key={book.id} role="listitem">
+              <BookCard book={book} onSelect={onSelectBook} isInLibrary={isInLibrary} />
             </div>
           );
         })}

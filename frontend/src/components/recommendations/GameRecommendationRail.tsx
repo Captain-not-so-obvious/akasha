@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useGameRecommendations } from '../../hooks/useGameRecommendations';
 import type { GameRecommendationItem } from '../../types/game';
+import { ThematicLoader } from '../ui/ThematicLoader';
 
 interface GameRecommendationRailProps {
   onSelectGame?: (game: GameRecommendationItem) => void;
@@ -41,11 +42,12 @@ export const GameRecommendationRail: React.FC<GameRecommendationRailProps> = ({
 
   if (isLoading && recommendations.length === 0) {
     return (
-      <div className="w-full py-8 flex flex-col gap-3 items-center justify-center bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
-        <div className="w-8 h-8 border-4 border-yellow-500/30 border-t-yellow-400 rounded-full animate-spin" />
-        <p className="font-outfit text-sm text-[var(--color-seda-milharal)] animate-pulse">
-          Sintonizando algoritmos de afinidade gamer...
-        </p>
+      <div className="w-full py-8 flex flex-col items-center justify-center bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
+        <ThematicLoader
+          domain="game"
+          size="md"
+          subtext="Recomendações Gamer"
+        />
       </div>
     );
   }

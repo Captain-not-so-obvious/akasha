@@ -125,4 +125,29 @@ describe('LibraryItemCard Component', () => {
 
     expect(mockOnSelect).toHaveBeenCalledWith(mockItem.media);
   });
+
+  it('deve disparar onStatusChange ao clicar no botão de status rápido para mobile', () => {
+    const planItem: LibraryItem = {
+      ...mockItem,
+      status: 'plan_to_watch',
+    };
+
+    render(
+      <LibraryItemCard
+        item={planItem}
+        onEdit={mockOnEdit}
+        onRemove={mockOnRemove}
+        onStatusChange={mockOnStatusChange}
+        onSelect={mockOnSelect}
+      />
+    );
+
+    // O botão rápido para mobile tem o label "Mudar para Começar"
+    const quickMobileBtns = screen.getAllByRole('button', { name: /Mudar para Começar/i });
+    expect(quickMobileBtns.length).toBeGreaterThan(0);
+
+    fireEvent.click(quickMobileBtns[0]);
+    expect(mockOnStatusChange).toHaveBeenCalledWith(planItem, 'watching');
+  });
 });
+

@@ -79,6 +79,31 @@ describe('Zod Schema: createWishlistItemSchema', () => {
       expect(result.data.status).toBe('plan_to_watch');
     }
   });
+
+  it('deve aceitar e validar um item literário (book) com externalId e metadados editoriais', () => {
+    const payload = {
+      domain: 'book',
+      externalId: 'OL1003040W',
+      status: 'watching',
+      title: 'Dom Casmurro',
+      coverUrl: 'https://covers.openlibrary.org/b/id/647501-L.jpg',
+      releaseYear: 1899,
+      extraMeta: {
+        authors: ['Machado de Assis'],
+        pageCount: 256,
+        isbn13: '9788535914849',
+      },
+    };
+    const result = createWishlistItemSchema.safeParse(payload);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.domain).toBe('book');
+      expect(result.data.externalId).toBe('OL1003040W');
+      expect(result.data.status).toBe('watching');
+      expect(result.data.title).toBe('Dom Casmurro');
+      expect(result.data.coverUrl).toBe('https://covers.openlibrary.org/b/id/647501-L.jpg');
+    }
+  });
 });
 
 describe('Zod Schema: updateWishlistItemSchema', () => {

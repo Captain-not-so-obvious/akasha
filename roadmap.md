@@ -199,18 +199,20 @@
 
 ---
 
-## FASE 8 — Módulo de Livros (Books)
-> 📄 **Spec:** [`specs/SPEC-001-universal-media-expansion.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-001-universal-media-expansion.md)
+## FASE 8 — Módulo de Livros (Books) (100% Concluída)
+> 📄 **Specs:** [`specs/SPEC-011-books-module-and-reading-shelf.md`](specs/SPEC-011-books-module-and-reading-shelf.md) & [`specs/SPEC-001-universal-media-expansion.md`](specs/SPEC-001-universal-media-expansion.md)  
 **Objetivo:** Ingestão de livros via Google Books, controle de páginas e recomendações literárias.
 
 | # | Feature | Complexidade | Dependência | Status |
 |---|---|---|---|---|
-| 8.1 | Serviço Google Books (`books.service.ts`) com busca em pt-BR e ISBN | 🟡 | Fase 6 | Pendente |
-| 8.2 | Rotas Fastify: `GET /books/search` e `GET /books/:id` | 🟢 | 8.1 | Pendente |
-| 8.3 | Motor de Recomendação de Livros por autor e assuntos/gêneros literários | 🔴 | 8.1, Fase 6 | Pendente |
-| 8.4 | Componente `BookCard` com proporção de capa editorial e foco D-Pad para TV | 🟡 | 8.2 | Pendente |
-| 8.5 | Tela de Busca e Rails de Leituras Recomendadas no Frontend | 🟡 | 8.3, 8.4 | Pendente |
-| 8.6 | Testes unitários e de componente para módulo de Livros | 🟡 | 8.5 | Pendente |
+| 8.1 | Serviço Google Books (`books.service.ts`) com busca em pt-BR e ISBN | 🟡 | Fase 6 | **Done** |
+| 8.2 | Rotas Fastify: `GET /books/search` e `GET /books/:id` | 🟢 | 8.1 | **Done** |
+| 8.3 | Motor de Recomendação de Livros por autor e assuntos/gêneros literários | 🔴 | 8.1, Fase 6 | **Done** |
+| 8.4 | Componente `BookCard` com proporção de capa editorial e foco D-Pad para TV | 🟡 | 8.2 | **Done** |
+| 8.5 | Tela de Busca e Rails de Leituras Recomendadas no Frontend | 🟡 | 8.3, 8.4 | **Done** |
+| 8.6 | Testes unitários e de componente para módulo de Livros | 🟡 | 8.5 | **Done** |
+| 8.7 | Delight UX: `ThematicLoader` com frases temáticas e spinner em toda a biblioteca ([`SPEC-012`](specs/SPEC-012-thematic-loading-and-delight-ux.md)) | 🟢 | 8.5 | **Done** |
+| 8.8 | Ações Unificadas Mobile e Multiplataforma: começar a assistir/jogar/ler, concluir, avaliar e remover no mesmo local ([`SPEC-013`](specs/SPEC-013-unified-mobile-actions.md)) | 🟡 | 8.5, 7.5 | **Done** |
 
 ---
 

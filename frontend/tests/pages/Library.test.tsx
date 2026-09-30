@@ -166,4 +166,27 @@ describe('Library Page', () => {
     expect(screen.getByRole('button', { name: /Quero Jogar/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Concluídos \(Zerados\)/i })).toBeInTheDocument();
   });
+
+  it('deve renderizar o ThematicLoader com círculo giratório ao carregar o acervo da biblioteca', () => {
+    vi.mocked(useWishlistModule.useWishlist).mockReturnValue({
+      items: [],
+      isLoading: true,
+      error: null,
+      fetchWishlist: mockFetchWishlist,
+      updateListItem: mockUpdateListItem,
+      removeFromList: mockRemoveFromList,
+      addToList: mockAddToList,
+    });
+
+    render(
+      <MemoryRouter>
+        <Library />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByTestId('spinning-circle')).toBeInTheDocument();
+    expect(screen.getByText('Sincronizando seu acervo no Akasha')).toBeInTheDocument();
+  });
 });
+

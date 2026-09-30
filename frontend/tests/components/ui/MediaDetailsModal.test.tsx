@@ -265,4 +265,66 @@ describe('MediaDetailsModal Component', () => {
     const appleTvLink = await screen.findByRole('link', { name: 'Apple TV' });
     expect(appleTvLink).toBeInTheDocument();
   });
+
+  it('deve exibir "Começar a Assistir", "Concluir", "Avaliar" e "Remover" no mesmo lugar quando o item for plan_to_watch', () => {
+    const planItem: LibraryItem = {
+      ...mockLibraryItem,
+      status: 'plan_to_watch',
+    };
+
+    render(
+      <MediaDetailsModal
+        media={mockMedia}
+        isOpen={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+        isInLibrary={true}
+        libraryItem={planItem}
+        onRemove={mockOnRemove}
+        onStatusChange={mockOnStatusChange}
+        onEdit={mockOnEdit}
+      />
+    );
+
+    const startBtn = screen.getByRole('button', { name: /Começar a Assistir/i });
+    const completeBtn = screen.getByRole('button', { name: /Concluir/i });
+    const editBtn = screen.getByRole('button', { name: /Avaliar/i });
+    const removeBtn = screen.getByRole('button', { name: /Remover/i });
+
+    expect(startBtn).toBeInTheDocument();
+    expect(completeBtn).toBeInTheDocument();
+    expect(editBtn).toBeInTheDocument();
+    expect(removeBtn).toBeInTheDocument();
+
+    // Disparar Começar a Assistir
+    fireEvent.click(startBtn);
+    expect(mockOnStatusChange).toHaveBeenCalledWith(planItem, 'watching');
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('deve adaptar rótulos dinâmicos para Jogos ("Começar a Jogar" e "Marcar como Zerado")', () => {
+    const gameItem: LibraryItem = {
+      ...mockLibraryItem,
+      domain: 'game',
+      status: 'plan_to_watch',
+    };
+
+    render(
+      <MediaDetailsModal
+        media={mockMedia}
+        isOpen={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+        isInLibrary={true}
+        libraryItem={gameItem}
+        onRemove={mockOnRemove}
+        onStatusChange={mockOnStatusChange}
+        onEdit={mockOnEdit}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /Começar a Jogar/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Marcar como Zerado/i })).toBeInTheDocument();
+  });
 });
+

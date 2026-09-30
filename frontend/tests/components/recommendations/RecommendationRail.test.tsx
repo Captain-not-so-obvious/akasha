@@ -159,5 +159,21 @@ describe('RecommendationRail Component', () => {
       behavior: 'smooth',
     });
   });
+
+  it('deve renderizar o ThematicLoader quando estiver carregando recomendações de cinema', () => {
+    vi.mocked(useRecsModule.useRecommendations).mockReturnValue({
+      recommendations: [],
+      isLoading: true,
+      error: null,
+      fetchRecommendations: mockFetchRecommendations,
+    });
+
+    render(<RecommendationRail />);
+
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByTestId('spinning-circle')).toBeInTheDocument();
+    expect(screen.getByText('Recomendações Cinematográficas')).toBeInTheDocument();
+  });
 });
+
 

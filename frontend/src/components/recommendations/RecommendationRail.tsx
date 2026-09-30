@@ -3,6 +3,7 @@ import { useRecommendations } from '../../hooks/useRecommendations';
 import type { RecommendedItem } from '../../types/recommendation';
 import type { MediaDetails } from '../../types/media';
 import { getReleaseYear } from '../../utils/date';
+import { ThematicLoader } from '../ui/ThematicLoader';
 
 interface RecommendationRailProps {
   onSelectMedia?: (media: MediaDetails) => void;
@@ -78,11 +79,12 @@ export const RecommendationRail: React.FC<RecommendationRailProps> = ({ onSelect
 
   if (isLoading && recommendations.length === 0) {
     return (
-      <div className="w-full py-8 flex flex-col gap-3 items-center justify-center bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
-        <div className="w-8 h-8 border-4 border-yellow-500/30 border-t-yellow-400 rounded-full animate-spin" />
-        <p className="font-outfit text-sm text-[var(--color-seda-milharal)] animate-pulse">
-          Calculando recomendações hiperpersonalizadas para você...
-        </p>
+      <div className="w-full py-8 flex flex-col items-center justify-center bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
+        <ThematicLoader
+          domain="movie"
+          size="md"
+          subtext="Recomendações Cinematográficas"
+        />
       </div>
     );
   }

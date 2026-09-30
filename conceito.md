@@ -22,9 +22,11 @@ Ao concluir qualquer mídia ou marcar como "Já Zerei" / "Concluído" diretament
 
 ### Motores de Recomendação Especialistas & Transmídia
 > 📄 **Especificação Técnica de Jogos e Tendências Twitch:** [`specs/SPEC-010-twitch-helix-trending-games-and-zero-mock-architecture.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-010-twitch-helix-trending-games-and-zero-mock-architecture.md)  
+> 📄 **Especificação Técnica de Livros e Estante Literária:** [`specs/SPEC-011-books-module-and-reading-shelf.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-011-books-module-and-reading-shelf.md)  
 O Akasha opera motores de recomendação dedicados por domínio (TMDB para cinema, Twitch Helix + IGDB para games, Google Books para livros e Comic Vine/AniList para HQs/mangás), complementados por um **Motor Transmídia**:
 * **Jogos e Tendências em Tempo Real:** O catálogo e cold start de games refletem o pulso da Twitch Helix API (`/helix/games/top`) sem dependência de dados mockados estáticos, enriquecidos com capas e metadados oficiais do IGDB v4.
-* Descoberta cruzada de franquias e universos expandidos (ex: conectar games a livros e adaptações cinematográficas baseadas nas notas do usuário).
+* **Literatura e Afinidade de Autores:** Ingestão de acervo via Google Books API com busca textual em pt-BR e por código ISBN, controle de páginas, estante de leituras e motor de recomendação baseado em ponderação de notas e autores/gêneros favoritos.
+* **Descoberta Cruzada de Franquias:** Conexão entre universos expandidos e obras transmídia (ex: correlacionar games a romances literários e adaptações cinematográficas baseadas nas notas do usuário).
 
 ### Agente Autônomo e Camada MCP (Model Context Protocol)
 Compatibilidade nativa com assistentes agênticos (como Google Spark) para gerenciar o acervo, catalogar mídias e solicitar recomendações personalizadas via comandos conversacionais.
@@ -35,4 +37,13 @@ Rede fechada entre viajantes Akasha: feeds de atividades transmídia, cálculo d
 
 ### Central de Notificações Multiplataforma & Push
 > 📄 **Especificação Técnica:** [`specs/SPEC-007-push-notifications.md`](specs/SPEC-007-push-notifications.md)  
-Canal de comunicação ativo e não invasivo integrado em todas as plataformas (Android TV, Mobile e Desktop): alertas de novos episódios de séries em acompanhamento ativo (`watching`), avisos de novas avaliações e opiniões na rede de amigos e solicitações de conexão social.
+Canal de comunicação ativo e não invasivo integrado em todas as plataformas (Android TV, Mobile e Desktop): alertas de novos episódios de séries em acompanhamento ativo (`watching`), avisos de novas avaliações e opiniões na rede de amigos e solicitações de conexão social.
+
+### Experiência de Carregamento Temático & Delight UX
+> 📄 **Especificação Técnica:** [`specs/SPEC-012-thematic-loading-and-delight-ux.md`](specs/SPEC-012-thematic-loading-and-delight-ux.md)  
+Componente universal de carregamento que substitui spinners estáticos por uma experiência interativa e imersiva: combina o círculo giratório característico na paleta do projeto com alternância periódica de frases espirituosas e contextuais a cada domínio (livros, cinema, games e biblioteca geral).
+
+### Ciclo de Ações Unificadas Multiplataforma & Mobile
+> 📄 **Especificação Técnica:** [`specs/SPEC-013-unified-mobile-actions.md`](specs/SPEC-013-unified-mobile-actions.md)  
+Centralização das quatro ações essenciais do ciclo de vida de consumo cultural ("Começar a assistir/jogar/ler", "Concluir", "Avaliar" e "Remover") no mesmo painel unificado em modais de detalhes e cards, eliminando a dependência de `:hover` no celular e garantindo navegação D-Pad contínua na Android TV.
+

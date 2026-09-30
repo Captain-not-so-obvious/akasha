@@ -41,12 +41,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const getPlaceholder = () => {
     if (currentType === 'movie') return 'Buscar filmes...';
     if (currentType === 'tv') return 'Buscar séries...';
+    if (currentType === 'book') return 'Buscar livros (título, autor ou ISBN)...';
     return 'Buscar jogos (ex: Elden Ring, Zelda)...';
   };
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* Toggle Filmes / Séries / Jogos */}
+      {/* Toggle Filmes / Séries / Jogos / Livros */}
       <div
         role="group"
         aria-label="Tipo de mídia"
@@ -66,6 +67,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           label="🎮 Jogos"
           active={currentType === 'game'}
           onClick={() => handleSelectType('game')}
+        />
+        <ToggleButton
+          label="📚 Livros"
+          active={currentType === 'book'}
+          onClick={() => handleSelectType('book')}
         />
       </div>
 

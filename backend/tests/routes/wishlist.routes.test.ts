@@ -145,6 +145,48 @@ describe('Integration: Wishlist Routes', () => {
     expect(response.json()).toHaveProperty('error', 'Dados inválidos.');
   });
 
+  it('POST /wishlist - deve adicionar um livro (domain=book) com status watching com sucesso', async () => {
+    const mockBookItem = {
+      id: 50,
+      userId: 'user-123',
+      domain: 'book',
+      externalId: 'OL1003040W',
+      status: 'watching',
+      title: 'Dom Casmurro',
+      coverUrl: 'https://covers.openlibrary.org/b/id/647501-L.jpg',
+      releaseYear: 1899,
+    };
+    vi.mocked(prisma.wishlist.upsert).mockResolvedValue(mockBookItem as any);
+
+    const response = await fastify.inject({
+      method: 'POST',
+      url: '/wishlist',
+      payload: {
+        domain: 'book',
+        externalId: 'OL1003040W',
+        status: 'watching',
+        title: 'Dom Casmurro',
+        coverUrl: 'https://covers.openlibrary.org/b/id/647501-L.jpg',
+        releaseYear: 1899,
+        extraMeta: { authors: ['Machado de Assis'], pageCount: 256 },
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual(mockBookItem);
+    expect(prisma.wishlist.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          userId_domain_externalId: {
+            userId: 'user-123',
+            domain: 'book',
+            externalId: 'OL1003040W',
+          },
+        },
+      })
+    );
+  });
+
   it('PATCH /wishlist/:id - deve atualizar um item com nota e opinião', async () => {
     const existingItem = { id: 1, userId: 'user-123', tmdbId: 123, mediaType: 'movie', status: 'watching', userRating: 3, notes: null };
     const mockItem = { id: 1, userId: 'user-123', tmdbId: 123, mediaType: 'movie', status: 'completed', userRating: 5, notes: 'Filme excepcional!' };

@@ -14,6 +14,7 @@ interface GameDetailsModalProps {
   onAdd: (game: GameDetails, status: WishlistStatus) => Promise<void> | void;
   onRemove?: (item: LibraryItem) => void;
   onStatusChange?: (item: LibraryItem, newStatus: WishlistStatus) => void;
+  onEdit?: (item: LibraryItem) => void;
 }
 
 const FALLBACK_COVER = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='267' viewBox='0 0 200 267'%3E%3Crect width='200' height='267' fill='%231b281f'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23dda15e' font-size='14' font-family='sans-serif'%3ESem Capa%3C/text%3E%3C/svg%3E`;
@@ -36,6 +37,7 @@ export function GameDetailsModal({
   libraryItem,
   onRemove,
   onStatusChange,
+  onEdit,
   onAdd,
 }: GameDetailsModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -229,18 +231,18 @@ export function GameDetailsModal({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    {effectiveStatus === 'plan_to_watch' && onStatusChange && libraryItem && (
+                    {effectiveStatus !== 'watching' && onStatusChange && libraryItem && (
                       <button
                         onClick={() => onStatusChange(libraryItem, 'watching')}
                         tabIndex={0}
                         className="tv-focus-glow flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[var(--color-caramelo-claro)] text-[var(--color-floresta-negra)] font-outfit text-xs font-bold hover:brightness-110 transition cursor-pointer"
                       >
                         <Play className="w-3.5 h-3.5 fill-current" />
-                        Começar a Jogar
+                        {effectiveStatus === 'completed' ? 'Jogar Novamente' : 'Começar a Jogar'}
                       </button>
                     )}
 
-                    {effectiveStatus === 'watching' && onStatusChange && libraryItem && (
+                    {effectiveStatus !== 'completed' && onStatusChange && libraryItem && (
                       <button
                         onClick={() => onStatusChange(libraryItem, 'completed')}
                         tabIndex={0}
@@ -248,6 +250,21 @@ export function GameDetailsModal({
                       >
                         <Trophy className="w-3.5 h-3.5" />
                         Marcar como Zerado
+                      </button>
+                    )}
+
+                    {onEdit && libraryItem && (
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onEdit(libraryItem);
+                        }}
+                        tabIndex={0}
+                        className="tv-focus-glow flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 text-white border border-white/20 font-outfit text-xs font-semibold hover:bg-[var(--color-caramelo-claro)] hover:text-black transition cursor-pointer"
+                        aria-label="Avaliar Jogo"
+                      >
+                        <Star className="w-3.5 h-3.5 fill-current text-[var(--color-caramelo-claro)]" />
+                        Avaliar
                       </button>
                     )}
 

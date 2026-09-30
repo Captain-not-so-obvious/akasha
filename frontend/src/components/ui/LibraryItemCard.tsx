@@ -12,17 +12,23 @@ interface LibraryItemCardProps {
   onRemove: (item: LibraryItem) => void;
   onStatusChange: (item: LibraryItem, newStatus: WishlistStatus) => void;
   onSelect?: (media: MediaDetails) => void;
+  onSelectItem?: (item: LibraryItem) => void;
 }
 
-export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSelect }: LibraryItemCardProps) {
+export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSelect, onSelectItem }: LibraryItemCardProps) {
   const { media, status, userRating, notes } = item;
   const year = getReleaseYear(media.releaseDate);
   
   const isGame = item.domain === 'game';
+  const isBook = item.domain === 'book';
 
   const getNextStatusInfo = (currentStatus: WishlistStatus): { next: WishlistStatus; label: string } | null => {
-    if (currentStatus === 'plan_to_watch') return { next: 'watching', label: isGame ? 'Jogar' : 'Começar' };
-    if (currentStatus === 'watching') return { next: 'completed', label: isGame ? 'Zerar' : 'Concluir' };
+    if (currentStatus === 'plan_to_watch') {
+      return { next: 'watching', label: isGame ? 'Jogar' : isBook ? 'Ler' : 'Começar' };
+    }
+    if (currentStatus === 'watching') {
+      return { next: 'completed', label: isGame ? 'Zerar' : isBook ? 'Concluir' : 'Concluir' };
+    }
     return null;
   };
 
@@ -34,7 +40,11 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
     if (targetElement.closest('button')) {
       return;
     }
-    onSelect?.(media);
+    if (onSelectItem) {
+      onSelectItem(item);
+    } else {
+      onSelect?.(media);
+    }
   };
 
   const handleCardKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -44,7 +54,11 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
         return;
       }
       e.preventDefault();
-      onSelect?.(media);
+      if (onSelectItem) {
+        onSelectItem(item);
+      } else {
+        onSelect?.(media);
+      }
     }
   };
 
@@ -154,8 +168,24 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
           )}
         </div>
         <div className="flex flex-col gap-1.5 mt-auto">
-          <div className="flex items-center">
+          <div className="flex items-center justify-between gap-1">
             <StatusBadge status={status} domain={item.domain} />
+            {nextStatusInfo && (
+              <button
+                type="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStatusChange(item, nextStatusInfo.next);
+                }}
+                className="md:hidden flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--color-caramelo-claro)]/20 hover:bg-[var(--color-caramelo-claro)]/30 border border-[var(--color-caramelo-claro)]/40 text-[var(--color-caramelo-claro)] text-[11px] font-bold font-outfit transition-colors cursor-pointer"
+                title={`Mudar para ${nextStatusInfo.label}`}
+                aria-label={`Mudar para ${nextStatusInfo.label}`}
+              >
+                <ArrowRight size={11} />
+                <span>{nextStatusInfo.label}</span>
+              </button>
+            )}
           </div>
           {userRating && (
             <div className="flex items-center gap-1.5">

@@ -16,7 +16,7 @@ export const consumptionStatusSchema = z
     return val;
   });
 
-export const domainTypeSchema = z.enum(['movie', 'tv', 'game']);
+export const domainTypeSchema = z.enum(['movie', 'tv', 'game', 'book', 'comic']);
 
 export const createWishlistItemSchema = z
   .object({

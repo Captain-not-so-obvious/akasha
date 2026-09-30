@@ -4,7 +4,10 @@
 > 📄 **Especificação Técnica Camada Social (Amizades Bilaterais):** [`specs/SPEC-002-social-friendship-network.md`](specs/SPEC-002-social-friendship-network.md)  
 > 📄 **Especificação Técnica Feed de Atividades Sociais:** [`specs/SPEC-003-activity-feed.md`](specs/SPEC-003-activity-feed.md)  
 > 📄 **Especificação Técnica Sincronia Cósmica (Comparação de Acervos):** [`specs/SPEC-006-social-library-comparison.md`](specs/SPEC-006-social-library-comparison.md)  
-> 📄 **Especificação Técnica Central de Notificações & Push:** [`specs/SPEC-007-push-notifications.md`](specs/SPEC-007-push-notifications.md)
+> 📄 **Especificação Técnica Central de Notificações & Push:** [`specs/SPEC-007-push-notifications.md`](specs/SPEC-007-push-notifications.md)  
+> 📄 **Especificação Técnica Módulo de Livros & Estante Literária:** [`specs/SPEC-011-books-module-and-reading-shelf.md`](specs/SPEC-011-books-module-and-reading-shelf.md)  
+> 📄 **Especificação Técnica Carregamento Temático & Delight UX:** [`specs/SPEC-012-thematic-loading-and-delight-ux.md`](specs/SPEC-012-thematic-loading-and-delight-ux.md)  
+> 📄 **Especificação Técnica Ações Unificadas Multiplataforma & Mobile:** [`specs/SPEC-013-unified-mobile-actions.md`](specs/SPEC-013-unified-mobile-actions.md)
 
 ## 1. Visão Geral da Arquitetura
 
