@@ -171,6 +171,21 @@ export function MediaDetailsModal({
               )}
             </div>
 
+            {/* Motivo da Recomendação (quando veio de ML do Akasha) */}
+            {media.reason && (
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-[var(--color-seda-milharal)] mb-4 max-w-2xl">
+                <span className="text-base leading-none select-none">💡</span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-cinzel font-semibold text-yellow-400 uppercase tracking-wider">
+                    Por que o Akasha recomenda este título?
+                  </span>
+                  <p className="text-xs font-outfit text-[var(--color-seda-milharal)]/90 leading-relaxed">
+                    {media.reason}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <p className="text-base md:text-lg font-outfit leading-relaxed opacity-90 mb-6 max-w-2xl">
               {media.overview || 'Sinopse não disponível para esta mídia.'}
             </p>

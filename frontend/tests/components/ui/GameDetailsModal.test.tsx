@@ -157,4 +157,24 @@ describe('Componente GameDetailsModal', () => {
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(2);
   });
+
+  it('exibe o motivo da recomendação separadamente sem substituir o resumo/sinopse original do jogo', () => {
+    const recommendedGame: GameDetails = {
+      ...mockGame,
+      summary: 'Explore o reino vasto de Hyrule e derrote Ganon.',
+      reason: 'Porque você curtiu jogos épicos de exploração e RPG',
+    };
+
+    render(
+      <GameDetailsModal game={recommendedGame} isOpen={true} onClose={vi.fn()} onAdd={vi.fn()} />
+    );
+
+    // O motivo da recomendação deve estar na seção de recomendação
+    expect(screen.getByText('Por que o Akasha recomenda este jogo?')).toBeInTheDocument();
+    expect(screen.getByText('Porque você curtiu jogos épicos de exploração e RPG')).toBeInTheDocument();
+
+    // A sinopse do jogo deve ser a história real da obra, não o motivo de ML
+    expect(screen.getByText('Sinopse')).toBeInTheDocument();
+    expect(screen.getByText('Explore o reino vasto de Hyrule e derrote Ganon.')).toBeInTheDocument();
+  });
 });

@@ -101,4 +101,30 @@ describe('Componente BookDetailsModal', () => {
     fireEvent.click(removerBtn);
     expect(onRemove).toHaveBeenCalledWith(mockLibraryItem);
   });
+
+  it('exibe o motivo da recomendação separadamente sem substituir a sinopse original', () => {
+    const recommendedBook: BookDetails = {
+      ...mockBook,
+      title: 'Animal Farm',
+      description: 'Uma fábula alegórica onde os animais assumem a granja.',
+      reason: 'Porque você apreciou obras de George Orwell',
+    };
+
+    render(
+      <BookDetailsModal
+        book={recommendedBook}
+        isOpen={true}
+        onClose={vi.fn()}
+        onAdd={vi.fn()}
+      />
+    );
+
+    // O motivo da recomendação deve estar na seção de recomendação
+    expect(screen.getByText('Por que o Akasha recomenda este livro?')).toBeInTheDocument();
+    expect(screen.getByText('Porque você apreciou obras de George Orwell')).toBeInTheDocument();
+
+    // A sinopse deve ser a história real da obra, não o motivo de ML
+    expect(screen.getByText('Sinopse')).toBeInTheDocument();
+    expect(screen.getByText('Uma fábula alegórica onde os animais assumem a granja.')).toBeInTheDocument();
+  });
 });

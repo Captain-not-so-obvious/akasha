@@ -13,6 +13,7 @@ export interface GameRecommendationItem {
   rating?: number;
   score: number;
   reason: string;
+  summary?: string;
 }
 
 interface UserGameItem {
@@ -106,6 +107,7 @@ export async function getUserGameRecommendations(
         platforms: game.platforms,
         developer: game.developer,
         rating: game.rating,
+        summary: game.summary,
         score: game.rating || 90,
         reason: 'Em alta na Twitch e na comunidade gamer',
       }));
@@ -193,6 +195,7 @@ export async function getUserGameRecommendations(
       platforms: game.platforms,
       developer: game.developer,
       rating: game.rating,
+      summary: game.summary,
       score,
       reason,
     }));

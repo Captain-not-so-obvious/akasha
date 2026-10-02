@@ -27,4 +27,5 @@ export interface GameRecommendationItem {
   rating?: number;
   score: number;
   reason: string;
+  summary?: string;
 }

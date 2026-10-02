@@ -383,7 +383,7 @@ export const Library: React.FC = () => {
             setSelectedGame({
               id: game.id,
               title: game.title,
-              summary: game.reason,
+              summary: game.summary,
               coverUrl: game.coverUrl,
               releaseYear: game.releaseYear,
               platforms: game.platforms,
@@ -391,6 +391,7 @@ export const Library: React.FC = () => {
               rating: game.rating,
               backdropUrl: game.backdropUrl,
               developer: game.developer,
+              reason: game.reason,
             });
           }}
           onQuickAdd={(game) => {
@@ -402,6 +403,7 @@ export const Library: React.FC = () => {
               releaseYear: game.releaseYear || undefined,
               status: 'plan_to_watch',
               extraMeta: {
+                summary: game.summary,
                 genres: game.genres,
                 platforms: game.platforms,
                 rating: game.rating,
@@ -418,10 +420,11 @@ export const Library: React.FC = () => {
               title: book.title,
               authors: book.authors,
               releaseYear: book.releaseYear,
-              description: book.reason,
+              description: book.description,
               pageCount: book.pageCount,
               categories: book.categories,
               coverUrl: book.coverUrl,
+              reason: book.reason,
             });
           }}
           onQuickAdd={(book) => {
@@ -436,6 +439,7 @@ export const Library: React.FC = () => {
                 authors: book.authors,
                 categories: book.categories,
                 pageCount: book.pageCount,
+                description: book.description,
               },
             });
           }}

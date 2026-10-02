@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, Check, Star, Trash2, BookOpen, Bookmark, Play, FileText, Building2, Tag, Loader2 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
+import { apiFetch } from '../../lib/api';
 import type { BookDetails } from '../../types/book';
 import type { LibraryItem, WishlistStatus } from '../../types/wishlist';
 import { StatusBadge } from './StatusBadge';
@@ -42,6 +43,8 @@ export function BookDetailsModal({
   const containerRef = useRef<HTMLDivElement>(null);
   const [addingStatus, setAddingStatus] = useState<WishlistStatus | null>(null);
   const [optimisticStatus, setOptimisticStatus] = useState<WishlistStatus | null>(null);
+  const [canonicalDescription, setCanonicalDescription] = useState<string | null>(null);
+  const [isLoadingSynopsis, setIsLoadingSynopsis] = useState(false);
 
   useEffect(() => {
     if (isOpen && containerRef.current) {
@@ -54,7 +57,57 @@ export function BookDetailsModal({
     setOptimisticStatus(null);
   }, [book?.id, isOpen]);
 
+  // Carrega a sinopse canônica oficial via API caso ela esteja ausente ou se for idêntica ao motivo da recomendação
+  useEffect(() => {
+    if (!isOpen || !book?.id) {
+      setCanonicalDescription(null);
+      setIsLoadingSynopsis(false);
+      return;
+    }
+
+    const hasValidDescription = Boolean(
+      book.description && (!book.reason || book.description.trim() !== book.reason.trim())
+    );
+
+    if (hasValidDescription) {
+      setCanonicalDescription(book.description || null);
+      setIsLoadingSynopsis(false);
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingSynopsis(true);
+
+    apiFetch(`/books/${encodeURIComponent(book.id)}`)
+      .then(async (res) => {
+        if (res.ok) {
+          const data = (await res.json()) as BookDetails;
+          if (isMounted && data.description) {
+            setCanonicalDescription(data.description);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('[BookDetailsModal] Falha ao recuperar sinopse canônica do livro:', err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingSynopsis(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, book?.id, book?.description, book?.reason]);
+
   if (!isOpen || !book) return null;
+
+  const resolvedDescription =
+    canonicalDescription ||
+    (book.description && (!book.reason || book.description.trim() !== book.reason.trim())
+      ? book.description
+      : null);
 
   const formattedRating = book.averageRating ? book.averageRating.toFixed(1) : null;
   const isCurrentlyInLibrary = isInLibrary || Boolean(optimisticStatus);
@@ -70,14 +123,19 @@ export function BookDetailsModal({
   const handleAddWithStatus = async (status: WishlistStatus) => {
     if (addingStatus) return;
 
+    const bookPayload: BookDetails = {
+      ...book,
+      description: resolvedDescription || undefined,
+    };
+
     if (status === 'completed') {
-      onAdd(book, 'completed');
+      onAdd(bookPayload, 'completed');
       return;
     }
 
     try {
       setAddingStatus(status);
-      await onAdd(book, status);
+      await onAdd(bookPayload, status);
       setOptimisticStatus(status);
     } catch (err) {
       console.error('Falha ao adicionar livro à estante:', err);
@@ -220,15 +278,37 @@ export function BookDetailsModal({
               </div>
             </div>
 
-            {/* Sinopse */}
-            {book.description && (
+            {/* Motivo da Recomendação (quando o livro vem de sugestão do Akasha / ML) */}
+            {book.reason && (
+              <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-[var(--color-caramelo-claro)]/10 border border-[var(--color-caramelo-claro)]/30 text-[var(--color-seda-milharal)]">
+                <span className="text-base leading-none select-none">💡</span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-cinzel font-semibold text-[var(--color-caramelo-claro)] uppercase tracking-wider">
+                    Por que o Akasha recomenda este livro?
+                  </span>
+                  <p className="text-xs font-outfit text-[var(--color-seda-milharal)]/90 leading-relaxed">
+                    {book.reason}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Sinopse da Obra */}
+            {(resolvedDescription || isLoadingSynopsis) && (
               <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
                 <h3 className="text-sm font-cinzel font-semibold text-[var(--color-caramelo-claro)] uppercase tracking-wider">
                   Sinopse
                 </h3>
-                <p className="text-sm font-outfit text-[var(--color-seda-milharal)]/80 leading-relaxed whitespace-pre-line">
-                  {book.description}
-                </p>
+                {isLoadingSynopsis ? (
+                  <div className="flex items-center gap-2 text-stone-400 text-xs font-outfit py-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--color-caramelo-claro)]" />
+                    <span>Carregando sinopse oficial da obra...</span>
+                  </div>
+                ) : (
+                  <p className="text-sm font-outfit text-[var(--color-seda-milharal)]/80 leading-relaxed whitespace-pre-line">
+                    {resolvedDescription}
+                  </p>
+                )}
               </div>
             )}
 

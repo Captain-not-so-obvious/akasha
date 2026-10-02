@@ -17,6 +17,7 @@ export interface BookRecommendationItem {
   pageCount?: number;
   score: number;
   reason: string;
+  description?: string;
 }
 
 export interface UserBookItem {
@@ -140,6 +141,7 @@ export async function getUserBookRecommendations(
         releaseYear: book.releaseYear,
         categories: book.categories,
         pageCount: book.pageCount,
+        description: book.description,
         score: 1.0,
         reason: 'Clássico da literatura recomendado para iniciar sua estante no Akasha',
       }));
@@ -170,6 +172,7 @@ export async function getUserBookRecommendations(
           releaseYear: book.releaseYear,
           categories: book.categories,
           pageCount: book.pageCount,
+          description: book.description,
           score: currentScore,
           reason: `Porque você apreciou obras de ${author}`,
         });
@@ -192,6 +195,7 @@ export async function getUserBookRecommendations(
             releaseYear: book.releaseYear,
             categories: book.categories,
             pageCount: book.pageCount,
+            description: book.description,
             score: weight * 1.2,
             reason: `Com base no seu interesse em ${category}`,
           });
@@ -217,6 +221,7 @@ export async function getUserBookRecommendations(
           releaseYear: book.releaseYear,
           categories: book.categories,
           pageCount: book.pageCount,
+          description: book.description,
           score: 0.8,
           reason: 'Leitura aclamada em alta no acervo Akasha',
         });

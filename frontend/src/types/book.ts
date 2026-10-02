@@ -16,6 +16,7 @@ export interface BookDetails {
   isbn13?: string;
   language?: string;
   previewLink?: string;
+  reason?: string;
 }
 
 export interface BookRecommendationItem {
@@ -28,4 +29,5 @@ export interface BookRecommendationItem {
   pageCount?: number;
   score: number;
   reason: string;
+  description?: string;
 }

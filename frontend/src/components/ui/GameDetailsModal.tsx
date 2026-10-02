@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Check, Star, Trash2, Gamepad2, Bookmark, Trophy, Play, Loader2 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
+import { apiFetch } from '../../lib/api';
 import type { GameDetails } from '../../types/game';
 import type { LibraryItem, WishlistStatus } from '../../types/wishlist';
 import { StatusBadge } from './StatusBadge';
@@ -43,6 +44,8 @@ export function GameDetailsModal({
   const containerRef = useRef<HTMLDivElement>(null);
   const [addingStatus, setAddingStatus] = useState<WishlistStatus | null>(null);
   const [optimisticStatus, setOptimisticStatus] = useState<WishlistStatus | null>(null);
+  const [canonicalSummary, setCanonicalSummary] = useState<string | null>(null);
+  const [isLoadingSynopsis, setIsLoadingSynopsis] = useState(false);
 
   useEffect(() => {
     if (isOpen && containerRef.current) {
@@ -56,7 +59,57 @@ export function GameDetailsModal({
     setOptimisticStatus(null);
   }, [game?.id, isOpen]);
 
+  // Carrega a sinopse canônica via API caso esteja ausente ou idêntica ao motivo da recomendação
+  useEffect(() => {
+    if (!isOpen || !game?.id) {
+      setCanonicalSummary(null);
+      setIsLoadingSynopsis(false);
+      return;
+    }
+
+    const hasValidSummary = Boolean(
+      game.summary && (!game.reason || game.summary.trim() !== game.reason.trim())
+    );
+
+    if (hasValidSummary) {
+      setCanonicalSummary(game.summary || null);
+      setIsLoadingSynopsis(false);
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingSynopsis(true);
+
+    apiFetch(`/games/${encodeURIComponent(game.id)}`)
+      .then(async (res) => {
+        if (res.ok) {
+          const data = (await res.json()) as GameDetails;
+          if (isMounted && data.summary) {
+            setCanonicalSummary(data.summary);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('[GameDetailsModal] Falha ao recuperar sinopse canônica do jogo:', err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingSynopsis(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, game?.id, game?.summary, game?.reason]);
+
   if (!isOpen || !game) return null;
+
+  const resolvedSummary =
+    canonicalSummary ||
+    (game.summary && (!game.reason || game.summary.trim() !== game.reason.trim())
+      ? game.summary
+      : null);
 
   const formattedRating = game.rating ? (game.rating / 10).toFixed(1) : null;
   const isCurrentlyInLibrary = isInLibrary || Boolean(optimisticStatus);
@@ -71,14 +124,19 @@ export function GameDetailsModal({
   const handleAddWithStatus = async (status: WishlistStatus) => {
     if (addingStatus) return;
 
+    const gamePayload: GameDetails = {
+      ...game,
+      summary: resolvedSummary || undefined,
+    };
+
     if (status === 'completed') {
-      onAdd(game, 'completed');
+      onAdd(gamePayload, 'completed');
       return;
     }
 
     try {
       setAddingStatus(status);
-      await onAdd(game, status);
+      await onAdd(gamePayload, status);
       setOptimisticStatus(status);
     } catch (err) {
       console.error('Falha ao adicionar jogo à biblioteca:', err);
@@ -200,15 +258,37 @@ export function GameDetailsModal({
               </div>
             </div>
 
+            {/* Motivo da Recomendação (quando veio do motor de ML do Akasha) */}
+            {game.reason && (
+              <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-[var(--color-seda-milharal)]">
+                <span className="text-base leading-none select-none">✨</span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-cinzel font-semibold text-yellow-400 uppercase tracking-wider">
+                    Por que o Akasha recomenda este jogo?
+                  </span>
+                  <p className="text-xs font-outfit text-[var(--color-seda-milharal)]/90 leading-relaxed">
+                    {game.reason}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Sinopse / Resumo */}
-            {game.summary && (
+            {(resolvedSummary || isLoadingSynopsis) && (
               <div className="flex flex-col gap-1.5 bg-white/[0.03] p-4 rounded-xl border border-white/5">
                 <h3 className="font-outfit text-xs font-semibold text-[var(--color-caramelo-claro)] uppercase tracking-wider">
                   Sinopse
                 </h3>
-                <p className="font-outfit text-sm text-[var(--color-seda-milharal)]/90 leading-relaxed max-h-48 overflow-y-auto">
-                  {game.summary}
-                </p>
+                {isLoadingSynopsis ? (
+                  <div className="flex items-center gap-2 text-stone-400 text-xs font-outfit py-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-yellow-400" />
+                    <span>Carregando sinopse oficial do jogo...</span>
+                  </div>
+                ) : (
+                  <p className="font-outfit text-sm text-[var(--color-seda-milharal)]/90 leading-relaxed max-h-48 overflow-y-auto">
+                    {resolvedSummary}
+                  </p>
+                )}
               </div>
             )}
 

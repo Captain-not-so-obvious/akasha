@@ -41,6 +41,7 @@ export const RecommendationRail: React.FC<RecommendationRailProps> = ({ onSelect
         mediaType: item.mediaType,
         voteAverage: item.voteAverage,
         releaseDate: item.releaseDate,
+        reason: item.reason,
       });
     }
   };

@@ -29,6 +29,7 @@ export interface MediaDetails {
   mediaType: MediaType;
   voteAverage: number | null;
   watchProviders?: WatchProvidersData | null;
+  reason?: string;
 }
 
 export interface SearchResult {

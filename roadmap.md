@@ -213,6 +213,7 @@
 | 8.6 | Testes unitários e de componente para módulo de Livros | 🟡 | 8.5 | **Done** |
 | 8.7 | Delight UX: `ThematicLoader` com frases temáticas e spinner em toda a biblioteca ([`SPEC-012`](specs/SPEC-012-thematic-loading-and-delight-ux.md)) | 🟢 | 8.5 | **Done** |
 | 8.8 | Ações Unificadas Mobile e Multiplataforma: começar a assistir/jogar/ler, concluir, avaliar e remover no mesmo local ([`SPEC-013`](specs/SPEC-013-unified-mobile-actions.md)) | 🟡 | 8.5, 7.5 | **Done** |
+| 8.9 | Separação Canônica entre Motivos de Recomendação (ML) e Sinopse da Obra ([`SPEC-014`](specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md)) | 🟢 | 8.8 | **Done** |
 
 ---
 
