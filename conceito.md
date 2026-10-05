@@ -23,11 +23,13 @@ Ao concluir qualquer mídia ou marcar como "Já Zerei" / "Concluído" diretament
 ### Motores de Recomendação Especialistas & Transmídia
 > 📄 **Especificação Técnica de Jogos e Tendências Twitch:** [`specs/SPEC-010-twitch-helix-trending-games-and-zero-mock-architecture.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-010-twitch-helix-trending-games-and-zero-mock-architecture.md)  
 > 📄 **Especificação Técnica de Livros e Estante Literária:** [`specs/SPEC-011-books-module-and-reading-shelf.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-011-books-module-and-reading-shelf.md)  
+> 📄 **Especificação Técnica de Quadrinhos e Mangás (Sagas & Volumes):** [`specs/SPEC-015-comics-and-manga-module.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-015-comics-and-manga-module.md)  
 > 📄 **Especificação Técnica Separação entre Recomendação (ML) e Sinopse:** [`specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md)  
 O Akasha opera motores de recomendação dedicados por domínio (TMDB para cinema, Twitch Helix + IGDB para games, Google Books para livros e Comic Vine/AniList para HQs/mangás), complementados por um **Motor Transmídia**:
 * **Jogos e Tendências em Tempo Real:** O catálogo e cold start de games refletem o pulso da Twitch Helix API (`/helix/games/top`) sem dependência de dados mockados estáticos, enriquecidos com capas e metadados oficiais do IGDB v4.
 * **Literatura e Afinidade de Autores:** Ingestão de acervo via Google Books API com busca textual em pt-BR e por código ISBN, controle de páginas, estante de leituras e motor de recomendação baseado em ponderação de notas e autores/gêneros favoritos.
-* **Descoberta Cruzada de Franquias:** Conexão entre universos expandidos e obras transmídia (ex: correlacionar games a romances literários e adaptações cinematográficas baseadas nas notas do usuário).
+* **Quadrinhos e Mangás por Saga e Arco:** Ingestão híbrida via Comic Vine REST (HQs ocidentais/sagas fechadas) e AniList GraphQL (Mangás japoneses e Manhwas coreanos), com rastreamento no nível da obra/saga completa (e não de edições mensais soltas), enumeração colapsável de edições/volumes e recomendações orientadas a roteiristas, desenhistas e mangakas.
+* **Descoberta Cruzada de Franquias:** Conexão entre universos expandidos e obras transmídia (ex: correlacionar games a romances literários, quadrinhos e adaptações cinematográficas baseadas nas notas do usuário).
 
 ### Agente Autônomo e Camada MCP (Model Context Protocol)
 Compatibilidade nativa com assistentes agênticos (como Google Spark) para gerenciar o acervo, catalogar mídias e solicitar recomendações personalizadas via comandos conversacionais.

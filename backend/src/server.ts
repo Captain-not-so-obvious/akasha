@@ -12,6 +12,7 @@ import { feedRoutes } from './routes/feed.routes.js';
 import { notificationRoutes } from './routes/notification.routes.js';
 import { gamesRoutes } from './routes/games.routes.js';
 import { booksRoutes } from './routes/books.routes.js';
+import { comicsRoutes } from './routes/comics.routes.js';
 import cookie from '@fastify/cookie';
 
 const fastify = Fastify({
@@ -82,6 +83,7 @@ await fastify.register(feedRoutes, { prefix: '/feed' });
 await fastify.register(notificationRoutes, { prefix: '/notifications' });
 await fastify.register(gamesRoutes, { prefix: '/games' });
 await fastify.register(booksRoutes, { prefix: '/books' });
+await fastify.register(comicsRoutes, { prefix: '/comics' });
 
 // Helper para obter a URL base dinâmica
 const getBaseUrl = (request: FastifyRequest) => {

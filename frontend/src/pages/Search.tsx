@@ -3,21 +3,26 @@ import { SearchBar } from '../components/search/SearchBar';
 import { MovieCard } from '../components/search/MovieCard';
 import { GameCard } from '../components/search/GameCard';
 import { BookCard } from '../components/search/BookCard';
+import { ComicCard } from '../components/search/ComicCard';
 import { useSearch } from '../hooks/useSearch';
 import { useGameSearch } from '../hooks/useGameSearch';
 import { useBookSearch } from '../hooks/useBookSearch';
+import { useComicSearch } from '../hooks/useComicSearch';
 import { useWishlist } from '../hooks/useWishlist';
 import { MediaDetailsModal } from '../components/ui/MediaDetailsModal';
 import { GameDetailsModal } from '../components/ui/GameDetailsModal';
 import { BookDetailsModal } from '../components/ui/BookDetailsModal';
+import { ComicDetailsModal } from '../components/ui/ComicDetailsModal';
 import { RatingModal } from '../components/ui/RatingModal';
 import type { MediaType, MediaDetails, SearchCategory } from '../types/media';
 import type { GameDetails } from '../types/game';
 import type { BookDetails } from '../types/book';
+import type { ComicDetails } from '../types/comic';
 import type { LibraryItem, WishlistStatus } from '../types/wishlist';
+import { Info } from 'lucide-react';
 
 /**
- * Página de Busca Universal — reúne busca de Filmes, Séries, Jogos e Livros.
+ * Página de Busca Universal — reúne busca de Filmes, Séries, Jogos, Livros e Quadrinhos/Mangás.
  *
  * Compatibilidade de plataforma:
  * - TV/D-Pad: Grid responsivo com foco acessível (tabIndex={0}) em cada card.
@@ -31,11 +36,12 @@ export const SearchPage: React.FC = () => {
   const [selectedMedia, setSelectedMedia] = useState<MediaDetails | null>(null);
   const [selectedGame, setSelectedGame] = useState<GameDetails | null>(null);
   const [selectedBook, setSelectedBook] = useState<BookDetails | null>(null);
+  const [selectedComic, setSelectedComic] = useState<ComicDetails | null>(null);
 
   // Hook de busca tradicional de Cinema / TV
   const currentMediaType: MediaType = searchCategory === 'tv' ? 'tv' : 'movie';
   const { results: mediaResults, totalResults, isLoading: isMediaLoading, error: mediaError } = useSearch(
-    searchCategory === 'game' || searchCategory === 'book' ? '' : query,
+    searchCategory === 'game' || searchCategory === 'book' || searchCategory === 'comic' ? '' : query,
     currentMediaType
   );
 
@@ -55,17 +61,25 @@ export const SearchPage: React.FC = () => {
     error: bookError,
   } = useBookSearch(searchCategory === 'book' ? query : '');
 
+  // Hook de busca de Quadrinhos & Mangás
+  const {
+    results: comicResults,
+    popularComics,
+    isLoading: isComicLoading,
+    error: comicError,
+  } = useComicSearch(searchCategory === 'comic' ? query : '');
+
   const { items, fetchWishlist, addToList, removeFromList, updateListItem } = useWishlist();
 
   useEffect(() => {
     fetchWishlist();
   }, [fetchWishlist]);
 
-  // Chaves de biblioteca para filmes/séries, jogos e livros
+  // Chaves de biblioteca para filmes/séries, jogos, livros e quadrinhos
   const libraryMediaKeys = useMemo(() => {
     return new Set(
       items
-        .filter((item) => item.domain !== 'game' && item.domain !== 'book')
+        .filter((item) => item.domain !== 'game' && item.domain !== 'book' && item.domain !== 'comic')
         .map((item) => `${item.mediaType}-${item.tmdbId}`)
     );
   }, [items]);
@@ -84,6 +98,16 @@ export const SearchPage: React.FC = () => {
     const map = new Map<string, (typeof items)[0]>();
     items.forEach((item) => {
       if (item.domain === 'book' && item.externalId) {
+        map.set(String(item.externalId), item);
+      }
+    });
+    return map;
+  }, [items]);
+
+  const libraryComicMap = useMemo(() => {
+    const map = new Map<string, (typeof items)[0]>();
+    items.forEach((item) => {
+      if (item.domain === 'comic' && item.externalId) {
         map.set(String(item.externalId), item);
       }
     });
@@ -115,11 +139,51 @@ export const SearchPage: React.FC = () => {
     return libraryBookMap.get(String(selectedBook.id));
   }, [selectedBook, libraryBookMap]);
 
+  const selectedComicLibraryItem = useMemo(() => {
+    if (!selectedComic) return undefined;
+    return libraryComicMap.get(String(selectedComic.id));
+  }, [selectedComic, libraryComicMap]);
+
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [pendingRatingMedia, setPendingRatingMedia] = useState<MediaDetails | null>(null);
   const [pendingRatingGame, setPendingRatingGame] = useState<GameDetails | null>(null);
   const [pendingRatingBook, setPendingRatingBook] = useState<BookDetails | null>(null);
+  const [pendingRatingComic, setPendingRatingComic] = useState<ComicDetails | null>(null);
   const [editingLibraryItem, setEditingLibraryItem] = useState<LibraryItem | null>(null);
+
+  const handleAddComic = async (comic: ComicDetails, status: WishlistStatus) => {
+    if (status === 'completed') {
+      setPendingRatingComic(comic);
+      setPendingRatingGame(null);
+      setPendingRatingBook(null);
+      setPendingRatingMedia(null);
+      setEditingLibraryItem(null);
+      setSelectedComic(null);
+      setRatingModalOpen(true);
+      return;
+    }
+
+    await addToList({
+      domain: 'comic',
+      externalId: String(comic.id),
+      status,
+      title: comic.title,
+      coverUrl: comic.coverUrl || undefined,
+      releaseYear: comic.releaseYear || undefined,
+      extraMeta: {
+        type: comic.type,
+        originalTitle: comic.originalTitle,
+        publisher: comic.publisher,
+        creators: comic.creators,
+        genres: comic.genres,
+        volumeCount: comic.volumeCount,
+        issueCount: comic.issueCount,
+        chapterCount: comic.chapterCount,
+        description: comic.description,
+        issues: comic.issues,
+      },
+    });
+  };
 
   const handleAddGame = async (game: GameDetails, status: WishlistStatus) => {
     if (status === 'completed') {
@@ -241,6 +305,32 @@ export const SearchPage: React.FC = () => {
       });
       setPendingRatingBook(null);
       setRatingModalOpen(false);
+    } else if (pendingRatingComic) {
+      const comic = pendingRatingComic;
+      await addToList({
+        domain: 'comic',
+        externalId: String(comic.id),
+        status: 'completed',
+        userRating: rating,
+        notes: review,
+        title: comic.title,
+        coverUrl: comic.coverUrl || undefined,
+        releaseYear: comic.releaseYear || undefined,
+        extraMeta: {
+          type: comic.type,
+          originalTitle: comic.originalTitle,
+          publisher: comic.publisher,
+          creators: comic.creators,
+          genres: comic.genres,
+          volumeCount: comic.volumeCount,
+          issueCount: comic.issueCount,
+          chapterCount: comic.chapterCount,
+          description: comic.description,
+          issues: comic.issues,
+        },
+      });
+      setPendingRatingComic(null);
+      setRatingModalOpen(false);
     } else if (editingLibraryItem) {
       await updateListItem(editingLibraryItem.id, {
         status: 'completed',
@@ -262,7 +352,7 @@ export const SearchPage: React.FC = () => {
           Busca
         </h2>
         <p className="font-outfit text-sm text-[var(--color-seda-milharal)] opacity-60">
-          Encontre filmes, séries e jogos para catalogar e enriquecer sua biblioteca.
+          Encontre filmes, séries, jogos, livros, sagas e mangás para catalogar e enriquecer sua biblioteca.
         </p>
       </div>
 
@@ -277,11 +367,21 @@ export const SearchPage: React.FC = () => {
           setSelectedMedia(null);
           setSelectedGame(null);
           setSelectedBook(null);
+          setSelectedComic(null);
         }}
         onMediaTypeChange={(type) => setSearchCategory(type)}
       />
 
-      {/* Renderização condicional Cinema/Séries vs Games vs Livros */}
+      {/* Renderização condicional Cinema/Séries vs Games vs Livros vs Quadrinhos */}
+      {searchCategory === 'comic' && (
+        <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-xs md:text-sm font-outfit text-stone-300 animate-fade-in">
+          <Info className="w-4 h-4 text-[var(--color-caramelo-claro)] shrink-0" />
+          <span>
+            <strong className="text-[var(--color-caramelo-claro)] font-semibold">Dica de busca:</strong> Como os acervos da Comic Vine e AniList são internacionais, digite os nomes das sagas de HQs e Mangás em inglês ou romaji (ex: <em>Civil War</em>, <em>The Long Halloween</em>, <em>Berserk</em>, <em>One Piece</em>).
+          </span>
+        </div>
+      )}
+
       {searchCategory === 'game' ? (
         <GameSearchResults
           query={query}
@@ -301,6 +401,16 @@ export const SearchPage: React.FC = () => {
           popularBooks={popularBooks}
           libraryBookMap={libraryBookMap}
           onSelectBook={setSelectedBook}
+        />
+      ) : searchCategory === 'comic' ? (
+        <ComicSearchResults
+          query={query}
+          isLoading={isComicLoading}
+          error={comicError}
+          results={comicResults}
+          popularComics={popularComics}
+          libraryComicMap={libraryComicMap}
+          onSelectComic={setSelectedComic}
         />
       ) : (
         <SearchResults
@@ -432,6 +542,7 @@ export const SearchPage: React.FC = () => {
             setEditingLibraryItem(item);
             setPendingRatingBook(null);
             setPendingRatingGame(null);
+            setPendingRatingComic(null);
             setSelectedBook(null);
             setRatingModalOpen(true);
             return;
@@ -445,17 +556,57 @@ export const SearchPage: React.FC = () => {
         }}
       />
 
-      {/* Modal de Avaliação para jogos zerados ou livros lidos */}
+      {/* Modal de detalhes de Quadrinhos e Mangás */}
+      <ComicDetailsModal
+        isOpen={selectedComic !== null}
+        comic={selectedComic}
+        onClose={() => setSelectedComic(null)}
+        isInLibrary={Boolean(selectedComicLibraryItem)}
+        libraryItem={selectedComicLibraryItem}
+        onAdd={handleAddComic}
+        onRemove={(item) => {
+          removeFromList(item.id);
+          setSelectedComic(null);
+        }}
+        onEdit={(item) => {
+          setEditingLibraryItem(item);
+          setPendingRatingComic(null);
+          setPendingRatingBook(null);
+          setPendingRatingGame(null);
+          setSelectedComic(null);
+          setRatingModalOpen(true);
+        }}
+        onStatusChange={(item, newStatus) => {
+          if (newStatus === 'completed') {
+            setEditingLibraryItem(item);
+            setPendingRatingComic(null);
+            setPendingRatingBook(null);
+            setPendingRatingGame(null);
+            setSelectedComic(null);
+            setRatingModalOpen(true);
+            return;
+          }
+
+          updateListItem(item.id, {
+            status: newStatus,
+            title: item.title,
+            coverUrl: item.coverUrl || undefined,
+          });
+        }}
+      />
+
+      {/* Modal de Avaliação para jogos zerados, livros lidos ou sagas concluídas */}
       <RatingModal
         isOpen={ratingModalOpen}
         onClose={() => {
           setRatingModalOpen(false);
           setPendingRatingGame(null);
           setPendingRatingBook(null);
+          setPendingRatingComic(null);
           setEditingLibraryItem(null);
         }}
         onSubmit={handleRatingSubmit}
-        title={pendingRatingBook?.title || pendingRatingGame?.title || editingLibraryItem?.title || 'Avaliar Obra'}
+        title={pendingRatingComic?.title || pendingRatingBook?.title || pendingRatingGame?.title || editingLibraryItem?.title || 'Avaliar Obra'}
         initialRating={editingLibraryItem?.userRating || 0}
         initialReview={editingLibraryItem?.notes || ''}
       />
@@ -790,6 +941,130 @@ function BookSearchResults({
           return (
             <div key={book.id} role="listitem">
               <BookCard book={book} onSelect={onSelectBook} isInLibrary={isInLibrary} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// --- Sub-componente interno para Quadrinhos e Mangás ---
+
+interface ComicSearchResultsProps {
+  query: string;
+  isLoading: boolean;
+  error: string | null;
+  results: ComicDetails[];
+  popularComics: ComicDetails[];
+  libraryComicMap: Map<string, LibraryItem>;
+  onSelectComic: (comic: ComicDetails) => void;
+}
+
+function ComicSearchResults({
+  query,
+  isLoading,
+  error,
+  results,
+  popularComics,
+  libraryComicMap,
+  onSelectComic,
+}: ComicSearchResultsProps) {
+  if (query.trim().length < 2 && popularComics.length > 0) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div>
+          <h3 className="font-cinzel text-xl font-bold text-[var(--color-caramelo-claro)]">
+            Sagas & Mangás Clássicos
+          </h3>
+          <p className="font-outfit text-xs text-[var(--color-seda-milharal)] opacity-60">
+            Grandes obras atemporais de quadrinhos e mangás para iniciar sua leitura
+          </p>
+        </div>
+        <div
+          className="
+            grid gap-4
+            grid-cols-2
+            sm:grid-cols-3
+            md:grid-cols-4
+            lg:grid-cols-5
+            xl:grid-cols-6
+            2xl:grid-cols-7
+          "
+          role="list"
+          aria-label="Sagas e mangás populares"
+        >
+          {popularComics.map((comic) => {
+            const isInLibrary = libraryComicMap.has(String(comic.id));
+            return (
+              <div key={comic.id} role="listitem">
+                <ComicCard comic={comic} onSelect={onSelectComic} isInLibrary={isInLibrary} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (query.trim().length < 2) {
+    return (
+      <EmptyState
+        icon="📖"
+        title="O que você quer ler hoje?"
+        description="Digite o nome de uma saga, HQ ou mangá em inglês (ex: Watchmen, Civil War, Berserk, Sandman)..."
+      />
+    );
+  }
+
+  if (isLoading) {
+    return <LoadingGrid />;
+  }
+
+  if (error) {
+    return (
+      <EmptyState
+        icon="⚠️"
+        title="Algo deu errado na busca de quadrinhos"
+        description={error}
+        isError
+      />
+    );
+  }
+
+  if (results.length === 0 && query.trim().length >= 2) {
+    return (
+      <EmptyState
+        icon="📖"
+        title="Nenhuma saga ou mangá encontrado"
+        description={`Não encontramos nenhum quadrinho ou mangá com "${query}". Lembre-se de digitar o nome da saga ou mangá em inglês (ex: "Civil War" em vez de "Guerra Civil").`}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="font-outfit text-xs text-[var(--color-seda-milharal)] opacity-50">
+        {results.length} obra{results.length !== 1 ? 's' : ''} encontrada{results.length !== 1 ? 's' : ''}
+      </p>
+      <div
+        className="
+          grid gap-4
+          grid-cols-2
+          sm:grid-cols-3
+          md:grid-cols-4
+          lg:grid-cols-5
+          xl:grid-cols-6
+          2xl:grid-cols-7
+        "
+        role="list"
+        aria-label="Resultados de busca de quadrinhos e mangás"
+      >
+        {results.map((comic) => {
+          const isInLibrary = libraryComicMap.has(String(comic.id));
+          return (
+            <div key={comic.id} role="listitem">
+              <ComicCard comic={comic} onSelect={onSelectComic} isInLibrary={isInLibrary} />
             </div>
           );
         })}

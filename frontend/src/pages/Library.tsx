@@ -6,18 +6,21 @@ import type { LibraryItem, WishlistStatus } from '../types/wishlist';
 import type { MediaDetails } from '../types/media';
 import type { BookDetails } from '../types/book';
 import type { GameDetails } from '../types/game';
+import type { ComicDetails } from '../types/comic';
 import { LibraryItemCard } from '../components/ui/LibraryItemCard';
 import { RatingModal } from '../components/ui/RatingModal';
 import { MediaDetailsModal } from '../components/ui/MediaDetailsModal';
 import { GameDetailsModal } from '../components/ui/GameDetailsModal';
 import { BookDetailsModal } from '../components/ui/BookDetailsModal';
+import { ComicDetailsModal } from '../components/ui/ComicDetailsModal';
 import { RecommendationRail } from '../components/recommendations/RecommendationRail';
 import { GameRecommendationRail } from '../components/recommendations/GameRecommendationRail';
 import { BookRecommendationRail } from '../components/recommendations/BookRecommendationRail';
+import { ComicRecommendationRail } from '../components/recommendations/ComicRecommendationRail';
 import { ThematicLoader } from '../components/ui/ThematicLoader';
 
 type TabKey = 'plan_to_watch' | 'watching' | 'completed';
-type DomainKey = 'movie' | 'game' | 'book';
+type DomainKey = 'movie' | 'game' | 'book' | 'comic';
 
 export const Library: React.FC = () => {
   const { items, isLoading, error, fetchWishlist, updateListItem, removeFromList, addToList } = useWishlist();
@@ -31,11 +34,13 @@ export const Library: React.FC = () => {
   const [selectedMedia, setSelectedMedia] = useState<MediaDetails | null>(null);
   const [selectedGame, setSelectedGame] = useState<GameDetails | null>(null);
   const [selectedBook, setSelectedBook] = useState<BookDetails | null>(null);
+  const [selectedComic, setSelectedComic] = useState<ComicDetails | null>(null);
 
   // Estados pendentes para avaliação de novos itens adicionados como "Concluídos / Já Li / Já Zerei"
   const [pendingRatingMedia, setPendingRatingMedia] = useState<MediaDetails | null>(null);
   const [pendingRatingGame, setPendingRatingGame] = useState<GameDetails | null>(null);
   const [pendingRatingBook, setPendingRatingBook] = useState<BookDetails | null>(null);
+  const [pendingRatingComic, setPendingRatingComic] = useState<ComicDetails | null>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const tmdbIdParam = searchParams.get('tmdbId');
@@ -77,7 +82,7 @@ export const Library: React.FC = () => {
     return items.filter((item) => {
       const matchDomain =
         activeDomain === 'movie'
-          ? item.domain !== 'game' && item.domain !== 'book'
+          ? item.domain !== 'game' && item.domain !== 'book' && item.domain !== 'comic'
           : item.domain === activeDomain;
       return matchDomain && item.status === activeTab;
     });
@@ -86,7 +91,7 @@ export const Library: React.FC = () => {
   const selectedLibraryItem = useMemo(() => {
     if (!selectedMedia) return undefined;
     return items.find((item) => {
-      if (item.domain === 'game' || item.domain === 'book') {
+      if (item.domain === 'game' || item.domain === 'book' || item.domain === 'comic') {
         return item.externalId === String(selectedMedia.id);
       }
       return item.tmdbId === selectedMedia.id && item.mediaType === selectedMedia.mediaType;
@@ -103,11 +108,17 @@ export const Library: React.FC = () => {
     return items.find((item) => item.domain === 'book' && item.externalId === String(selectedBook.id));
   }, [items, selectedBook]);
 
+  const selectedComicLibraryItem = useMemo(() => {
+    if (!selectedComic) return undefined;
+    return items.find((item) => item.domain === 'comic' && item.externalId === String(selectedComic.id));
+  }, [items, selectedComic]);
+
   const handleEditItem = (item: LibraryItem) => {
     setEditingItem(item);
     setPendingRatingMedia(null);
     setPendingRatingGame(null);
     setPendingRatingBook(null);
+    setPendingRatingComic(null);
     setRatingModalOpen(true);
   };
 
@@ -117,6 +128,7 @@ export const Library: React.FC = () => {
       setPendingRatingMedia(null);
       setPendingRatingGame(null);
       setPendingRatingBook(null);
+      setPendingRatingComic(null);
       setRatingModalOpen(true);
     } else {
       updateListItem(item.id, {
@@ -207,9 +219,69 @@ export const Library: React.FC = () => {
     });
   };
 
+  const handleAddComic = async (comic: ComicDetails, status: WishlistStatus) => {
+    if (status === 'completed') {
+      setPendingRatingComic(comic);
+      setPendingRatingMedia(null);
+      setPendingRatingGame(null);
+      setPendingRatingBook(null);
+      setEditingItem(null);
+      setSelectedComic(null);
+      setRatingModalOpen(true);
+      return;
+    }
+
+    await addToList({
+      domain: 'comic',
+      externalId: String(comic.id),
+      status,
+      title: comic.title,
+      coverUrl: comic.coverUrl || undefined,
+      releaseYear: comic.releaseYear || undefined,
+      extraMeta: {
+        type: comic.type,
+        originalTitle: comic.originalTitle,
+        publisher: comic.publisher,
+        creators: comic.creators,
+        genres: comic.genres,
+        volumeCount: comic.volumeCount,
+        issueCount: comic.issueCount,
+        chapterCount: comic.chapterCount,
+        description: comic.description,
+        issues: comic.issues,
+      },
+    });
+  };
+
   // Submissão unificada do modal de avaliação
   const handleRatingSubmit = async (rating: number, review?: string) => {
-    if (pendingRatingBook) {
+    if (pendingRatingComic) {
+      const comic = pendingRatingComic;
+      await addToList({
+        domain: 'comic',
+        externalId: String(comic.id),
+        status: 'completed',
+        userRating: rating,
+        notes: review,
+        title: comic.title,
+        coverUrl: comic.coverUrl || undefined,
+        releaseYear: comic.releaseYear || undefined,
+        extraMeta: {
+          type: comic.type,
+          originalTitle: comic.originalTitle,
+          publisher: comic.publisher,
+          creators: comic.creators,
+          genres: comic.genres,
+          volumeCount: comic.volumeCount,
+          issueCount: comic.issueCount,
+          chapterCount: comic.chapterCount,
+          description: comic.description,
+          issues: comic.issues,
+        },
+      });
+      setPendingRatingComic(null);
+      setRatingModalOpen(false);
+    } else if (pendingRatingBook) {
       const book = pendingRatingBook;
       await addToList({
         domain: 'book',
@@ -284,7 +356,25 @@ export const Library: React.FC = () => {
 
   // Abre o modal especialista adequado ao clicar em um item da biblioteca
   const handleSelectLibraryItem = (item: LibraryItem) => {
-    if (item.domain === 'book') {
+    if (item.domain === 'comic') {
+      const meta = item.extraMeta as Record<string, unknown> | undefined;
+      setSelectedComic({
+        id: item.externalId,
+        title: item.title,
+        originalTitle: typeof meta?.originalTitle === 'string' ? meta.originalTitle : undefined,
+        type: (meta?.type as 'comic' | 'manga' | 'manhwa') || 'comic',
+        description: typeof meta?.description === 'string' ? meta.description : item.media?.overview,
+        coverUrl: item.coverUrl || item.media?.posterUrl || null,
+        releaseYear: item.releaseYear ?? null,
+        publisher: typeof meta?.publisher === 'string' ? meta.publisher : undefined,
+        creators: Array.isArray(meta?.creators) ? (meta.creators as string[]) : [],
+        genres: Array.isArray(meta?.genres) ? (meta.genres as string[]) : [],
+        volumeCount: typeof meta?.volumeCount === 'number' ? meta.volumeCount : undefined,
+        issueCount: typeof meta?.issueCount === 'number' ? meta.issueCount : undefined,
+        chapterCount: typeof meta?.chapterCount === 'number' ? meta.chapterCount : undefined,
+        issues: Array.isArray(meta?.issues) ? (meta.issues as any) : undefined,
+      });
+    } else if (item.domain === 'book') {
       const meta = item.extraMeta as Record<string, unknown> | undefined;
       setSelectedBook({
         id: item.externalId,
@@ -371,6 +461,18 @@ export const Library: React.FC = () => {
           >
             <span>📚</span> Livros (Leituras)
           </button>
+          <button
+            type="button"
+            tabIndex={0}
+            onClick={() => setActiveDomain('comic')}
+            className={`tv-focus-glow px-4 py-2 rounded-lg font-cinzel text-xs md:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+              activeDomain === 'comic'
+                ? 'bg-[var(--color-caramelo-claro)] text-black shadow-md shadow-yellow-900/40 font-bold'
+                : 'text-[var(--color-seda-milharal)] opacity-70 hover:opacity-100 hover:bg-white/5'
+            }`}
+          >
+            <span>📖</span> Quadrinhos & Mangás
+          </button>
         </div>
       </div>
 
@@ -412,7 +514,7 @@ export const Library: React.FC = () => {
             });
           }}
         />
-      ) : (
+      ) : activeDomain === 'book' ? (
         <BookRecommendationRail
           onSelectBook={(book) => {
             setSelectedBook({
@@ -444,6 +546,43 @@ export const Library: React.FC = () => {
             });
           }}
         />
+      ) : (
+        <ComicRecommendationRail
+          onSelectComic={(comic) => {
+            setSelectedComic({
+              id: comic.id,
+              title: comic.title,
+              type: comic.type,
+              coverUrl: comic.coverUrl,
+              releaseYear: comic.releaseYear,
+              publisher: comic.publisher,
+              creators: comic.creators,
+              genres: comic.genres,
+              volumeCount: comic.volumeCount,
+              issueCount: comic.issueCount,
+              reason: comic.reason,
+              description: comic.description,
+            });
+          }}
+          onQuickAdd={(comic) => {
+            addToList({
+              domain: 'comic',
+              externalId: comic.id,
+              title: comic.title,
+              coverUrl: comic.coverUrl || undefined,
+              releaseYear: comic.releaseYear || undefined,
+              status: 'plan_to_watch',
+              extraMeta: {
+                type: comic.type,
+                publisher: comic.publisher,
+                creators: comic.creators,
+                genres: comic.genres,
+                volumeCount: comic.volumeCount,
+                issueCount: comic.issueCount,
+              },
+            });
+          }}
+        />
       )}
 
       {/* Abas contextuais do Domínio */}
@@ -465,7 +604,7 @@ export const Library: React.FC = () => {
                 {tab === 'plan_to_watch' && 'Quero Jogar'}
                 {tab === 'completed' && 'Concluídos (Zerados)'}
               </>
-            ) : activeDomain === 'book' ? (
+            ) : activeDomain === 'book' || activeDomain === 'comic' ? (
               <>
                 {tab === 'watching' && 'Lendo'}
                 {tab === 'plan_to_watch' && 'Quero Ler'}
@@ -505,13 +644,15 @@ export const Library: React.FC = () => {
         ) : filteredItems.length === 0 ? (
           <div className="text-center py-16 flex flex-col items-center justify-center gap-3">
             <span className="text-4xl opacity-40">
-              {activeDomain === 'game' ? '🎮' : activeDomain === 'book' ? '📚' : '🎬'}
+              {activeDomain === 'game' ? '🎮' : activeDomain === 'book' ? '📚' : activeDomain === 'comic' ? '📖' : '🎬'}
             </span>
             <h3 className="font-cinzel text-lg text-[var(--color-seda-milharal)] font-bold">
               {activeDomain === 'game'
                 ? 'Nenhum jogo nesta lista'
                 : activeDomain === 'book'
                 ? 'Nenhum livro nesta estante'
+                : activeDomain === 'comic'
+                ? 'Nenhuma saga ou mangá nesta estante'
                 : 'Nenhum título encontrado'}
             </h3>
             <p className="font-outfit text-[var(--color-seda-milharal)] opacity-50 max-w-sm">
@@ -522,6 +663,10 @@ export const Library: React.FC = () => {
               ) : activeDomain === 'book' ? (
                 <>
                   Sua lista de {activeTab === 'watching' ? 'Lendo' : activeTab === 'plan_to_watch' ? 'Quero Ler' : 'Lidos'} está vazia. Use a Busca ou explore as sugestões do Akasha acima!
+                </>
+              ) : activeDomain === 'comic' ? (
+                <>
+                  Sua lista de {activeTab === 'watching' ? 'Lendo' : activeTab === 'plan_to_watch' ? 'Quero Ler' : 'Lidos'} está vazia. Explore as sagas sugeridas acima ou faça uma busca no Akasha!
                 </>
               ) : (
                 <>
@@ -566,6 +711,7 @@ export const Library: React.FC = () => {
           setPendingRatingMedia(null);
           setPendingRatingGame(null);
           setPendingRatingBook(null);
+          setPendingRatingComic(null);
         }}
         onSubmit={handleRatingSubmit}
         initialRating={editingItem?.userRating}
@@ -573,6 +719,7 @@ export const Library: React.FC = () => {
         title={`Avaliar ${
           editingItem?.title ||
           editingItem?.media?.title ||
+          pendingRatingComic?.title ||
           pendingRatingBook?.title ||
           pendingRatingGame?.title ||
           pendingRatingMedia?.title ||
@@ -617,6 +764,19 @@ export const Library: React.FC = () => {
         onStatusChange={handleStatusChange}
         onEdit={handleEditItem}
         onAdd={handleAddBook}
+      />
+
+      {/* Modal Especialista de Quadrinhos e Mangás (Comic Vine & AniList) */}
+      <ComicDetailsModal
+        isOpen={selectedComic !== null}
+        comic={selectedComic}
+        onClose={() => setSelectedComic(null)}
+        isInLibrary={!!selectedComicLibraryItem}
+        libraryItem={selectedComicLibraryItem}
+        onRemove={(item) => removeFromList(item.id)}
+        onStatusChange={handleStatusChange}
+        onEdit={handleEditItem}
+        onAdd={handleAddComic}
       />
     </div>
   );

@@ -21,16 +21,47 @@ export function useWishlist() {
       // Buscando detalhes da mídia para cada item
       const libraryItems: LibraryItem[] = await Promise.all(
         wishlistItems.map(async (item) => {
+          if (item.domain === 'comic') {
+            const meta = item.extraMeta as Record<string, unknown> | null | undefined;
+            const comicMedia: MediaDetails = {
+              id: Number(item.externalId) || item.id,
+              title: item.title || 'Quadrinho sem título',
+              overview: typeof meta?.description === 'string' ? meta.description : '',
+              posterUrl: item.coverUrl || '',
+              backdropUrl: '',
+              mediaType: 'movie',
+              releaseDate: item.releaseYear ? `${item.releaseYear}-01-01` : '',
+              voteAverage: typeof meta?.rating === 'number' ? (meta.rating as number) / 10 : 0,
+            };
+            return { ...item, media: comicMedia };
+          }
+
+          if (item.domain === 'book') {
+            const meta = item.extraMeta as Record<string, unknown> | null | undefined;
+            const bookMedia: MediaDetails = {
+              id: Number(item.externalId) || item.id,
+              title: item.title || 'Livro sem título',
+              overview: typeof meta?.description === 'string' ? meta.description : '',
+              posterUrl: item.coverUrl || '',
+              backdropUrl: '',
+              mediaType: 'movie',
+              releaseDate: item.releaseYear ? `${item.releaseYear}-01-01` : '',
+              voteAverage: 0,
+            };
+            return { ...item, media: bookMedia };
+          }
+
           if (item.domain === 'game' || (!item.tmdbId && item.externalId)) {
+            const meta = item.extraMeta as Record<string, unknown> | null | undefined;
             const gameMedia: MediaDetails = {
               id: Number(item.externalId) || item.id,
               title: item.title || 'Jogo sem título',
-              overview: (item.extraMeta as any)?.summary || '',
+              overview: typeof meta?.summary === 'string' ? meta.summary : '',
               posterUrl: item.coverUrl || '',
-              backdropUrl: (item.extraMeta as any)?.backdropUrl || '',
-              mediaType: 'movie', // compatibilidade de tipo
+              backdropUrl: typeof meta?.backdropUrl === 'string' ? meta.backdropUrl : '',
+              mediaType: 'movie',
               releaseDate: item.releaseYear ? `${item.releaseYear}-01-01` : '',
-              voteAverage: (item.extraMeta as any)?.rating ? (item.extraMeta as any).rating / 10 : 0,
+              voteAverage: typeof meta?.rating === 'number' ? (meta.rating as number) / 10 : 0,
             };
             return { ...item, media: gameMedia };
           }
@@ -78,8 +109,41 @@ export function useWishlist() {
       });
 
       if (!res.ok) throw new Error('Erro ao adicionar à biblioteca');
-      
-      await fetchWishlist(); // Recarrega a lista para obter os detalhes de mídia mais recentes
+
+      const createdItem: WishlistItem = await res.json();
+
+      // Atualização imediata do state para que a tag 'Na Biblioteca' apareça no mesmo instante
+      const meta = createdItem.extraMeta as Record<string, unknown> | null | undefined;
+      const mediaOverview =
+        typeof meta?.description === 'string'
+          ? meta.description
+          : typeof meta?.summary === 'string'
+          ? meta.summary
+          : '';
+
+      const newLibItem: LibraryItem = {
+        ...createdItem,
+        media: {
+          id: Number(createdItem.externalId) || createdItem.id,
+          title: createdItem.title || 'Sem título',
+          overview: mediaOverview,
+          posterUrl: createdItem.coverUrl || '',
+          backdropUrl: typeof meta?.backdropUrl === 'string' ? meta.backdropUrl : '',
+          mediaType: 'movie',
+          releaseDate: createdItem.releaseYear ? `${createdItem.releaseYear}-01-01` : '',
+          voteAverage: typeof meta?.rating === 'number' ? (meta.rating as number) / 10 : 0,
+        },
+      };
+
+      setItems((prev) => {
+        const filtered = prev.filter(
+          (p) => !(p.domain === createdItem.domain && p.externalId === createdItem.externalId)
+        );
+        return [newLibItem, ...filtered];
+      });
+
+      // Recarrega em background para sincronizar eventuais enriquecimentos
+      fetchWishlist().catch(() => {});
     } catch (err: unknown) {
       console.error('Erro em addToList:', err);
       throw err;

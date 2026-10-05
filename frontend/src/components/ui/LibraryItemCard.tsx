@@ -21,13 +21,14 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
   
   const isGame = item.domain === 'game';
   const isBook = item.domain === 'book';
+  const isComic = item.domain === 'comic';
 
   const getNextStatusInfo = (currentStatus: WishlistStatus): { next: WishlistStatus; label: string } | null => {
     if (currentStatus === 'plan_to_watch') {
-      return { next: 'watching', label: isGame ? 'Jogar' : isBook ? 'Ler' : 'Começar' };
+      return { next: 'watching', label: isGame ? 'Jogar' : (isBook || isComic) ? 'Ler' : 'Começar' };
     }
     if (currentStatus === 'watching') {
-      return { next: 'completed', label: isGame ? 'Zerar' : isBook ? 'Concluir' : 'Concluir' };
+      return { next: 'completed', label: isGame ? 'Zerar' : (isBook || isComic) ? 'Concluir' : 'Concluir' };
     }
     return null;
   };
@@ -102,11 +103,15 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
               tabIndex={0}
               onClick={(e) => {
                 e.stopPropagation();
-                onSelect?.(media);
+                if (onSelectItem) {
+                  onSelectItem(item);
+                } else {
+                  onSelect?.(media);
+                }
               }}
               className="tv-focus-glow bg-white/20 text-white p-2.5 rounded-full hover:bg-white/40 transition-colors cursor-pointer"
-              title="Ver Sinopse"
-              aria-label={`Ver sinopse de ${media.title}`}
+              title="Ver Detalhes"
+              aria-label={`Ver detalhes de ${item.title || media.title}`}
             >
               <Info size={18} />
             </button>

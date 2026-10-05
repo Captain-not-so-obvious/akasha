@@ -1,6 +1,6 @@
 import type { MediaType } from './media';
 
-export type DomainType = 'movie' | 'tv' | 'game' | 'book';
+export type DomainType = 'movie' | 'tv' | 'game' | 'book' | 'comic';
 
 export type WishlistStatus = 'plan_to_watch' | 'watching' | 'completed' | 'dropped';
 

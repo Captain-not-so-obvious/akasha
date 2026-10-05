@@ -7,8 +7,8 @@
 > 📄 **Especificação Técnica Central de Notificações & Push:** [`specs/SPEC-007-push-notifications.md`](specs/SPEC-007-push-notifications.md)  
 > 📄 **Especificação Técnica Módulo de Livros & Estante Literária:** [`specs/SPEC-011-books-module-and-reading-shelf.md`](specs/SPEC-011-books-module-and-reading-shelf.md)  
 > 📄 **Especificação Técnica Carregamento Temático & Delight UX:** [`specs/SPEC-012-thematic-loading-and-delight-ux.md`](specs/SPEC-012-thematic-loading-and-delight-ux.md)  
-> 📄 **Especificação Técnica Ações Unificadas Multiplataforma & Mobile:** [`specs/SPEC-013-unified-mobile-actions.md`](specs/SPEC-013-unified-mobile-actions.md)  
-> 📄 **Especificação Técnica Separação entre Recomendação (ML) e Sinopse:** [`specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md`](specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md)
+> 📄 **Especificação Técnica Separação entre Recomendação (ML) e Sinopse:** [`specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md`](specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md)  
+> 📄 **Especificação Técnica Módulo de Quadrinhos & Mangás (Sagas & Volumes):** [`specs/SPEC-015-comics-and-manga-module.md`](specs/SPEC-015-comics-and-manga-module.md)
 
 ## 1. Visão Geral da Arquitetura
 

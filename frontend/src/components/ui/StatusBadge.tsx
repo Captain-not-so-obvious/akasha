@@ -39,7 +39,12 @@ const statusConfig: Record<WishlistStatus, { label: string; gameLabel: string; b
 
 export function StatusBadge({ status, domain, className = '' }: StatusBadgeProps) {
   const config = statusConfig[status];
-  const label = domain === 'game' ? config.gameLabel : domain === 'book' ? config.bookLabel : config.label;
+  const label =
+    domain === 'game'
+      ? config.gameLabel
+      : domain === 'book' || domain === 'comic'
+        ? config.bookLabel
+        : config.label;
   return (
     <span
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-outfit border border-current/20 ${config.bg} ${config.text} ${className}`}

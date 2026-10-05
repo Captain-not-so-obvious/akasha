@@ -217,18 +217,18 @@
 
 ---
 
-## FASE 9 — Módulo de Quadrinhos (Comics & Mangás)
-> 📄 **Spec:** [`specs/SPEC-001-universal-media-expansion.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-001-universal-media-expansion.md)
-**Objetivo:** Ingestão de HQs e Mangás (Comic Vine + AniList) com rastreio de volumes e arcos.
+## FASE 9 — Módulo de Quadrinhos (Comics & Mangás) (100% Concluída)
+> 📄 **Specs:** [`specs/SPEC-015-comics-and-manga-module.md`](specs/SPEC-015-comics-and-manga-module.md) & [`specs/SPEC-001-universal-media-expansion.md`](specs/SPEC-001-universal-media-expansion.md)  
+**Objetivo:** Ingestão de HQs e Mangás (Comic Vine + AniList) no nível de Saga/Volume completo com rastreio de edições, motor de recomendação especializado e interface universal (TV, Mobile e Desktop).
 
 | # | Feature | Complexidade | Dependência | Status |
 |---|---|---|---|---|
-| 9.1 | Serviço Comic Vine / AniList (`comics.service.ts`) com normalização de dados | 🔴 | Fase 6 | Pendente |
-| 9.2 | Rotas Fastify: `GET /comics/search` e `GET /comics/:id` | 🟢 | 9.1 | Pendente |
-| 9.3 | Motor de Recomendação de Quadrinhos (roteiristas, desenhistas e sagas) | 🔴 | 9.1, Fase 6 | Pendente |
-| 9.4 | Componente `ComicCard` com estética Liquid Glass e foco TV | 🟡 | 9.2 | Pendente |
-| 9.5 | Interface de HQs & Mangás no Frontend | 🟡 | 9.3, 9.4 | Pendente |
-| 9.6 | Testes unitários e de integração para Quadrinhos | 🟡 | 9.5 | Pendente |
+| 9.1 | Ingestão Híbrida: Comic Vine REST (HQs ocidentais/sagas) e AniList GraphQL (Mangás/Manhwas) com tipagem estrita e catálogo cold-start | 🔴 | Fase 6 | **Done** |
+| 9.2 | Rotas Fastify com Zod: `GET /comics/search`, `GET /comics/popular`, `GET /comics/recommendations` e `GET /comics/:id` | 🟢 | 9.1 | **Done** |
+| 9.3 | Motor de Recomendação de Quadrinhos (afinidade por criadores, roteiristas, desenhistas, editoras e gêneros) | 🔴 | 9.1, Fase 6 | **Done** |
+| 9.4 | Componente `ComicCard` com proporção editorial, badges de tipo/saga e foco Android TV (`tabIndex={0}`) | 🟡 | 9.2 | **Done** |
+| 9.5 | Interface Universal no Frontend: Busca integrada, aba na Biblioteca, `ComicRecommendationRail` e `ComicDetailsModal` com toggle sanfona para enumerar edições/volumes da saga | 🟡 | 9.3, 9.4 | **Done** |
+| 9.6 | Cobertura total de testes unitários e de integração (backend e frontend com Vitest) | 🟡 | 9.5 | **Done** |
 
 ---
 

@@ -79,7 +79,7 @@ describe('LibraryItemCard Component', () => {
       />
     );
 
-    const infoButton = screen.getByRole('button', { name: /Ver sinopse de Fight Club/i });
+    const infoButton = screen.getByRole('button', { name: /Ver (detalhes|sinopse) de Fight Club/i });
     fireEvent.click(infoButton);
 
     expect(mockOnSelect).toHaveBeenCalledWith(mockItem.media);

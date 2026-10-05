@@ -42,12 +42,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     if (currentType === 'movie') return 'Buscar filmes...';
     if (currentType === 'tv') return 'Buscar séries...';
     if (currentType === 'book') return 'Buscar livros (título, autor ou ISBN)...';
+    if (currentType === 'comic') return 'Buscar sagas de HQs ou mangás em inglês (ex: Civil War, Berserk)...';
     return 'Buscar jogos (ex: Elden Ring, Zelda)...';
   };
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* Toggle Filmes / Séries / Jogos / Livros */}
+      {/* Toggle Filmes / Séries / Jogos / Livros / Quadrinhos */}
       <div
         role="group"
         aria-label="Tipo de mídia"
@@ -72,6 +73,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           label="📚 Livros"
           active={currentType === 'book'}
           onClick={() => handleSelectType('book')}
+        />
+        <ToggleButton
+          label="📖 Quadrinhos & Mangás"
+          active={currentType === 'comic'}
+          onClick={() => handleSelectType('comic')}
         />
       </div>
 

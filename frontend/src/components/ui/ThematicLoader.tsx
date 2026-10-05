@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 
-export type LoaderDomain = 'movie' | 'game' | 'book' | 'general';
+export type LoaderDomain = 'movie' | 'game' | 'book' | 'comic' | 'general';
 
 export interface ThematicLoaderProps {
   /**
-   * Domínio temático para carregar frases contextuais ('book', 'movie', 'game' ou 'general').
+   * Domínio temático para carregar frases contextuais ('book', 'movie', 'game', 'comic' ou 'general').
    * Padrão: 'general'.
    */
   domain?: LoaderDomain;
@@ -37,6 +37,14 @@ export const DOMAIN_PHRASES: Record<LoaderDomain, string[]> = {
     'Folheando os manuscritos do Akasha...',
     'Separando os melhores marcadores de página...',
     'Desvendando novos capítulos...',
+    'Quase lá...',
+  ],
+  comic: [
+    'Organizando as sagas da sua estante...',
+    'Tirando as HQs dos sacos plásticos protetores...',
+    'Lendo as páginas da direita para a esquerda...',
+    'Sintonizando os multiversos e arcos épicos...',
+    'Folheando os próximos volumes...',
     'Quase lá...',
   ],
   movie: [
