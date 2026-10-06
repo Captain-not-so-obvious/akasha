@@ -5,6 +5,7 @@ import {
   fetchPopularComics,
   searchMangaFromAniList,
   searchComicsFromComicVine,
+  isNsfwOrJunkComic,
   _clearComicsCacheForTesting,
   POPULAR_COMICS_CATALOG,
 } from '../../src/services/comics.service.js';
@@ -177,4 +178,19 @@ describe('Comics Service (AniList GraphQL & Comic Vine REST)', () => {
       expect(results.some((r) => r.title.includes('Civil War'))).toBe(true);
     });
   });
+
+  describe('isNsfwOrJunkComic (Filtro de Segurança e Tipagem)', () => {
+    it('deve aceitar description como undefined ou null sem falhar', () => {
+      expect(isNsfwOrJunkComic('Spider-Man', undefined)).toBe(false);
+      expect(isNsfwOrJunkComic('Batman', null)).toBe(false);
+      expect(isNsfwOrJunkComic('Superman')).toBe(false);
+    });
+
+    it('deve detectar conteúdo adulto ou impróprio no título ou descrição', () => {
+      expect(isNsfwOrJunkComic('Hentai Anthology', null)).toBe(true);
+      expect(isNsfwOrJunkComic('Graphic Novel', 'Contains erotic themes')).toBe(true);
+      expect(isNsfwOrJunkComic('Safe Comic', 'Just an adventure')).toBe(false);
+    });
+  });
 });
+

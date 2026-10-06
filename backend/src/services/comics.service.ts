@@ -173,7 +173,7 @@ function sanitizeCoverUrl(url?: string | null): string | null {
 /**
  * Filtro de segurança estrito para barrar conteúdo adulto, erótico, hentai ou termos de spam/junk.
  */
-export function isNsfwOrJunkComic(title: string, description?: string): boolean {
+export function isNsfwOrJunkComic(title: string, description?: string | null): boolean {
   const combined = `${title} ${description || ''}`.toLowerCase();
   const nsfwRegex =
     /\b(planet sex|sex|ninfeta|hentai|porn|porno|pornografia|erotic|erotica|erótico|erótica|ecchi|doujinshi|smut|fantasias sexuais)\b/i;
