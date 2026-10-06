@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Check, Star, Trash2, BookOpen, Bookmark, Play, Layers, Building2, Tag, ChevronDown, Loader2 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { apiFetch } from '../../lib/api';
@@ -151,9 +151,6 @@ export function ComicDetailsModal({
       comic.publisher ||
       (typeof libraryMeta?.publisher === 'string' ? libraryMeta.publisher : undefined);
   }
-  if (fullDetails?.scope || comic.scope) {
-    activeComic.scope = fullDetails?.scope || comic.scope;
-  }
   const effectiveCreators =
     (fullDetails?.creators && fullDetails.creators.length > 0 ? fullDetails.creators : undefined) ||
     (comic.creators && comic.creators.length > 0 ? comic.creators : undefined) ||
@@ -186,7 +183,7 @@ export function ComicDetailsModal({
   const effIssues =
     (fullDetails?.issues && fullDetails.issues.length > 0 ? fullDetails.issues : undefined) ||
     (comic.issues && comic.issues.length > 0 ? comic.issues : undefined) ||
-    (Array.isArray(libraryMeta?.issues) ? (libraryMeta.issues as any) : undefined);
+    (Array.isArray(libraryMeta?.issues) ? (libraryMeta.issues as ComicIssueItem[]) : undefined);
   if (effIssues) activeComic.issues = effIssues;
 
   const isCurrentlyInLibrary = isInLibrary || Boolean(libraryItem) || Boolean(optimisticStatus);

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ComicDetails } from '../../types/comic';
-import { BookOpen, Layers, Bookmark } from 'lucide-react';
+import { BookOpen, Layers } from 'lucide-react';
 
 interface ComicCardProps {
   comic: ComicDetails;
