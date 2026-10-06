@@ -43,7 +43,19 @@ describe('ComicRecommendationRail Component', () => {
     expect(screen.getByText('Sagas & Mangás Sugeridos')).toBeInTheDocument();
     expect(screen.getByText('Batman: The Long Halloween')).toBeInTheDocument();
     expect(screen.getByText(/Jeph Loeb, Tim Sale/i)).toBeInTheDocument();
-    expect(screen.getByText(/"Porque você leu Batman: Ano Um"/i)).toBeInTheDocument();
+    expect(screen.getByText(/Porque você leu Batman: Ano Um/i)).toBeInTheDocument();
+    expect(screen.getByText('Todos')).toBeInTheDocument();
+    expect(screen.getByText('Quadrinhos')).toBeInTheDocument();
+    expect(screen.getByText('Mangás & Manhwas')).toBeInTheDocument();
+  });
+
+  it('deve disparar fetchRecommendations ao alternar abas de filtro', () => {
+    render(<ComicRecommendationRail onSelectComic={mockSelectComic} onQuickAdd={mockQuickAdd} />);
+
+    const mangaTab = screen.getByRole('button', { name: 'Mangás & Manhwas' });
+    fireEvent.click(mangaTab);
+
+    expect(mockFetchRecommendations).toHaveBeenCalledWith({ limit: 14, type: 'manga' });
   });
 
   it('deve disparar onSelectComic ao clicar no card da saga', () => {

@@ -343,6 +343,137 @@ describe('Comic Recommendation Service - Unit Tests', () => {
       expect(csm!.score).toBeGreaterThanOrEqual(84);
       expect(csm!.reason).toMatch(/afinidade.*(ação|sobrenatural)/i);
     });
+
+    it('filtra recomendações estritamente por formato ocidental quando type="comic"', async () => {
+      vi.mocked(prisma.wishlist.findMany).mockResolvedValue([
+        {
+          id: 11,
+          userId: mockUserId,
+          domain: 'comic',
+          externalId: 'cv-4050-18023',
+          title: 'Civil War',
+          userRating: 5,
+          status: 'completed',
+          extraMeta: { genres: ['Ação', 'Super-Heróis'] },
+        } as any,
+      ]);
+
+      vi.mocked(comicsService.searchComics).mockResolvedValue([
+        {
+          id: 'cv-4050-999',
+          title: 'Infinity Gauntlet',
+          type: 'comic',
+          coverUrl: null,
+          releaseYear: 1991,
+          creators: ['Jim Starlin'],
+          genres: ['Super-Heróis'],
+        },
+        {
+          id: 'al-888',
+          title: 'Dragon Ball Z',
+          type: 'manga',
+          coverUrl: null,
+          releaseYear: 1989,
+          creators: ['Akira Toriyama'],
+          genres: ['Ação'],
+        },
+      ]);
+
+      const recs = await getUserComicRecommendations(mockUserId, { limit: 5, type: 'comic' });
+
+      expect(recs.length).toBeGreaterThan(0);
+      expect(recs.every((r) => r.type === 'comic')).toBe(true);
+      expect(recs.some((r) => r.id === 'cv-4050-999')).toBe(true);
+      expect(recs.some((r) => r.id === 'al-888')).toBe(false);
+    });
+
+    it('filtra recomendações estritamente por formato oriental quando type="manga"', async () => {
+      vi.mocked(prisma.wishlist.findMany).mockResolvedValue([
+        {
+          id: 12,
+          userId: mockUserId,
+          domain: 'comic',
+          externalId: 'al-30002',
+          title: 'Berserk',
+          userRating: 5,
+          status: 'completed',
+          extraMeta: { genres: ['Dark Fantasy'] },
+        } as any,
+      ]);
+
+      vi.mocked(comicsService.fetchMangaRecommendationsFromAniList).mockResolvedValue([
+        {
+          id: 'al-30642',
+          title: 'Vinland Saga',
+          type: 'manga',
+          coverUrl: null,
+          releaseYear: 2005,
+          creators: ['Makoto Yukimura'],
+          genres: ['Ação'],
+        },
+      ]);
+
+      const recs = await getUserComicRecommendations(mockUserId, { limit: 5, type: 'manga' });
+
+      expect(recs.length).toBeGreaterThan(0);
+      expect(recs.every((r) => r.type === 'manga' || r.type === 'manhwa')).toBe(true);
+      expect(recs.some((r) => r.id === 'al-30642')).toBe(true);
+    });
+
+    it('intercala HQs ocidentais e mangás quando type="all" garantindo diversidade', async () => {
+      vi.mocked(prisma.wishlist.findMany).mockResolvedValue([
+        {
+          id: 13,
+          userId: mockUserId,
+          domain: 'comic',
+          externalId: 'cv-4050-18023',
+          title: 'Civil War',
+          userRating: 5,
+          status: 'completed',
+          extraMeta: { genres: ['Ação'] },
+        } as any,
+        {
+          id: 14,
+          userId: mockUserId,
+          domain: 'comic',
+          externalId: 'al-30002',
+          title: 'Berserk',
+          userRating: 5,
+          status: 'completed',
+          extraMeta: { genres: ['Ação'] },
+        } as any,
+      ]);
+
+      vi.mocked(comicsService.searchComics).mockResolvedValue([
+        {
+          id: 'cv-comic-1',
+          title: 'Secret Wars',
+          type: 'comic',
+          coverUrl: null,
+          releaseYear: 1984,
+          creators: [],
+          genres: ['Ação'],
+        },
+      ]);
+
+      vi.mocked(comicsService.fetchMangaRecommendationsFromAniList).mockResolvedValue([
+        {
+          id: 'al-manga-1',
+          title: 'Claymore',
+          type: 'manga',
+          coverUrl: null,
+          releaseYear: 2001,
+          creators: [],
+          genres: ['Ação'],
+        },
+      ]);
+
+      const recs = await getUserComicRecommendations(mockUserId, { limit: 6, type: 'all' });
+
+      const types = recs.map((r) => r.type);
+      expect(types).toContain('comic');
+      expect(types.some((t) => t === 'manga' || t === 'manhwa')).toBe(true);
+    });
   });
 
   describe('buildUserComicProfile (Content-Based Tag Profile)', () => {

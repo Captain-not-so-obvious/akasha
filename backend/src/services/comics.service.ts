@@ -175,9 +175,9 @@ function sanitizeCoverUrl(url?: string | null): string | null {
  */
 export function isNsfwOrJunkComic(title: string, description?: string | null): boolean {
   const combined = `${title} ${description || ''}`.toLowerCase();
-  const nsfwRegex =
-    /\b(planet sex|sex|ninfeta|hentai|porn|porno|pornografia|erotic|erotica|erótico|erótica|ecchi|doujinshi|smut|fantasias sexuais)\b/i;
-  return nsfwRegex.test(combined);
+  const nsfwOrJunkRegex =
+    /\b(planet sex|sex|ninfeta|hentai|porn|porno|pornografia|erotic|erotica|erótico|erótica|ecchi|doujinshi|smut|fantasias sexuais|activity book|coloring book|poster book|facsimile|sampler|ashcan|sketchbook)\b/i;
+  return nsfwOrJunkRegex.test(combined);
 }
 
 /**
@@ -661,7 +661,7 @@ export async function fetchPopularComicsFromComicVine(limit = 6): Promise<ComicD
  */
 export async function fetchMangaRecommendationsFromAniList(
   anilistId: number,
-  limit = 5
+  limit = 10
 ): Promise<ComicDetails[]> {
   const cacheKey = `anilist:recommendations:${anilistId}:${limit}`;
   const cached = getFromCache<ComicDetails[]>(cacheKey);
@@ -831,7 +831,7 @@ export function mapGenreToAniList(genre: string): string | null {
  */
 export async function fetchMangaByGenresFromAniList(
   genres: string[],
-  limit = 6
+  limit = 12
 ): Promise<ComicDetails[]> {
   const aniListGenres = Array.from(
     new Set(
@@ -948,6 +948,7 @@ export async function fetchMangaByGenresFromAniList(
  * Catálogo canônico de Sagas e Mangás com capas e dados reais verificados (Fallback de emergência / Cold Start neutro).
  */
 export const POPULAR_COMICS_CATALOG: ComicDetails[] = [
+  // --- HQs Ocidentais Consagradas (DC, Marvel, Vertigo, Image, Dark Horse) ---
   {
     id: 'cv-4050-53871',
     title: 'Watchmen',
@@ -991,6 +992,190 @@ export const POPULAR_COMICS_CATALOG: ComicDetails[] = [
     volumeCount: 1,
   },
   {
+    id: 'cv-4050-5757',
+    title: 'Kingdom Come',
+    type: 'comic',
+    description:
+      'A épica obra-prima pintada de Alex Ross e Mark Waid sobre um futuro distópico onde a nova geração de heróis perdeu sua moral, forçando o retorno lendário do Superman da aposentadoria.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11145/111453272/7841198-rco001_1615694247.jpg',
+    releaseYear: 1996,
+    publisher: 'DC Comics',
+    creators: ['Mark Waid', 'Alex Ross'],
+    genres: ['Super-Heróis', 'Drama', 'Distopia', 'Clássico'],
+    issueCount: 4,
+    volumeCount: 1,
+  },
+  {
+    id: 'cv-4050-4241',
+    title: 'The Sandman',
+    type: 'comic',
+    description:
+      'A lendária saga de Neil Gaiman sobre Morpheus, o Senhor dos Sonhos e um dos Perpétuos, restaurando seu reino e confrontando divindades, lendas e o próprio destino da humanidade.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11142/111424135/7418293-sandman001.jpg',
+    releaseYear: 1989,
+    publisher: 'DC Comics / Vertigo',
+    creators: ['Neil Gaiman', 'Sam Kieth', 'Mike Dringenberg'],
+    genres: ['Dark Fantasy', 'Mitologia', 'Drama', 'Sobrenatural'],
+    issueCount: 75,
+    volumeCount: 1,
+  },
+  {
+    id: 'cv-4050-18151',
+    title: 'All-Star Superman',
+    type: 'comic',
+    description:
+      'A aclamada celebração do mito do Superman por Grant Morrison e Frank Quitely. Ao descobrir que suas células estão sobrecarregadas e tem pouco tempo de vida, Clark Kent realiza seus lendários 12 trabalhos.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2513903-01.jpg',
+    releaseYear: 2005,
+    publisher: 'DC Comics',
+    creators: ['Grant Morrison', 'Frank Quitely'],
+    genres: ['Super-Heróis', 'Ficção Científica', 'Épico'],
+    issueCount: 12,
+    volumeCount: 1,
+  },
+  {
+    id: 'cv-4050-3944',
+    title: 'Batman: The Dark Knight Returns',
+    type: 'comic',
+    description:
+      'A obra definidora de Frank Miller. Em um futuro cinzento e violento, Bruce Wayne de 55 anos abandona a aposentadoria para resgatar Gotham da anarquia dos Mutantes.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/3/36279/2697011-batman_the_dark_knight_returns01.jpg',
+    releaseYear: 1986,
+    publisher: 'DC Comics',
+    creators: ['Frank Miller', 'Klaus Janson', 'Lynn Varley'],
+    genres: ['Super-Heróis', 'Distopia', 'Noir', 'Clássico'],
+    issueCount: 4,
+    volumeCount: 1,
+  },
+  {
+    id: 'cv-4050-4100',
+    title: 'V for Vendetta',
+    type: 'comic',
+    description:
+      'Em uma Inglaterra pós-guerra nuclear subjugada pelo fascismo totalitário, o misterioso anarquista de máscara de Guy Fawkes empreende uma revolução pessoal e política.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/9116/1665487-v_for_vendetta_01.jpg',
+    releaseYear: 1988,
+    publisher: 'DC Comics / Vertigo',
+    creators: ['Alan Moore', 'David Lloyd'],
+    genres: ['Ficção Política', 'Distopia', 'Suspense'],
+    issueCount: 10,
+    volumeCount: 1,
+  },
+  {
+    id: 'cv-4050-3352',
+    title: 'Marvel Super Heroes Secret Wars',
+    type: 'comic',
+    description:
+      'A saga seminal da Marvel onde a entidade cósmica Beyonder transporta os maiores heróis e vilões da Terra para o Mundo Bélico para disputarem uma batalha definitiva.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11/117763/2407772-marvelsuperheroessecretwars01.jpg',
+    releaseYear: 1984,
+    publisher: 'Marvel Comics',
+    creators: ['Jim Shooter', 'Mike Zeck', 'Bob Layton'],
+    genres: ['Super-Heróis', 'Ação', 'Épico', 'Cósmico'],
+    issueCount: 12,
+    volumeCount: 1,
+  },
+  {
+    id: 'cv-4050-4663',
+    title: 'The Infinity Gauntlet',
+    type: 'comic',
+    description:
+      'Thanos reúne todas as Joias do Infinito e com um estalar de dedos elimina metade da vida no universo. Adam Warlock lidera os heróis remanescentes em uma batalha cósmica desesperada.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/11112/111122750/5086054-infinitygauntlet01.jpg',
+    releaseYear: 1991,
+    publisher: 'Marvel Comics',
+    creators: ['Jim Starlin', 'George Pérez', 'Ron Lim'],
+    genres: ['Super-Heróis', 'Cósmico', 'Épico'],
+    issueCount: 6,
+    volumeCount: 1,
+  },
+  {
+    id: 'cv-4050-3773',
+    title: 'Daredevil: Born Again',
+    type: 'comic',
+    description:
+      'A obra máxima do Demolidor por Frank Miller e David Mazzucchelli. Karen Page vende a identidade secreta de Matt Murdock, que tem sua vida e sanidade meticulosamente destruídas pelo Rei do Crime.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/81617-3773-105417-1-daredevil.jpg',
+    releaseYear: 1986,
+    publisher: 'Marvel Comics',
+    creators: ['Frank Miller', 'David Mazzucchelli'],
+    genres: ['Noir', 'Drama', 'Super-Heróis', 'Clássico'],
+    issueCount: 7,
+    volumeCount: 1,
+  },
+  {
+    id: 'cv-4050-24151',
+    title: 'Old Man Logan',
+    type: 'comic',
+    description:
+      'Em um futuro devastado onde os supervilões se uniram e conquistaram a América, um envelhecido e pacifista Wolverine é forçado a cruzar o país em uma perigosa missão com o Gavião Arqueiro.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/80407-2055-103859-1-wolverine.jpg',
+    releaseYear: 2008,
+    publisher: 'Marvel Comics',
+    creators: ['Mark Millar', 'Steve McNiven'],
+    genres: ['Ação', 'Pós-Apocalíptico', 'Super-Heróis'],
+    issueCount: 8,
+    volumeCount: 1,
+  },
+  {
+    id: 'cv-4050-46327',
+    title: 'Saga',
+    type: 'comic',
+    description:
+      'Espetacular space opera de fantasia sobre Alana e Marko, dois soldados de raças alienígenas inimigas que se apaixonam e arriscam tudo para proteger sua recém-nascida filha, Hazel.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/67663/2260655-01.jpg',
+    releaseYear: 2012,
+    publisher: 'Image Comics',
+    creators: ['Brian K. Vaughan', 'Fiona Staples'],
+    genres: ['Ficção Científica', 'Space Opera', 'Fantasia', 'Drama'],
+    issueCount: 66,
+    volumeCount: 1,
+  },
+  {
+    id: 'cv-4050-10492',
+    title: 'Invincible',
+    type: 'comic',
+    description:
+      'Mark Grayson é um adolescente aparentemente normal cujo pai é o Omni-Man, o ser mais poderoso da Terra. Ao herdar seus poderes, Mark descobre a brutal e visceral realidade dos super-heróis.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/71603-10492-91185-1-invincible.jpg',
+    releaseYear: 2003,
+    publisher: 'Image Comics',
+    creators: ['Robert Kirkman', 'Cory Walker', 'Ryan Ottley'],
+    genres: ['Super-Heróis', 'Ação', 'Ficção Científica', 'Drama'],
+    issueCount: 144,
+    volumeCount: 1,
+  },
+  {
+    id: 'cv-4050-5152',
+    title: 'Hellboy: Seed of Destruction',
+    type: 'comic',
+    description:
+      'A origem do detetive paranormal Hellboy, invocado durante a Segunda Guerra Mundial e criado pelos Aliados para defender o mundo de horrores ocultistas e Lovecraftianos.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/0/4/81405-5152-105126-1-hellboy-seed-of-des.jpg',
+    releaseYear: 1994,
+    publisher: 'Dark Horse Comics',
+    creators: ['Mike Mignola', 'John Byrne'],
+    genres: ['Terror', 'Sobrenatural', 'Fantasia Sombria'],
+    issueCount: 4,
+    volumeCount: 1,
+  },
+  {
+    id: 'cv-4050-57351',
+    title: 'Injustice: Gods Among Us',
+    type: 'comic',
+    description:
+      'Após o Coringa destruir Metrópolis e enganar o Superman fazendo-o assassinar Lois Lane, o Homem de Aço decide impor a paz mundial a qualquer custo, entrando em rota de colisão contra o Batman.',
+    coverUrl: 'https://comicvine.gamespot.com/a/uploads/scale_medium/6/66303/3008034-injustice001.jpg',
+    releaseYear: 2013,
+    publisher: 'DC Comics',
+    creators: ['Tom Taylor', 'Jheremy Raapack', 'Mike S. Miller'],
+    genres: ['Super-Heróis', 'Ação', 'Distopia', 'Conflito Político'],
+    issueCount: 36,
+    volumeCount: 1,
+  },
+
+  // --- Mangás, Manhwas & Webtoons Aclamados ---
+  {
     id: 'al-30002',
     title: 'Berserk',
     originalTitle: 'ベルセルク',
@@ -1032,6 +1217,160 @@ export const POPULAR_COMICS_CATALOG: ComicDetails[] = [
     creators: ['Eiichiro Oda'],
     genres: ['Aventura', 'Ação', 'Fantasia', 'Comédia'],
     volumeCount: 108,
+  },
+  {
+    id: 'al-30656',
+    title: 'Vagabond',
+    originalTitle: 'バガボンド',
+    type: 'manga',
+    description:
+      'A magistral e filosófica trajetória de Miyamoto Musashi no Japão feudal, sua busca obsessiva por se tornar invencível e a descoberta do verdadeiro significado da espada.',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30656-74mJmXqN5oF4.jpg',
+    releaseYear: 1998,
+    publisher: 'Kodansha',
+    creators: ['Takehiko Inoue', 'Eiji Yoshikawa'],
+    genres: ['Ação', 'Aventura', 'Drama', 'Histórico'],
+    volumeCount: 37,
+  },
+  {
+    id: 'al-30642',
+    title: 'Vinland Saga',
+    originalTitle: 'ヴィンランド・サガ',
+    type: 'manga',
+    description:
+      'Thorfinn cresce entre mercenários vikings sedento por vingar a morte de seu pai, descobrindo o peso da guerra e a busca por uma terra mítica sem violência.',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30642-4D3WvNq34l9E.jpg',
+    releaseYear: 2005,
+    publisher: 'Kodansha',
+    creators: ['Makoto Yukimura'],
+    genres: ['Ação', 'Aventura', 'Drama', 'Histórico'],
+    volumeCount: 27,
+  },
+  {
+    id: 'al-30001',
+    title: 'Monster',
+    originalTitle: 'MONSTER',
+    type: 'manga',
+    description:
+      'O renomado neurocirurgião Kenzo Tenma salva a vida de um garoto baleado, descobrindo anos mais tarde que libertou um dos monstros psicopatas mais brilhantes e perigosos do mundo.',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30001-f2rJ5T13QvQe.jpg',
+    releaseYear: 1994,
+    publisher: 'Shogakukan',
+    creators: ['Naoki Urasawa'],
+    genres: ['Mistério', 'Drama', 'Psicológico', 'Thriller'],
+    volumeCount: 18,
+  },
+  {
+    id: 'al-30003',
+    title: '20th Century Boys',
+    originalTitle: '20世紀少年',
+    type: 'manga',
+    description:
+      'Kenji e seus amigos de infância descobrem que um culto liderado pelo enigmático "Amigo" está executando à risca o "Livro da Profecia" que eles haviam escrito como brincadeira em 1969.',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30003-8w19M4gE8b4z.jpg',
+    releaseYear: 1999,
+    publisher: 'Shogakukan',
+    creators: ['Naoki Urasawa'],
+    genres: ['Mistério', 'Ficção Científica', 'Drama', 'Psicológico'],
+    volumeCount: 22,
+  },
+  {
+    id: 'al-30025',
+    title: 'Fullmetal Alchemist',
+    originalTitle: '鋼の錬金術師',
+    type: 'manga',
+    description:
+      'Após tentarem a proibida transmutação humana para ressuscitar a mãe, os irmãos Edward e Alphonse Elric partem em busca da lendária Pedra Filosofal para restaurar seus corpos.',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30025-aP0N7J38vXF9.jpg',
+    releaseYear: 2001,
+    publisher: 'Square Enix',
+    creators: ['Hiromu Arakawa'],
+    genres: ['Ação', 'Aventura', 'Fantasia', 'Drama'],
+    volumeCount: 27,
+  },
+  {
+    id: 'al-30021',
+    title: 'Death Note',
+    originalTitle: 'DEATH NOTE',
+    type: 'manga',
+    description:
+      'Light Yagami encontra um caderno sobrenatural que mata qualquer pessoa cujo nome seja nele escrito, iniciando uma épica guerra mental contra o brilhante detetive L.',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30021-m5W4K8oP3vYt.jpg',
+    releaseYear: 2003,
+    publisher: 'Shueisha',
+    creators: ['Tsugumi Ohba', 'Takeshi Obata'],
+    genres: ['Mistério', 'Psicológico', 'Sobrenatural', 'Thriller'],
+    volumeCount: 12,
+  },
+  {
+    id: 'al-31706',
+    title: "JoJo's Bizarre Adventure: Part 7–Steel Ball Run",
+    originalTitle: 'ジョジョの奇妙な冒険 スティール・ボール・ラン',
+    type: 'manga',
+    description:
+      'Em 1890, Johnny Joestar e Gyro Zeppeli competem na lendária corrida de cavalos de 6.000 quilômetros através dos Estados Unidos, desvendando uma conspiração de relíquias sagradas.',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx31706-c87J3Q78oPXy.png',
+    releaseYear: 2004,
+    publisher: 'Shueisha',
+    creators: ['Hirohiko Araki'],
+    genres: ['Ação', 'Aventura', 'Sobrenatural', 'Mistério'],
+    volumeCount: 24,
+  },
+  {
+    id: 'al-101517',
+    title: 'Jujutsu Kaisen',
+    originalTitle: '呪術廻戦',
+    type: 'manga',
+    description:
+      'Yuji Itadori engole o dedo amaldiçoado de Ryomen Sukuna para salvar seus amigos e é introduzido ao violento e estratégico mundo dos Feiticeiros Jujutsu.',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx101517-7WjA41q4A4Y2.jpg',
+    releaseYear: 2018,
+    publisher: 'Shueisha',
+    creators: ['Gege Akutami'],
+    genres: ['Ação', 'Sobrenatural', 'Dark Fantasy'],
+    volumeCount: 28,
+  },
+  {
+    id: 'al-105398',
+    title: 'Solo Leveling',
+    originalTitle: '나 혼자만 레벨업',
+    type: 'manhwa',
+    description:
+      'Sung Jinwoo é conhecido como o caçador mais fraco da humanidade. Após sobreviver a uma dungeon dupla quase mortal, ele recebe o poder secreto de subir de nível sozinho no mundo real.',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx105398-b6vJmN7tQ2P9.jpg',
+    releaseYear: 2018,
+    publisher: 'D&C Media / Webtoon',
+    creators: ['Chugong', 'DUBU (REDICE STUDIO)'],
+    genres: ['Ação', 'Fantasia', 'Aventura'],
+    volumeCount: 14,
+  },
+  {
+    id: 'al-132029',
+    title: 'Dandadan',
+    originalTitle: 'ダンダダン',
+    type: 'manga',
+    description:
+      'Momo Ayase acredita em fantasmas mas não em alienígenas; Okarun acredita em extraterrestres mas não em espíritos. Em uma aposta para provar quem está certo, ambos descobrem que as duas bizarrices são reais.',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx132029-Y3g2n9V3eXyL.jpg',
+    releaseYear: 2021,
+    publisher: 'Shueisha',
+    creators: ['Yukinobu Tatsu'],
+    genres: ['Ação', 'Sobrenatural', 'Comédia', 'Ficção Científica'],
+    volumeCount: 16,
+  },
+  {
+    id: 'al-30026',
+    title: 'Hunter x Hunter',
+    originalTitle: 'HUNTER×HUNTER',
+    type: 'manga',
+    description:
+      'Gon Freecss descobre que seu pai é um lendário Hunter de renome mundial e decide prestar o perigoso exame para se tornar um Hunter e encontrá-lo, desvendando os segredos do Nen.',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30026-bV3jM4q8nPxY.jpg',
+    releaseYear: 1998,
+    publisher: 'Shueisha',
+    creators: ['Yoshihiro Togashi'],
+    genres: ['Ação', 'Aventura', 'Fantasia'],
+    volumeCount: 38,
   },
 ];
 

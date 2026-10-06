@@ -8,7 +8,8 @@
 > 📄 **Especificação Técnica Módulo de Livros & Estante Literária:** [`specs/SPEC-011-books-module-and-reading-shelf.md`](specs/SPEC-011-books-module-and-reading-shelf.md)  
 > 📄 **Especificação Técnica Carregamento Temático & Delight UX:** [`specs/SPEC-012-thematic-loading-and-delight-ux.md`](specs/SPEC-012-thematic-loading-and-delight-ux.md)  
 > 📄 **Especificação Técnica Separação entre Recomendação (ML) e Sinopse:** [`specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md`](specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md)  
-> 📄 **Especificação Técnica Módulo de Quadrinhos & Mangás (Sagas & Volumes):** [`specs/SPEC-015-comics-and-manga-module.md`](specs/SPEC-015-comics-and-manga-module.md)
+> 📄 **Especificação Técnica Módulo de Quadrinhos & Mangás (Sagas & Volumes):** [`specs/SPEC-015-comics-and-manga-module.md`](specs/SPEC-015-comics-and-manga-module.md)  
+> 📄 **Especificação Técnica Motor Inteligente de Recomendações de Quadrinhos & Mangás:** [`specs/SPEC-016-enhanced-comic-recommendation-engine.md`](specs/SPEC-016-enhanced-comic-recommendation-engine.md)
 
 ## 1. Visão Geral da Arquitetura
 

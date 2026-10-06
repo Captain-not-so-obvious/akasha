@@ -232,6 +232,28 @@ export function buildUserComicProfile(items: UserComicItem[]): UserComicProfile 
 }
 
 /**
+ * Mapeia gêneros comuns em inglês para exibição elegante em português na justificativa.
+ */
+function formatGenreForDisplay(genre: string): string {
+  const map: Record<string, string> = {
+    action: 'Ação',
+    adventure: 'Aventura',
+    fantasy: 'Fantasia',
+    drama: 'Drama',
+    supernatural: 'Sobrenatural',
+    mystery: 'Mistério',
+    horror: 'Terror',
+    'sci-fi': 'Ficção Científica',
+    psychological: 'Suspense Psicológico',
+    comedy: 'Comédia',
+    sports: 'Esportes',
+    thriller: 'Suspense',
+    historical: 'Histórico',
+  };
+  return map[genre.toLowerCase().trim()] || genre;
+}
+
+/**
  * Calcula a probabilidade percentual de afinidade (% Match) e gera a justificativa humanizada
  * com base na sobreposição vetorial de tags, criadores, editoras e histórico de avaliações.
  */
@@ -242,7 +264,7 @@ export function calculateComicAffinity(
     seedTitle?: string;
     seedRating?: number | null;
     seedWeight?: number;
-    matchType?: 'series_core' | 'creator' | 'collaborative' | 'tag' | 'canonical';
+    matchType?: 'series_core' | 'creator' | 'collaborative' | 'tag' | 'publisher_affinity' | 'canonical';
   }
 ): { score: number; reason: string } {
   const candidateGenres = (candidate.genres || []).filter(
@@ -260,30 +282,36 @@ export function calculateComicAffinity(
       tagScoreSum += score;
       matchedPositiveTags.push(g);
     } else if (profile.negativeTags.has(norm)) {
-      negativePenalty += 8;
+      negativePenalty += 12;
     }
   }
 
   // Base do score dinâmica por tipo de correlação
   let baseScore = 78;
   if (options?.seedRating && options.seedRating >= 5) {
-    baseScore = 94;
+    baseScore = 93;
   } else if (options?.seedRating === 4) {
-    baseScore = 90;
+    baseScore = 89;
   } else if (options?.seedRating === 3) {
-    baseScore = 86;
+    baseScore = 85;
   } else if (options?.matchType === 'collaborative') {
     baseScore = 91;
+  } else if (options?.matchType === 'series_core') {
+    baseScore = 90;
+  } else if (options?.matchType === 'publisher_affinity') {
+    baseScore = 88;
   } else if (options?.matchType === 'tag') {
     baseScore = 84;
+  } else if (options?.matchType === 'canonical') {
+    baseScore = 81;
   }
 
   // Bônus proporcional pela sobreposição das tags favoritas
   const tagBonus =
     profile.totalPositiveWeight > 0
-      ? Math.min(8, Math.round((tagScoreSum / profile.totalPositiveWeight) * 8))
+      ? Math.min(6, Math.round((tagScoreSum / profile.totalPositiveWeight) * 6))
       : matchedPositiveTags.length > 0
-      ? Math.min(6, matchedPositiveTags.length * 2)
+      ? Math.min(5, matchedPositiveTags.length * 2)
       : 0;
 
   // Bônus se a obra for de um criador favorito do usuário
@@ -303,7 +331,7 @@ export function calculateComicAffinity(
   if (candidate.publisher) {
     const score = profile.favoritePublishers.get(candidate.publisher.toLowerCase().trim());
     if (score && score > 0) {
-      publisherBonus = 2;
+      publisherBonus = 3;
     }
   }
 
@@ -315,47 +343,58 @@ export function calculateComicAffinity(
     seedTypeBonus = 2;
   }
 
+  // Variação determinística baseada no título para evitar scores chapados e idênticos
+  const hashVariance = candidate.title.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 4;
+
   const rawScore =
-    baseScore + tagBonus + creatorBonus + publisherBonus + seedTypeBonus - negativePenalty;
+    baseScore + tagBonus + creatorBonus + publisherBonus + seedTypeBonus + hashVariance - negativePenalty;
   const finalScore = Math.max(65, Math.min(99, Math.round(rawScore)));
 
-  // Construção textual rica e humanizada da justificativa
+  // Construção textual rica, variada e humanizada da justificativa
   let reason = '';
   if (options?.matchType === 'series_core' && options.seedTitle) {
     reason =
       options.seedRating && options.seedRating >= 4
-        ? `Para quem avaliou ${options.seedTitle} com ${options.seedRating}★: saga correlata no mesmo universo`
-        : `Expandindo o universo e sagas correlatas a ${options.seedTitle}`;
+        ? `Porque você avaliou ${options.seedTitle} com ${options.seedRating}★: arco e universo correlato`
+        : `Saga que expande o universo e mitologia de ${options.seedTitle}`;
   } else if (options?.matchType === 'creator' && options.seedTitle) {
     const creatorName = candidate.creators?.[0] || 'mesmo autor';
-    reason = `Do mesmo criador de ${options.seedTitle} (${creatorName})`;
+    reason = `Do mesmo autor/mangaka de ${options.seedTitle} (${creatorName})`;
   } else if (options?.matchType === 'collaborative' && options.seedTitle) {
     reason =
       options.seedRating && options.seedRating >= 4
         ? `Recomendado pela comunidade para quem curtiu ${options.seedTitle} (${options.seedRating}★)`
-        : `Recomendado para fãs de ${options.seedTitle}`;
+        : `Alta afinidade temática e narrativa com ${options.seedTitle}`;
+  } else if (options?.matchType === 'publisher_affinity' && candidate.publisher) {
+    reason = `Clássico aclamado da ${candidate.publisher} com forte afinidade ao seu perfil`;
   } else if (matchedPositiveTags.length > 0) {
-    const tagsDisplay = matchedPositiveTags.slice(0, 2).join(' e ');
-    reason = `${finalScore}% de afinidade: combina com seu gosto por ${tagsDisplay}`;
+    const tagsDisplay = matchedPositiveTags
+      .slice(0, 2)
+      .map(formatGenreForDisplay)
+      .join(' e ');
+    reason = `${finalScore}% de afinidade: combina com seu apreço por ${tagsDisplay}`;
   } else if (options?.seedTitle) {
     reason = `Recomendado com base no seu histórico em ${options.seedTitle}`;
+  } else if (candidate.publisher) {
+    reason = `Marco editorial da ${candidate.publisher} no acervo do Akasha`;
   } else {
-    reason = `Obra aclamada com alta relevância editorial no Akasha`;
+    reason = `Obra-prima aclamada com alta relevância editorial no Akasha`;
   }
 
   return { score: finalScore, reason };
 }
 
 /**
- * Motor de Inteligência de Recomendações de Quadrinhos e Mangás 100% Dinâmico.
- * Executa Content-Based Tag Affinity & Graph Collaborative Filtering
- * sem listas estáticas, ponderando tags, criadores e notas reais do usuário.
+ * Motor de Inteligência de Recomendações de Quadrinhos e Mangás Dinâmico e Multidimensional.
+ * Executa Content-Based Tag Affinity, Graph Collaborative Filtering, Diversificação de Sementes
+ * e Interleaving Editorial sem estagnação, ponderando notas reais, editoras e universos correlatos.
  */
 export async function getUserComicRecommendations(
   userId: string,
-  options: { limit?: number } = {}
+  options: { limit?: number; type?: 'all' | 'comic' | 'manga' } = {}
 ): Promise<ComicRecommendationItem[]> {
-  const limit = options.limit ?? 10;
+  const limit = options.limit ?? 12;
+  const targetType = options.type ?? 'all';
 
   // 1. Busca todo o histórico do usuário na wishlist com domain = 'comic'
   const wishlistItems = await prisma.wishlist.findMany({
@@ -363,6 +402,7 @@ export async function getUserComicRecommendations(
       userId,
       domain: DomainType.comic,
     },
+    orderBy: { updatedAt: 'desc' },
   });
 
   const existingIds = new Set(wishlistItems.map((i) => i.externalId));
@@ -394,14 +434,47 @@ export async function getUserComicRecommendations(
     return getColdStartComicRecommendations(
       existingIds,
       existingNormalizedTitles,
-      limit
+      limit,
+      targetType
     );
   }
 
   // Ordena por peso decrescente para priorizar as obras mais amadas
   positiveItems.sort((a, b) => b.weight - a.weight);
 
+  // 4. Diversificação de Sementes:
+  // Agrupa e desduplica sementes por série / universo (seriesCore) para que múltiplas
+  // edições da mesma saga (ex: vários volumes de Before Watchmen) não saturem todas as buscas.
+  const seenCores = new Set<string>();
+  const diversifiedItems: typeof positiveItems = [];
+  for (const item of positiveItems) {
+    const core = extractSeriesCore(item.title).toLowerCase();
+    if (!seenCores.has(core)) {
+      seenCores.add(core);
+      diversifiedItems.push(item);
+    }
+  }
+
+  // Seleciona as sementes de acordo com o filtro solicitado
+  let seedItems: typeof positiveItems = [];
+  if (targetType === 'comic') {
+    const comicSeeds = diversifiedItems.filter((i) => !i.externalId.startsWith('al-'));
+    seedItems = (comicSeeds.length > 0 ? comicSeeds : diversifiedItems).slice(0, 6);
+  } else if (targetType === 'manga') {
+    const mangaSeeds = diversifiedItems.filter((i) => i.externalId.startsWith('al-'));
+    seedItems = (mangaSeeds.length > 0 ? mangaSeeds : diversifiedItems).slice(0, 6);
+  } else {
+    // 'all': balanceia sementes entre HQs ocidentais e Mangás para máxima riqueza transmídia
+    const comicSeeds = diversifiedItems.filter((i) => !i.externalId.startsWith('al-')).slice(0, 4);
+    const mangaSeeds = diversifiedItems.filter((i) => i.externalId.startsWith('al-')).slice(0, 4);
+    seedItems = [...comicSeeds, ...mangaSeeds];
+    if (seedItems.length === 0) {
+      seedItems = diversifiedItems.slice(0, 8);
+    }
+  }
+
   const candidateMap = new Map<string, ComicRecommendationItem>();
+  const candidateTitles = new Map<string, string>(); // normTitle -> id
 
   const addCandidate = (
     c: ComicDetails,
@@ -416,8 +489,26 @@ export async function getUserComicRecommendations(
       return;
     }
 
+    // Filtra pelo tipo de mídia se não for 'all'
+    if (targetType === 'comic' && c.type !== 'comic') {
+      return;
+    }
+    if (targetType === 'manga' && c.type === 'comic') {
+      return;
+    }
+
+    const duplicateTitleId = candidateTitles.get(normTitle);
+    if (duplicateTitleId && duplicateTitleId !== c.id) {
+      const prev = candidateMap.get(duplicateTitleId);
+      if (prev && prev.score >= affinity.score) {
+        return; // Mantém a versão anterior com score maior ou igual
+      }
+      candidateMap.delete(duplicateTitleId);
+    }
+
     const existing = candidateMap.get(c.id);
     if (!existing || existing.score < affinity.score) {
+      candidateTitles.set(normTitle, c.id);
       candidateMap.set(c.id, {
         id: c.id,
         title: c.title,
@@ -438,19 +529,17 @@ export async function getUserComicRecommendations(
     }
   };
 
-  // 4. Executa a busca dinâmica baseada na biblioteca real
-  const topSeeds = positiveItems.slice(0, 6);
-
-  for (const seed of topSeeds) {
+  // 5. Executa a busca dinâmica baseada na biblioteca real
+  for (const seed of seedItems) {
     const isManga = seed.externalId.startsWith('al-');
     const anilistId = isManga
       ? parseInt(seed.externalId.replace('al-', ''), 10)
       : null;
 
     // A. Mangás / Manhwas: Consulta o grafo colaborativo em tempo real da AniList
-    if (anilistId && !isNaN(anilistId)) {
+    if (anilistId && !isNaN(anilistId) && targetType !== 'comic') {
       try {
-        const rawRecs = await fetchMangaRecommendationsFromAniList(anilistId, 6);
+        const rawRecs = await fetchMangaRecommendationsFromAniList(anilistId, 10);
         const anilistRecs = Array.isArray(rawRecs) ? rawRecs : [];
         for (const rec of anilistRecs) {
           const affinity = calculateComicAffinity(rec, userProfile, {
@@ -475,7 +564,7 @@ export async function getUserComicRecommendations(
     for (const creator of topCreators) {
       if (!creator || creator.trim().length < 3) continue;
       try {
-        const rawCreatorMatches = await searchComics(creator.trim(), 'all', 4);
+        const rawCreatorMatches = await searchComics(creator.trim(), targetType, 4);
         const creatorMatches = Array.isArray(rawCreatorMatches) ? rawCreatorMatches : [];
         for (const match of creatorMatches) {
           const affinity = calculateComicAffinity(match, userProfile, {
@@ -495,7 +584,7 @@ export async function getUserComicRecommendations(
     const seriesCore = extractSeriesCore(seed.title);
     if (seriesCore && seriesCore.length >= 3) {
       try {
-        const rawSeriesMatches = await searchComics(seriesCore, 'all', 5);
+        const rawSeriesMatches = await searchComics(seriesCore, targetType, 5);
         const seriesMatches = Array.isArray(rawSeriesMatches) ? rawSeriesMatches : [];
         for (const match of seriesMatches) {
           const normTitle = normalizeTitle(match.title);
@@ -514,39 +603,73 @@ export async function getUserComicRecommendations(
       }
     }
 
-    if (candidateMap.size >= limit * 2) {
+    if (candidateMap.size >= limit * 3) {
       break;
     }
   }
 
-  // 5. Ingestão Dinâmica Direta por Top Tags/Gêneros do Usuário (Content-Based)
-  const topTags = userProfile.positiveTags.slice(0, 3).map((t) => t.tag);
-  if (topTags.length > 0) {
-    try {
-      const rawTagMangas = await fetchMangaByGenresFromAniList(topTags, 6);
-      const tagMangas = Array.isArray(rawTagMangas) ? rawTagMangas : [];
-      for (const manga of tagMangas) {
-        const affinity = calculateComicAffinity(manga, userProfile, {
-          matchType: 'tag',
+  // 6. Expansão por Editoras e Selos Favoritos (ex: DC Comics, Marvel, Vertigo, Image)
+  if (targetType !== 'manga') {
+    const topPublishers = Array.from(userProfile.favoritePublishers.entries())
+      .filter(([pub, score]) => score > 0 && !IGNORED_GENRE_TERMS.has(pub))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([pub]) => pub);
+
+    for (const pub of topPublishers) {
+      const canonicalPublisherMatches = POPULAR_COMICS_CATALOG.filter(
+        (c) =>
+          c.type === 'comic' &&
+          c.publisher?.toLowerCase().includes(pub) &&
+          !existingIds.has(c.id) &&
+          !existingNormalizedTitles.has(normalizeTitle(c.title)) &&
+          !candidateMap.has(c.id)
+      );
+
+      for (const match of canonicalPublisherMatches) {
+        const affinity = calculateComicAffinity(match, userProfile, {
+          matchType: 'publisher_affinity',
         });
-        addCandidate(manga, affinity);
+        addCandidate(match, affinity);
       }
-    } catch (err) {
-      console.error('Erro na busca de mangás por tags na AniList:', err);
     }
   }
 
-  // 6. Se o total dinâmico for menor que o limite, complementa com catálogo avaliando afinidade real
+  // 7. Ingestão Dinâmica Direta por Top Tags/Gêneros do Usuário (Content-Based)
+  if (targetType !== 'comic') {
+    const topTags = userProfile.positiveTags.slice(0, 3).map((t) => t.tag);
+    if (topTags.length > 0) {
+      try {
+        for (const tag of topTags) {
+          const rawTagMangas = await fetchMangaByGenresFromAniList([tag], 10);
+          const tagMangas = Array.isArray(rawTagMangas) ? rawTagMangas : [];
+          for (const manga of tagMangas) {
+            const affinity = calculateComicAffinity(manga, userProfile, {
+              matchType: 'tag',
+            });
+            addCandidate(manga, affinity);
+          }
+        }
+      } catch (err) {
+        console.error('Erro na busca de mangás por tags na AniList:', err);
+      }
+    }
+  }
+
+  // 8. Se o total for menor que o limite, complementa com catálogo canônico editorial
   if (candidateMap.size < limit) {
     const canonicalPool = POPULAR_COMICS_CATALOG.filter(
       (c) =>
         !existingIds.has(c.id) &&
         !existingNormalizedTitles.has(normalizeTitle(c.title)) &&
-        !isNsfwOrJunkComic(c.title, c.description)
+        !isNsfwOrJunkComic(c.title, c.description) &&
+        (targetType === 'all' ||
+          (targetType === 'comic' && c.type === 'comic') ||
+          (targetType === 'manga' && c.type !== 'comic'))
     );
 
     for (const pop of canonicalPool) {
-      if (candidateMap.size >= limit) break;
+      if (candidateMap.size >= limit * 2) break;
       if (!candidateMap.has(pop.id)) {
         const affinity = calculateComicAffinity(pop, userProfile, {
           matchType: 'canonical',
@@ -556,9 +679,34 @@ export async function getUserComicRecommendations(
     }
   }
 
-  return Array.from(candidateMap.values())
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+  // 9. Interleaving e Balanceamento:
+  // Se targetType === 'all', intercala HQs ocidentais e Mangás para garantir um mix rico e diversificado
+  const allCandidates = Array.from(candidateMap.values());
+  let finalCandidates: ComicRecommendationItem[] = [];
+
+  if (targetType === 'all') {
+    const comicCandidates = allCandidates
+      .filter((c) => c.type === 'comic')
+      .sort((a, b) => b.score - a.score);
+
+    const mangaCandidates = allCandidates
+      .filter((c) => c.type === 'manga' || c.type === 'manhwa')
+      .sort((a, b) => b.score - a.score);
+
+    const maxLength = Math.max(comicCandidates.length, mangaCandidates.length);
+    for (let i = 0; i < maxLength; i++) {
+      if (i < comicCandidates.length) finalCandidates.push(comicCandidates[i]);
+      if (i < mangaCandidates.length) finalCandidates.push(mangaCandidates[i]);
+    }
+
+    if (finalCandidates.length === 0) {
+      finalCandidates = allCandidates.sort((a, b) => b.score - a.score);
+    }
+  } else {
+    finalCandidates = allCandidates.sort((a, b) => b.score - a.score);
+  }
+
+  return finalCandidates.slice(0, limit);
 }
 
 /**
@@ -567,16 +715,33 @@ export async function getUserComicRecommendations(
 export async function getColdStartComicRecommendations(
   existingIds: Set<string>,
   existingTitles: Set<string>,
-  limit: number
+  limit: number,
+  targetType: 'all' | 'comic' | 'manga' = 'all'
 ): Promise<ComicRecommendationItem[]> {
   const canonicalPool = POPULAR_COMICS_CATALOG.filter(
     (c) =>
       !existingIds.has(c.id) &&
       !existingTitles.has(normalizeTitle(c.title)) &&
-      !isNsfwOrJunkComic(c.title, c.description)
+      !isNsfwOrJunkComic(c.title, c.description) &&
+      (targetType === 'all' ||
+        (targetType === 'comic' && c.type === 'comic') ||
+        (targetType === 'manga' && c.type !== 'comic'))
   );
 
-  return canonicalPool.slice(0, limit).map((c) => ({
+  let pool = canonicalPool;
+  if (targetType === 'all') {
+    const comics = canonicalPool.filter((c) => c.type === 'comic');
+    const mangas = canonicalPool.filter((c) => c.type !== 'comic');
+    const interleaved: typeof canonicalPool = [];
+    const maxLen = Math.max(comics.length, mangas.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < comics.length) interleaved.push(comics[i]);
+      if (i < mangas.length) interleaved.push(mangas[i]);
+    }
+    pool = interleaved.length > 0 ? interleaved : canonicalPool;
+  }
+
+  return pool.slice(0, limit).map((c) => ({
     id: c.id,
     title: c.title,
     type: c.type,

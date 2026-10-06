@@ -229,6 +229,7 @@
 | 9.4 | Componente `ComicCard` com proporção editorial, badges de tipo/saga e foco Android TV (`tabIndex={0}`) | 🟡 | 9.2 | **Done** |
 | 9.5 | Interface Universal no Frontend: Busca integrada, aba na Biblioteca, `ComicRecommendationRail` e `ComicDetailsModal` com toggle sanfona para enumerar edições/volumes da saga | 🟡 | 9.3, 9.4 | **Done** |
 | 9.6 | Cobertura total de testes unitários e de integração (backend e frontend com Vitest) | 🟡 | 9.5 | **Done** |
+| 9.7 | Motor Inteligente de Recomendações de Quadrinhos e Mangás: desduplicação de sementes por radical (`extractSeriesCore`), expansão por editoras favoritas, catálogo de 31 obras canônicas, interleaving transmídia, abas de filtro (`Todos`, `Quadrinhos`, `Mangás`) e justificativas dinâmicas ([`SPEC-016`](specs/SPEC-016-enhanced-comic-recommendation-engine.md)) | 🔴 | 9.3, 9.5 | **Done** |
 
 ---
 

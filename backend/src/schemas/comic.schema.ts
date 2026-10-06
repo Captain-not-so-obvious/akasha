@@ -11,7 +11,8 @@ export const popularComicsQuerySchema = z.object({
 });
 
 export const comicRecommendationsQuerySchema = z.object({
-  limit: z.coerce.number().int().positive().max(30).default(10),
+  limit: z.coerce.number().int().positive().max(40).default(12),
+  type: z.enum(['all', 'comic', 'manga']).default('all'),
 });
 
 export const comicIdParamSchema = z.object({

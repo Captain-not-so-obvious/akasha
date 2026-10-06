@@ -56,10 +56,11 @@ export async function comicsRoutes(fastify: FastifyInstance): Promise<void> {
     { preHandler: [authMiddleware] },
     async (request, reply) => {
       const parsed = comicRecommendationsQuerySchema.safeParse(request.query);
-      const limit = parsed.success ? parsed.data.limit : 10;
+      const limit = parsed.success ? parsed.data.limit : 12;
+      const type = parsed.success ? parsed.data.type : 'all';
 
       try {
-        const recommendations = await getUserComicRecommendations(request.userId, { limit });
+        const recommendations = await getUserComicRecommendations(request.userId, { limit, type });
         return reply.send({ recommendations });
       } catch (err) {
         fastify.log.error({ err }, 'Erro ao gerar recomendações de quadrinhos.');

@@ -88,6 +88,23 @@ describe('Integration: Comics Routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual({ recommendations: mockRecs });
+      expect(comicRecService.getUserComicRecommendations).toHaveBeenCalledWith('user-comics-123', { limit: 6, type: 'all' });
+    });
+
+    it('deve repassar filtro de tipo (comic ou manga) para o serviço de recomendação', async () => {
+      const mockRecs = [
+        { id: 'al-30002', title: 'Berserk', type: 'manga', score: 95 },
+      ];
+      vi.mocked(comicRecService.getUserComicRecommendations).mockResolvedValue(mockRecs as any);
+
+      const response = await fastify.inject({
+        method: 'GET',
+        url: '/comics/recommendations?limit=8&type=manga',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ recommendations: mockRecs });
+      expect(comicRecService.getUserComicRecommendations).toHaveBeenCalledWith('user-comics-123', { limit: 8, type: 'manga' });
     });
   });
 
