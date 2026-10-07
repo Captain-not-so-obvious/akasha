@@ -6,6 +6,7 @@ import { OAuthAuthorize } from './pages/OAuthAuthorize';
 import { SearchPage } from './pages/Search';
 import { Library } from './pages/Library';
 import { Profile } from './pages/Profile';
+import { TransmediaPage } from './pages/Transmedia';
 import { Social } from './pages/Social';
 
 import { Navbar } from './components/ui/Navbar';
@@ -97,6 +98,16 @@ export default function App() {
                 <ProtectedRoute>
                   <Layout>
                     <SearchPage />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/transmedia"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <TransmediaPage />
                   </Layout>
                 </ProtectedRoute>
               }

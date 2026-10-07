@@ -38,6 +38,11 @@ Nenhuma funcionalidade deve ser considerada concluída sem testes automatizados.
 * **Padrão de Spec:** Qualquer alteração vital, novo módulo, mudança de schema de banco ou integração de API externa DEVE ser acompanhada de uma especificação técnica formal localizada em `specs/SPEC-XXX-<nome>.md`.
 * **Atualização dos Documentos Mestres:** Toda alteração de arquitetura ou escopo deve ser sincronizada imediatamente em `conceito.md`, `arquitetura.md` e `roadmap.md`. Código e documentação nunca devem divergir.
 
+## 7. Recomendações Fluídas e Proibição de Hardcoding (Anti-Chumbamento)
+* **Recomendações Dinâmicas e Fluídas Obrigatórias:** Todo motor de recomendação (seja transmídia, cinema, games, livros ou quadrinhos) DEVE ser fluído, dinâmico e agnóstico a catálogos pré-fixados. Ele deve operar cruzando os dados do acervo real do usuário diretamente com as APIs externas (TMDB, IGDB, Google Books/Open Library, AniList/Comic Vine) por meio de heurísticas, extração de raízes de título (*core/stemming*), estúdios, criadores ou gêneros.
+* **Proibição de Listas Estáticas como Motor Principal:** É terminantemente PROIBIDO chumbar dicionários, listas estáticas ou *switches* de títulos no código para servir de motor de conexões ou recomendações. Catálogos fixos só são permitidos como sementes mínimas de *cold start* visual ou fallbacks de contingência de rede/cota; o motor de recomendação ativo do usuário NUNCA deve depender de um conjunto pré-selecionado e restrito de obras.
+* **Escalabilidade Universal:** Qualquer obra que o usuário adicione à biblioteca — mesmo um lançamento recente, indie ou pouco conhecido — deve ser capaz de disparar buscas transmídia e recomendações reais nas APIs integradas de forma automática e sem necessidade de modificação no código-fonte.
+
 **Comando Inicial:** Sempre que for instruído a criar uma nova *feature*, entregue:
 1. O código do componente/rota.
 2. O respectivo arquivo de teste (`.test.ts` ou `.spec.tsx`).

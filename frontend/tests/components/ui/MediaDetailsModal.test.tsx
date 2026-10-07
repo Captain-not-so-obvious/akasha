@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MediaDetailsModal } from '../../../src/components/ui/MediaDetailsModal';
 import type { MediaDetails } from '../../../src/types/media';
@@ -73,7 +73,7 @@ describe('MediaDetailsModal Component', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('deve renderizar botão "Adicionar à Biblioteca" quando não está na biblioteca', () => {
+  it('deve renderizar botão "Adicionar à Biblioteca" quando não está na biblioteca e chamar onAdd com status plan_to_watch', () => {
     render(
       <MediaDetailsModal
         media={mockMedia}
@@ -86,9 +86,91 @@ describe('MediaDetailsModal Component', () => {
 
     const addButton = screen.getByRole('button', { name: /Adicionar à Biblioteca/i });
     expect(addButton).toBeInTheDocument();
+    expect(addButton).toHaveAttribute('tabIndex', '0');
     
     fireEvent.click(addButton);
-    expect(mockOnAdd).toHaveBeenCalledWith(mockMedia);
+    expect(mockOnAdd).toHaveBeenCalledWith(mockMedia, 'plan_to_watch');
+  });
+
+  it('ao clicar em "Quero Ver", coloca o botão em espera com loader e transiciona para "Já está na sua Biblioteca"', async () => {
+    let resolveAdd: () => void = () => {};
+    const pendingPromise = new Promise<void>((resolve) => {
+      resolveAdd = resolve;
+    });
+    const onAdd = vi.fn().mockImplementation(() => pendingPromise);
+
+    render(
+      <MediaDetailsModal
+        media={mockMedia}
+        isOpen={true}
+        onClose={mockOnClose}
+        onAdd={onAdd}
+        isInLibrary={false}
+      />
+    );
+
+    const queroVerBtn = screen.getByRole('button', { name: /Adicionar à Biblioteca/i });
+    fireEvent.click(queroVerBtn);
+
+    // Estado de espera (loader ativo)
+    expect(screen.getByText(/adicionando\.\.\./i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /adicionando\.\.\./i })).toBeDisabled();
+
+    // Resolve a promise simulando resposta da API
+    resolveAdd();
+
+    await waitFor(() => {
+      expect(screen.getByText('Já está na sua Biblioteca')).toBeInTheDocument();
+    });
+  });
+
+  it('ao clicar em "Começar a Assistir", coloca o botão em espera com loader e transiciona para "Já está na sua Biblioteca"', async () => {
+    let resolveAdd: () => void = () => {};
+    const pendingPromise = new Promise<void>((resolve) => {
+      resolveAdd = resolve;
+    });
+    const onAdd = vi.fn().mockImplementation(() => pendingPromise);
+
+    render(
+      <MediaDetailsModal
+        media={mockMedia}
+        isOpen={true}
+        onClose={mockOnClose}
+        onAdd={onAdd}
+        isInLibrary={false}
+      />
+    );
+
+    const assistirBtn = screen.getByRole('button', { name: /começar a assistir/i });
+    fireEvent.click(assistirBtn);
+
+    // Estado de espera (loader ativo)
+    expect(screen.getByText(/iniciando\.\.\./i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /iniciando\.\.\./i })).toBeDisabled();
+
+    // Resolve a promise
+    resolveAdd();
+
+    await waitFor(() => {
+      expect(screen.getByText('Já está na sua Biblioteca')).toBeInTheDocument();
+    });
+  });
+
+  it('ao clicar em "Já Assisti", chama onAdd com status completed e fecha o modal', () => {
+    render(
+      <MediaDetailsModal
+        media={mockMedia}
+        isOpen={true}
+        onClose={mockOnClose}
+        onAdd={mockOnAdd}
+        isInLibrary={false}
+      />
+    );
+
+    const jaAssistiBtn = screen.getByRole('button', { name: /Já Assisti/i });
+    fireEvent.click(jaAssistiBtn);
+
+    expect(mockOnAdd).toHaveBeenCalledWith(mockMedia, 'completed');
     expect(mockOnClose).toHaveBeenCalled();
   });
 

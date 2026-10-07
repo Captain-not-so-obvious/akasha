@@ -460,18 +460,19 @@ export const SearchPage: React.FC = () => {
           setSelectedMedia(null);
           setRatingModalOpen(true);
         }}
-        onAdd={(media, status = 'plan_to_watch') => {
+        onAdd={async (media, status = 'plan_to_watch') => {
           if (status === 'completed') {
             setPendingRatingMedia(media);
             setPendingRatingGame(null);
             setPendingRatingBook(null);
+            setPendingRatingComic(null);
             setEditingLibraryItem(null);
             setSelectedMedia(null);
             setRatingModalOpen(true);
             return;
           }
 
-          addToList({
+          await addToList({
             tmdbId: media.id,
             mediaType: media.mediaType,
             status,

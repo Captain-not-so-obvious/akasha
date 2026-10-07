@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { X, Image as ImageIcon, Check, Star, Trash2, Play, Bookmark } from 'lucide-react';
+import { X, Image as ImageIcon, Check, Star, Trash2, Play, Bookmark, Loader2 } from 'lucide-react';
 import { GlassPanel } from './GlassPanel';
 import { StatusBadge } from './StatusBadge';
 import type { MediaDetails } from '../../types/media';
@@ -9,9 +9,9 @@ import { apiFetch } from '../../lib/api';
 
 interface MediaDetailsModalProps {
   media: MediaDetails | null;
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
-  onAdd: (media: MediaDetails, status?: WishlistStatus) => void;
+  onAdd?: (media: MediaDetails, status?: WishlistStatus) => Promise<void> | void;
   isInLibrary?: boolean;
   libraryItem?: LibraryItem;
   onRemove?: (item: LibraryItem) => void;
@@ -21,7 +21,7 @@ interface MediaDetailsModalProps {
 
 export function MediaDetailsModal({
   media,
-  isOpen,
+  isOpen = true,
   onClose,
   onAdd,
   isInLibrary = false,
@@ -31,8 +31,39 @@ export function MediaDetailsModal({
   onEdit,
 }: MediaDetailsModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [addingStatus, setAddingStatus] = useState<WishlistStatus | null>(null);
+  const [optimisticStatus, setOptimisticStatus] = useState<WishlistStatus | null>(null);
   const [extendedMedia, setExtendedMedia] = useState<MediaDetails | null>(null);
   const [isLoadingProviders, setIsLoadingProviders] = useState(false);
+
+  // Reseta estado otimista e loading de adição quando a mídia selecionada mudar ou ao fechar
+  useEffect(() => {
+    setAddingStatus(null);
+    setOptimisticStatus(null);
+  }, [media?.id, isOpen]);
+
+  const handleAddWithStatus = async (status: WishlistStatus = 'plan_to_watch') => {
+    if (addingStatus || !onAdd || !media) return;
+
+    if (status === 'completed') {
+      onAdd(media, 'completed');
+      onClose();
+      return;
+    }
+
+    try {
+      setAddingStatus(status);
+      await onAdd(media, status);
+      setOptimisticStatus(status);
+    } catch (err) {
+      console.error('Falha ao adicionar mídia à biblioteca:', err);
+    } finally {
+      setAddingStatus(null);
+    }
+  };
+
+  const isCurrentlyInLibrary = isInLibrary || Boolean(optimisticStatus);
+  const effectiveStatus = libraryItem?.status || optimisticStatus;
 
   useEffect(() => {
     if (isOpen && containerRef.current) {
@@ -271,7 +302,7 @@ export function MediaDetailsModal({
             </div>
 
             <div className="mt-auto pt-4 flex gap-4">
-              {isInLibrary && libraryItem ? (
+              {isCurrentlyInLibrary && libraryItem ? (
                 <div className="flex flex-col gap-3 w-full">
                   {/* Status atual do item na biblioteca */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
@@ -281,7 +312,7 @@ export function MediaDetailsModal({
                       </span>
                       <p className="text-xs md:text-sm font-outfit font-bold text-white">Já está na sua Biblioteca</p>
                       <div className="ml-1">
-                        <StatusBadge status={libraryItem.status} domain={libraryItem.domain || 'movie'} />
+                        <StatusBadge status={effectiveStatus || libraryItem.status} domain={libraryItem.domain || (media.mediaType === 'tv' ? 'tv' : 'movie')} />
                       </div>
                     </div>
                     {libraryItem.userRating && (
@@ -295,7 +326,7 @@ export function MediaDetailsModal({
                   {/* Todas as Ações Unificadas no Mesmo Lugar */}
                   <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2.5 w-full">
                     {/* 1. Começar a Assistir / Jogar / Ler */}
-                    {libraryItem.status !== 'watching' && onStatusChange && (
+                    {effectiveStatus !== 'watching' && onStatusChange && (
                       <button
                         type="button"
                         tabIndex={0}
@@ -305,14 +336,14 @@ export function MediaDetailsModal({
                         }}
                         className="col-span-2 sm:flex-1 min-h-[44px] flex items-center justify-center gap-2 bg-[var(--color-caramelo-claro)] text-black px-4 py-2.5 rounded-xl font-bold font-outfit text-sm tv-focus-glow hover:bg-[var(--color-cobre)] hover:text-white transition-all shadow-md shadow-yellow-900/20 cursor-pointer"
                         aria-label={
-                          libraryItem.status === 'completed'
+                          effectiveStatus === 'completed'
                             ? libraryItem.domain === 'game' ? 'Jogar Novamente' : libraryItem.domain === 'book' ? 'Ler Novamente' : 'Assistir Novamente'
                             : libraryItem.domain === 'game' ? 'Começar a Jogar' : libraryItem.domain === 'book' ? 'Começar a Ler' : 'Começar a Assistir'
                         }
                       >
                         <Play size={18} className="fill-current shrink-0" />
                         <span>
-                          {libraryItem.status === 'completed'
+                          {effectiveStatus === 'completed'
                             ? libraryItem.domain === 'game' ? 'Jogar Novamente' : libraryItem.domain === 'book' ? 'Ler Novamente' : 'Assistir Novamente'
                             : libraryItem.domain === 'game' ? 'Começar a Jogar' : libraryItem.domain === 'book' ? 'Começar a Ler' : 'Começar a Assistir'}
                         </span>
@@ -320,7 +351,7 @@ export function MediaDetailsModal({
                     )}
 
                     {/* 2. Concluir / Zerar / Lido */}
-                    {libraryItem.status !== 'completed' && onStatusChange && (
+                    {effectiveStatus !== 'completed' && onStatusChange && (
                       <button
                         type="button"
                         tabIndex={0}
@@ -371,10 +402,21 @@ export function MediaDetailsModal({
                     )}
                   </div>
                 </div>
-              ) : isInLibrary ? (
-                <div className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-8 py-4 rounded-xl font-bold font-outfit text-lg">
-                  <Check size={24} />
-                  Já está na sua Biblioteca
+              ) : isCurrentlyInLibrary ? (
+                <div className="flex-1 md:flex-none flex items-center justify-between gap-3 w-full bg-emerald-500/10 p-3.5 rounded-xl border border-emerald-500/30 animate-fade-in">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 shrink-0">
+                      <Check size={18} />
+                    </span>
+                    <div>
+                      <p className="text-sm font-outfit font-bold text-white">Já está na sua Biblioteca</p>
+                      {effectiveStatus && (
+                        <div className="mt-0.5">
+                          <StatusBadge status={effectiveStatus} domain={media.mediaType === 'tv' ? 'tv' : 'movie'} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-2 w-full">
@@ -385,40 +427,56 @@ export function MediaDetailsModal({
                     <button
                       type="button"
                       tabIndex={0}
-                      onClick={() => {
-                        onAdd(media);
-                        onClose();
-                      }}
-                      aria-label="Adicionar à Biblioteca"
-                      className="min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 font-outfit font-semibold text-sm tv-focus-glow transition cursor-pointer"
+                      onClick={() => handleAddWithStatus('plan_to_watch')}
+                      disabled={addingStatus !== null}
+                      aria-busy={addingStatus === 'plan_to_watch'}
+                      aria-label={addingStatus === 'plan_to_watch' ? 'Adicionando...' : 'Adicionar à Biblioteca'}
+                      className="min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 font-outfit font-semibold text-sm tv-focus-glow transition cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
                     >
-                      <Bookmark size={18} className="text-[var(--color-caramelo-claro)]" />
-                      <span>Quero Ver</span>
+                      {addingStatus === 'plan_to_watch' ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin text-[var(--color-caramelo-claro)] shrink-0" />
+                          <span>Adicionando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Bookmark size={18} className="text-[var(--color-caramelo-claro)] shrink-0" />
+                          <span>Quero Ver</span>
+                        </>
+                      )}
                     </button>
 
                     <button
                       type="button"
                       tabIndex={0}
-                      onClick={() => {
-                        onAdd(media, 'watching');
-                        onClose();
-                      }}
-                      className="min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[var(--color-caramelo-claro)] text-black font-outfit font-bold text-sm tv-focus-glow hover:bg-[var(--color-cobre)] hover:text-white transition cursor-pointer shadow-md shadow-yellow-900/20"
+                      onClick={() => handleAddWithStatus('watching')}
+                      disabled={addingStatus !== null}
+                      aria-busy={addingStatus === 'watching'}
+                      aria-label={addingStatus === 'watching' ? 'Iniciando...' : 'Começar a Assistir'}
+                      className="min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[var(--color-caramelo-claro)] text-black font-outfit font-bold text-sm tv-focus-glow hover:bg-[var(--color-cobre)] hover:text-white transition cursor-pointer shadow-md shadow-yellow-900/20 disabled:opacity-75 disabled:cursor-not-allowed"
                     >
-                      <Play size={18} className="fill-current" />
-                      <span>Começar a Assistir</span>
+                      {addingStatus === 'watching' ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin shrink-0" />
+                          <span>Iniciando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play size={18} className="fill-current shrink-0" />
+                          <span>Começar a Assistir</span>
+                        </>
+                      )}
                     </button>
 
                     <button
                       type="button"
                       tabIndex={0}
-                      onClick={() => {
-                        onAdd(media, 'completed');
-                        onClose();
-                      }}
-                      className="min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600/80 hover:bg-emerald-600 text-white border border-emerald-500/30 font-outfit font-semibold text-sm tv-focus-glow transition cursor-pointer"
+                      onClick={() => handleAddWithStatus('completed')}
+                      disabled={addingStatus !== null}
+                      aria-label="Já Assisti"
+                      className="min-h-[44px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600/80 hover:bg-emerald-600 text-white border border-emerald-500/30 font-outfit font-semibold text-sm tv-focus-glow transition cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
                     >
-                      <Check size={18} />
+                      <Check size={18} className="shrink-0" />
                       <span>Já Assisti</span>
                     </button>
                   </div>

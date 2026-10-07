@@ -233,14 +233,15 @@
 
 ---
 
-## FASE 10 — O Grande Acervo Transmídia & MCP Universal
-> 📄 **Spec:** [`specs/SPEC-001-universal-media-expansion.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-001-universal-media-expansion.md)
-**Objetivo:** Conexão cruzada entre franquias (filme <-> livro <-> jogo) e suporte total ao assistente agêntico MCP.
+## FASE 10 — O Grande Acervo Transmídia & MCP Universal (100% Concluída)
+> 📄 **Specs:** [`specs/SPEC-017-transmedia-engine-and-grand-archive-dashboard.md`](specs/SPEC-017-transmedia-engine-and-grand-archive-dashboard.md) & [`specs/SPEC-019-grand-archive-modal-rating-and-library-integration.md`](specs/SPEC-019-grand-archive-modal-rating-and-library-integration.md)  
+**Objetivo:** Conexão cruzada entre franquias (filme <-> livro <-> jogo <-> quadrinho), central analítica universal e suporte total ao assistente agêntico MCP.
 
 | # | Feature | Complexidade | Dependência | Status |
 |---|---|---|---|---|
-| 10.1 | Motor Transmídia: descoberta de obras relacionadas entre diferentes mídias | 🔴 | Fases 7, 8, 9 | Pendente |
-| 10.2 | Dashboard do Grande Acervo: métricas consolidadas de consumo cultural | 🟡 | Fases 7, 8, 9 | Pendente |
-| 10.3 | Atualização das Tools MCP Fastify para aceitar parâmetro `domain` | 🟡 | Fase 6 | Pendente |
-| 10.4 | Testes end-to-end de integração geral | 🔴 | 10.1–10.3 | Pendente |
+| 10.1 | **Motor Transmídia:** Descoberta de pontes e obras relacionadas entre diferentes mídias a partir de IPs e franquias canônicas | 🔴 | Fases 7, 8, 9 | **Done** |
+| 10.2 | **Dashboard do Grande Acervo:** Métricas consolidadas de consumo cultural (horas de tela, jogos, páginas, volumes e Índice de Amplitude Akasha) | 🟡 | Fases 7, 8, 9 | **Done** |
+| 10.3 | **Tools MCP Fastify Universais:** Atualização para aceitar parâmetro `domain` e novas rotas analíticas | 🟡 | Fase 6 | **Done** |
+| 10.4 | **Testes de Integração e Ponta a Ponta:** Cobertura completa no backend (221 testes) e frontend (203 testes) | 🔴 | 10.1–10.3 | **Done** |
+| 10.5 | **Integração de Avaliação e Sincronização de Biblioteca nos Modais do Grande Acervo:** Abertura do `RatingModal` ao concluir obras sugeridas ("Já Assisti", "Já Zerei", "Já Li"), sincronização em tempo real com `useWishlist` e ciclo completo de gerenciamento ([`SPEC-019`](specs/SPEC-019-grand-archive-modal-rating-and-library-integration.md)) | 🟡 | 10.1, 10.2 | **Done** |
 

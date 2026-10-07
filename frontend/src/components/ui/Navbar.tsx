@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Menu, X, Film, Search, User, LogOut, Users, Bell } from 'lucide-react';
+import { Menu, X, Film, Search, User, LogOut, Users, Bell, Sparkles } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
 import { NotificationCenter } from '../notifications/NotificationCenter';
@@ -155,6 +155,10 @@ export function Navbar() {
                 <Film className="w-5 h-5 text-[var(--color-caramelo-claro)]" />
                 <span>Biblioteca</span>
               </NavLink>
+              <NavLink to="/transmedia" className={navLinkClassMobile} tabIndex={0}>
+                <Sparkles className="w-5 h-5 text-[var(--color-caramelo-claro)]" />
+                <span>Grande Acervo</span>
+              </NavLink>
               <NavLink to="/search" className={navLinkClassMobile} tabIndex={0}>
                 <Search className="w-5 h-5 text-[var(--color-caramelo-claro)]" />
                 <span>Busca</span>
@@ -224,6 +228,9 @@ export function Navbar() {
 
             <NavLink to="/" end className={navLinkClassDesktop} tabIndex={0}>
               Biblioteca
+            </NavLink>
+            <NavLink to="/transmedia" className={navLinkClassDesktop} tabIndex={0}>
+              Grande Acervo
             </NavLink>
             <NavLink to="/search" className={navLinkClassDesktop} tabIndex={0}>
               Busca

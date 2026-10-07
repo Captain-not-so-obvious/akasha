@@ -25,16 +25,18 @@ Ao concluir qualquer mídia ou marcar como "Já Zerei" / "Concluído" diretament
 > 📄 **Especificação Técnica de Livros e Estante Literária:** [`specs/SPEC-011-books-module-and-reading-shelf.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-011-books-module-and-reading-shelf.md)  
 > 📄 **Especificação Técnica de Quadrinhos e Mangás (Sagas & Volumes):** [`specs/SPEC-015-comics-and-manga-module.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-015-comics-and-manga-module.md)  
 > 📄 **Especificação Técnica Motor Inteligente de Recomendações de Quadrinhos e Mangás:** [`specs/SPEC-016-enhanced-comic-recommendation-engine.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-016-enhanced-comic-recommendation-engine.md)  
+> 📄 **Especificação Técnica Motor Transmídia, Dashboard do Grande Acervo e MCP Universal:** [`specs/SPEC-017-transmedia-engine-and-grand-archive-dashboard.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-017-transmedia-engine-and-grand-archive-dashboard.md)  
 > 📄 **Especificação Técnica Separação entre Recomendação (ML) e Sinopse:** [`specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md`](file:///d:/Users/Public/codigo/akasha/specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md)  
-O Akasha opera motores de recomendação dedicados por domínio (TMDB para cinema, Twitch Helix + IGDB para games, Google Books para livros e Comic Vine/AniList para HQs/mangás), complementados por um **Motor Transmídia**:
+O Akasha opera motores de recomendação dedicados por domínio (TMDB para cinema, Twitch Helix + IGDB para games, Google Books para livros e Comic Vine/AniList para HQs/mangás), coroados pelo **Motor Transmídia e o Dashboard do Grande Acervo**:
 * **Jogos e Tendências em Tempo Real:** O catálogo e cold start de games refletem o pulso da Twitch Helix API (`/helix/games/top`) sem dependência de dados mockados estáticos, enriquecidos com capas e metadados oficiais do IGDB v4.
 * **Literatura e Afinidade de Autores:** Ingestão de acervo via Google Books API com busca textual em pt-BR e por código ISBN, controle de páginas, estante de leituras e motor de recomendação baseado em ponderação de notas e autores/gêneros favoritos.
 * **Quadrinhos e Mangás por Saga e Arco:** Ingestão híbrida via Comic Vine REST (HQs ocidentais/sagas fechadas) e AniList GraphQL (Mangás japoneses e Manhwas coreanos), com rastreamento no nível da obra/saga completa (e não de edições mensais soltas), enumeração colapsável de edições/volumes e recomendações orientadas a roteiristas, desenhistas e mangakas.
 * **Motor Inteligente de HQs & Mangás (SPEC-016):** Desduplicação de sementes por radical da franquia (`extractSeriesCore`), expansão por editoras favoritas, 31 obras canônicas verificadas, *editorial interleaving* balanceado (1 HQ : 1 Mangá) e abas de filtro segmentadas no frontend com justificativas dinâmicas de afinidade contextual.
-* **Descoberta Cruzada de Franquias:** Conexão entre universos expandidos e obras transmídia (ex: correlacionar games a romances literários, quadrinhos e adaptações cinematográficas baseadas nas notas do usuário).
+* **Motor Transmídia & Descoberta Cruzada de Franquias (SPEC-017):** Mapeamento ativo de mais de 20 grandes universos transmidiáticos canônicos (The Witcher, Duna, The Last of Us, Cyberpunk, Star Wars, Senhor dos Anéis, etc.), gerando pontes inteligentes que conectam o que o usuário já avaliou positivamente aos silos culturais ainda não explorados.
+* **Dashboard do Grande Acervo (SPEC-017):** Métricas consolidadas de consumo cultural (horas de telas, horas de jogos, páginas lidas, volumes de quadrinhos, distribuição de notas) e cálculo do Índice de Amplitude Akasha com atribuição de arquétipo cultural (*Polímata Transmídia*, *Cinéfilo Devoto*, etc.).
 
-### Agente Autônomo e Camada MCP (Model Context Protocol)
-Compatibilidade nativa com assistentes agênticos (como Google Spark) para gerenciar o acervo, catalogar mídias e solicitar recomendações personalizadas via comandos conversacionais.
+### Agente Autônomo e Camada MCP Universal (Model Context Protocol)
+Compatibilidade total com assistentes agênticos (como Google Spark e Claude) via ferramentas universais enriquecidas com o parâmetro `domain` (`search_media`, `get_recommendations`, `add_to_library`, `rate_media`, `remove_from_list`, `get_library_stats`, `get_transmedia_connections`).
 
 ### Camada de Interação Social & Sincronia Cósmica
 > 📄 **Especificação Técnica:** [`specs/SPEC-006-social-library-comparison.md`](specs/SPEC-006-social-library-comparison.md)  
