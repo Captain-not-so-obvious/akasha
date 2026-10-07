@@ -8,7 +8,7 @@ import type { MediaDetails } from '../types/media';
 import type { GameDetails } from '../types/game';
 import type { BookDetails } from '../types/book';
 import type { ComicDetails } from '../types/comic';
-import type { LibraryItem, WishlistStatus } from '../types/wishlist';
+import type { LibraryItem } from '../types/wishlist';
 import { MediaDetailsModal } from '../components/ui/MediaDetailsModal';
 import { GameDetailsModal } from '../components/ui/GameDetailsModal';
 import { BookDetailsModal } from '../components/ui/BookDetailsModal';
