@@ -154,11 +154,11 @@
 | 5.4.2 | Ingestão Automática de Eventos no Backend ao alterar Wishlist | 🟡 | 5.4.1 | **Done** |
 | 5.4.3 | Endpoint Fastify `GET /feed` paginado com privacidade por amizade | 🟢 | 5.4.2 | **Done** |
 | 5.4.4 | Componentes Frontend: `ActivityCard` e `ActivityFeed` (TV D-Pad & Mobile) | 🟡 | 5.4.3 | **Done** |
-| 5.5 | **Sincronia Cósmica:** Comparar listas, notas e afinidade com amigos ([`SPEC-006`](specs/SPEC-006-social-library-comparison.md)) | 🔴 | 5.3 | **Done** |
-| 5.5.1 | Algoritmo de Afinidade Cósmica e agregação de acervo no backend (`comparison.service`) | 🟢 | 5.5 | **Done** |
-| 5.5.2 | Endpoint Fastify `GET /friends/:id/compare` com autorização bilateral estrita | 🟢 | 5.5.1 | **Done** |
-| 5.5.3 | Hook e Componentes Frontend: `AffinityBadge`, `ComparisonView` (3 abas) com TV D-Pad | 🟡 | 5.5.2 | **Done** |
-| 5.5.4 | Ação rápida "+ Quero Ver" e integração fluida na página `/social` | 🟢 | 5.5.3 | **Done** |
+| 5.5 | **Sincronia Cósmica Universal:** Comparar listas, notas e afinidade com amigos em todos os módulos ([`SPEC-006`](specs/SPEC-006-social-library-comparison.md)) | 🔴 | 5.3 | **Done** |
+| 5.5.1 | Algoritmo de Afinidade Cósmica Multidomínio e agregação de acervo no backend (`comparison.service`) | 🟢 | 5.5 | **Done** |
+| 5.5.2 | Endpoint Fastify `GET /friends/:id/compare` com suporte a `?domain=` e autorização estrita | 🟢 | 5.5.1 | **Done** |
+| 5.5.3 | Hook e Componentes Frontend: `AffinityBadge` com breakdown de módulos, `ComparisonView` (3 abas + seletor de domínios) com TV D-Pad | 🟡 | 5.5.2 | **Done** |
+| 5.5.4 | Ações rápidas contextuais ("+ Quero Jogar", "+ Quero Ler", "+ Quero Assistir") e integração fluida na página `/social` | 🟢 | 5.5.3 | **Done** |
 | 5.6 | **Central de Notificações & Push:** Novos episódios e avaliações de amigos ([`SPEC-007`](specs/SPEC-007-push-notifications.md)) | 🔴 | 5.3, 5.4 | **Done** |
 | 5.6.1 | Schema Prisma: model `Notification`, `PushSubscription` e enum `NotificationType` | 🟢 | 5.6 | **Done** |
 | 5.6.2 | Serviços de Backend: persistência, checagem TMDB de episódios e disparos sociais | 🟡 | 5.6.1 | **Done** |
@@ -244,4 +244,19 @@
 | 10.3 | **Tools MCP Fastify Universais:** Atualização para aceitar parâmetro `domain` e novas rotas analíticas | 🟡 | Fase 6 | **Done** |
 | 10.4 | **Testes de Integração e Ponta a Ponta:** Cobertura completa no backend (221 testes) e frontend (203 testes) | 🔴 | 10.1–10.3 | **Done** |
 | 10.5 | **Integração de Avaliação e Sincronização de Biblioteca nos Modais do Grande Acervo:** Abertura do `RatingModal` ao concluir obras sugeridas ("Já Assisti", "Já Zerei", "Já Li"), sincronização em tempo real com `useWishlist` e ciclo completo de gerenciamento ([`SPEC-019`](specs/SPEC-019-grand-archive-modal-rating-and-library-integration.md)) | 🟡 | 10.1, 10.2 | **Done** |
+
+---
+
+## FASE 11 — Sincronia Cósmica Universal & Ressonância Multidomínio (100% Concluída)
+> 📄 **Spec:** [`specs/SPEC-006-social-library-comparison.md`](specs/SPEC-006-social-library-comparison.md) (v2.0.0)  
+**Objetivo:** Expansão da Sincronia Cósmica para abranger a totalidade dos módulos do Akasha (Cinema, TV, Games, Livros, Quadrinhos & Mangás), com cálculo de afinidade global e desagregada por domínio, seletor de módulos interativo, cards com badges temáticos e ações rápidas semânticas por mídia.
+
+| # | Feature | Complexidade | Dependência | Status |
+|---|---|---|---|---|
+| 11.1 | **Algoritmo Multidomínio:** Cruzamento polimórfico de acervos (`domain` + `externalId`), Resonance Score global e cálculo de `domainAffinities` | 🔴 | Fases 7, 8, 9 | **Done** |
+| 11.2 | **Endpoint Fastify Enriquecido:** Suporte a `GET /friends/:id/compare?domain=` com validação Zod e autorização bilateral | 🟢 | 11.1 | **Done** |
+| 11.3 | **Seletor de Módulos & Badges Temáticos:** Interface `ComparisonView` com filtros para Cinema/TV, Jogos, Livros e Quadrinhos | 🟡 | 11.2 | **Done** |
+| 11.4 | **Ações Semânticas Contextuais:** Botões rápidos de adição ao backlog com verbos por mídia ("+ Quero Jogar", "+ Quero Ler", "+ Quero Assistir") integrados ao `POST /wishlist` polimórfico | 🟢 | 11.3 | **Done** |
+| 11.5 | **Cobertura de Testes Automatizados:** Testes unitários e de integração no backend (225 testes) e frontend (204 testes) com Vitest | 🔴 | 11.1–11.4 | **Done** |
+
 

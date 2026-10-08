@@ -1,16 +1,24 @@
 import React from 'react';
-import type { AffinityResult } from '../../types/comparison';
-import { Sparkles, Compass, Flame, Orbit } from 'lucide-react';
+import type { AffinityResult, DomainType } from '../../types/comparison';
+import { Sparkles, Compass, Flame, Orbit, Film, Tv, Gamepad2, BookOpen } from 'lucide-react';
 
 interface AffinityBadgeProps {
   affinity: AffinityResult;
+  domainAffinities?: Partial<Record<DomainType, AffinityResult>>;
+  activeDomain?: string;
+  onSelectDomain?: (domain: string) => void;
 }
 
-export const AffinityBadge: React.FC<AffinityBadgeProps> = ({ affinity }) => {
+export const AffinityBadge: React.FC<AffinityBadgeProps> = ({
+  affinity,
+  domainAffinities,
+  activeDomain = 'all',
+  onSelectDomain,
+}) => {
   const { percentage, label, totalShared, totalOverlapRated } = affinity;
 
-  const getTheme = () => {
-    switch (label) {
+  const getTheme = (lbl: AffinityResult['label']) => {
+    switch (lbl) {
       case 'Almas Cósmicas':
         return {
           icon: Sparkles,
@@ -47,17 +55,31 @@ export const AffinityBadge: React.FC<AffinityBadgeProps> = ({ affinity }) => {
     }
   };
 
-  const theme = getTheme();
+  const theme = getTheme(label);
   const IconComponent = theme.icon;
+
+  const domainLabels: Record<DomainType, { label: string; icon: React.FC<{ className?: string }> }> = {
+    movie: { label: 'Cinema', icon: Film },
+    tv: { label: 'Séries', icon: Tv },
+    game: { label: 'Jogos', icon: Gamepad2 },
+    book: { label: 'Livros', icon: BookOpen },
+    comic: { label: 'HQs & Mangás', icon: Sparkles },
+  };
+
+  const availableDomains = domainAffinities
+    ? (Object.keys(domainAffinities) as DomainType[]).filter(
+        (d) => domainAffinities[d] && (domainAffinities[d]?.totalShared ?? 0) > 0
+      )
+    : [];
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border ${theme.border} bg-gradient-to-br ${theme.glow} p-6 backdrop-blur-md transition-all duration-300 shadow-xl`}
+      className={`relative overflow-hidden rounded-2xl border ${theme.border} bg-gradient-to-br ${theme.glow} p-6 backdrop-blur-md transition-all duration-300 shadow-xl space-y-5`}
     >
       <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
         {/* Lado Esquerdo: Gauge e Porcentagem */}
         <div className="flex items-center gap-5">
-          <div className="relative flex items-center justify-center w-24 h-24 rounded-full border-4 border-white/10 bg-black/30 shadow-inner">
+          <div className="relative flex items-center justify-center w-24 h-24 rounded-full border-4 border-white/10 bg-black/30 shadow-inner shrink-0">
             <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
               <circle
                 cx="50"
@@ -100,7 +122,7 @@ export const AffinityBadge: React.FC<AffinityBadgeProps> = ({ affinity }) => {
               Sincronia Cósmica
             </h3>
             <p className="text-sm text-stone-300/80 max-w-sm">
-              Ressonância calculada a partir de sobreposição de acervos e afinidade cirúrgica de avaliações.
+              Ressonância universal calculada em todos os módulos a partir de sobreposição de acervos e afinidade cirúrgica de avaliações.
             </p>
           </div>
         </div>
@@ -120,6 +142,43 @@ export const AffinityBadge: React.FC<AffinityBadgeProps> = ({ affinity }) => {
           </div>
         </div>
       </div>
+
+      {/* Breakdown de Afinidades por Domínio Cultural */}
+      {availableDomains.length > 0 && (
+        <div className="pt-3 border-t border-white/10 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-stone-400 uppercase tracking-wider mr-1">
+            Módulos:
+          </span>
+          {availableDomains.map((dom) => {
+            const domAff = domainAffinities?.[dom];
+            if (!domAff) return null;
+            const meta = domainLabels[dom];
+            const DomIcon = meta.icon;
+            const isSelected = activeDomain === dom;
+
+            return (
+              <button
+                key={dom}
+                type="button"
+                tabIndex={0}
+                onClick={() => onSelectDomain?.(isSelected ? 'all' : dom)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-amber-400 ${
+                  isSelected
+                    ? 'bg-amber-400/25 border-amber-400/50 text-amber-200 shadow-md'
+                    : 'bg-black/25 border-white/10 text-stone-300 hover:bg-white/10'
+                }`}
+                title={`Filtrar sincronia por ${meta.label}`}
+              >
+                <DomIcon className="w-3.5 h-3.5" />
+                <span>{meta.label}</span>
+                <span className="font-mono font-bold text-amber-300/90 ml-0.5">
+                  {domAff.percentage}%
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

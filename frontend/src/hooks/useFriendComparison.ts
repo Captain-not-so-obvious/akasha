@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api';
 import type { ComparisonResult, FriendRecommendationItem } from '../types/comparison';
 
-export function useFriendComparison(friendId: string | null) {
+export function useFriendComparison(friendId: string | null, domainFilter?: string) {
   const [data, setData] = useState<ComparisonResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +18,12 @@ export function useFriendComparison(friendId: string | null) {
     setError(null);
 
     try {
-      const res = await apiFetch(`/friends/${friendId}/compare`);
+      const url =
+        domainFilter && domainFilter !== 'all'
+          ? `/friends/${friendId}/compare?domain=${domainFilter}`
+          : `/friends/${friendId}/compare`;
+
+      const res = await apiFetch(url);
 
       if (res.status === 403) {
         throw new Error('Você só pode sincronizar acervos com amigos confirmados.');
@@ -40,7 +45,7 @@ export function useFriendComparison(friendId: string | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [friendId]);
+  }, [friendId, domainFilter]);
 
   useEffect(() => {
     fetchComparison();
@@ -49,15 +54,26 @@ export function useFriendComparison(friendId: string | null) {
   const addToBacklog = useCallback(
     async (item: FriendRecommendationItem) => {
       try {
+        const payload: Record<string, unknown> = {
+          domain: item.domain,
+          externalId: item.externalId,
+          status: 'plan_to_watch',
+          title: item.title,
+          coverUrl: item.coverUrl || undefined,
+          posterPath: item.coverUrl || undefined,
+          releaseYear: item.releaseYear || undefined,
+        };
+
+        if (item.tmdbId) {
+          payload.tmdbId = item.tmdbId;
+        }
+        if (item.mediaType) {
+          payload.mediaType = item.mediaType;
+        }
+
         const res = await apiFetch('/wishlist', {
           method: 'POST',
-          body: JSON.stringify({
-            tmdbId: item.tmdbId,
-            mediaType: item.mediaType,
-            status: 'plan_to_watch',
-            title: item.title,
-            posterPath: item.posterUrl || undefined,
-          }),
+          body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
@@ -69,15 +85,23 @@ export function useFriendComparison(friendId: string | null) {
           if (!prev) return prev;
           return {
             ...prev,
-            friendRecommendations: prev.friendRecommendations.map((rec) =>
-              rec.tmdbId === item.tmdbId && rec.mediaType === item.mediaType
+            friendRecommendations: prev.friendRecommendations.map((rec) => {
+              const matchByDomainExtId =
+                rec.domain === item.domain && rec.externalId === item.externalId;
+              const matchByLegacyTmdb =
+                rec.tmdbId &&
+                item.tmdbId &&
+                rec.tmdbId === item.tmdbId &&
+                rec.mediaType === item.mediaType;
+
+              return matchByDomainExtId || matchByLegacyTmdb
                 ? { ...rec, inMyBacklog: true }
-                : rec
-            ),
+                : rec;
+            }),
           };
         });
 
-        setActionFeedback(`"${item.title}" foi adicionado à sua lista Quero Ver!`);
+        setActionFeedback(`"${item.title}" foi adicionado à sua biblioteca!`);
         setTimeout(() => setActionFeedback(null), 3500);
         return { success: true };
       } catch (err: unknown) {

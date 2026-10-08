@@ -38,9 +38,9 @@ O Akasha opera motores de recomendação dedicados por domínio (TMDB para cinem
 ### Agente Autônomo e Camada MCP Universal (Model Context Protocol)
 Compatibilidade total com assistentes agênticos (como Google Spark e Claude) via ferramentas universais enriquecidas com o parâmetro `domain` (`search_media`, `get_recommendations`, `add_to_library`, `rate_media`, `remove_from_list`, `get_library_stats`, `get_transmedia_connections`).
 
-### Camada de Interação Social & Sincronia Cósmica
+### Camada de Interação Social & Sincronia Cósmica Universal
 > 📄 **Especificação Técnica:** [`specs/SPEC-006-social-library-comparison.md`](specs/SPEC-006-social-library-comparison.md)  
-Rede fechada entre viajantes Akasha: feeds de atividades transmídia, cálculo de Afinidade Cósmica (*Resonance Score*), identificação de obras para assistir juntos no sofá (*Watchlist Match*), consensos/duelos de notas e recomendações orgânicas entre amigos.
+Rede fechada entre viajantes Akasha: feeds de atividades transmídia, cálculo unificado de Afinidade Cósmica (*Resonance Score* global e desagregado por módulos culturais: Cinema, Séries, Jogos, Livros e Quadrinhos), identificação de obras para curtir juntos no sofá ou em modo cooperativo (*Shared Backlog Match*), consensos/duelos cirúrgicos de notas e recomendações orgânicas cruzadas entre amigos com adição instantânea à estante correta.
 
 ### Central de Notificações Multiplataforma & Push
 > 📄 **Especificação Técnica:** [`specs/SPEC-007-push-notifications.md`](specs/SPEC-007-push-notifications.md)  

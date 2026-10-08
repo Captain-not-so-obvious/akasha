@@ -11,18 +11,21 @@ export interface AffinityResult {
   totalOverlapRated: number;
 }
 
-export interface WatchTogetherItem {
-  tmdbId: number;
-  mediaType: 'movie' | 'tv';
+export type DomainType = 'movie' | 'tv' | 'game' | 'book' | 'comic';
+
+export interface ComparisonItem {
+  domain: DomainType;
+  externalId: string;
   title: string;
-  posterUrl: string | null;
+  coverUrl: string | null;
+  releaseYear?: number | null;
+  tmdbId?: number | null;
+  mediaType?: 'movie' | 'tv' | null;
 }
 
-export interface RatedOverlapItem {
-  tmdbId: number;
-  mediaType: 'movie' | 'tv';
-  title: string;
-  posterUrl: string | null;
+export interface WatchTogetherItem extends ComparisonItem {}
+
+export interface RatedOverlapItem extends ComparisonItem {
   myRating: number;
   friendRating: number;
   myReview: string | null;
@@ -30,11 +33,7 @@ export interface RatedOverlapItem {
   delta: number;
 }
 
-export interface FriendRecommendationItem {
-  tmdbId: number;
-  mediaType: 'movie' | 'tv';
-  title: string;
-  posterUrl: string | null;
+export interface FriendRecommendationItem extends ComparisonItem {
   friendRating: number;
   friendReview: string | null;
   inMyBacklog: boolean;
@@ -48,6 +47,7 @@ export interface ComparisonResult {
     friendCode: string | null;
   };
   affinity: AffinityResult;
+  domainAffinities?: Partial<Record<DomainType, AffinityResult>>;
   watchTogether: WatchTogetherItem[];
   ratedOverlap: RatedOverlapItem[];
   friendRecommendations: FriendRecommendationItem[];

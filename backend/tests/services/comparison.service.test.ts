@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   calculateAffinity,
+  calculateDomainAffinities,
   compareUserLibraries,
   hydrateMediaBatch,
 } from '../../src/services/comparison.service.js';
@@ -316,6 +317,253 @@ describe('Serviço de Comparação de Acervos & Afinidade Cósmica (SPEC-006)', 
       expect(result!.friendRecommendations[0].tmdbId).toBe(300);
       expect(result!.friendRecommendations[0].friendRating).toBe(5);
       expect(result!.friendRecommendations[0].inMyBacklog).toBe(false);
+    });
+
+    it('deve sincronizar obras através de múltiplos módulos (games, books, comics) e calcular domainAffinities', async () => {
+      vi.mocked(prisma.profile.findUnique).mockResolvedValue({
+        id: 'friend-uuid',
+        username: 'viajante_multidominio',
+        avatarUrl: null,
+        friendCode: 'AK-0000-1111',
+      });
+
+      // Usuário 1:
+      // - Game: The Witcher 3 (plan_to_watch)
+      // - Book: Duna (completed, 5 estrelas)
+      vi.mocked(prisma.wishlist.findMany)
+        .mockResolvedValueOnce([
+          {
+            id: 1,
+            userId: 'user-1',
+            domain: 'game',
+            externalId: '1942',
+            title: 'The Witcher 3: Wild Hunt',
+            coverUrl: 'https://images.igdb.com/witcher.jpg',
+            releaseYear: 2015,
+            status: 'plan_to_watch',
+            userRating: null,
+            notes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: 2,
+            userId: 'user-1',
+            domain: 'book',
+            externalId: 'dune-isbn',
+            title: 'Duna',
+            coverUrl: 'https://books.google.com/duna.jpg',
+            releaseYear: 1965,
+            status: 'completed',
+            userRating: 5,
+            notes: 'Obra prima',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ])
+        // Amigo:
+        // - Game: The Witcher 3 (plan_to_watch) -> watchTogether
+        // - Book: Duna (completed, 5 estrelas) -> ratedOverlap (Consenso)
+        // - Comic: Berserk (completed, 5 estrelas) -> friendRecommendations
+        .mockResolvedValueOnce([
+          {
+            id: 3,
+            userId: 'friend-uuid',
+            domain: 'game',
+            externalId: '1942',
+            title: 'The Witcher 3: Wild Hunt',
+            coverUrl: 'https://images.igdb.com/witcher.jpg',
+            releaseYear: 2015,
+            status: 'plan_to_watch',
+            userRating: null,
+            notes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: 4,
+            userId: 'friend-uuid',
+            domain: 'book',
+            externalId: 'dune-isbn',
+            title: 'Duna',
+            coverUrl: 'https://books.google.com/duna.jpg',
+            releaseYear: 1965,
+            status: 'completed',
+            userRating: 5,
+            notes: 'Épico imersivo',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: 5,
+            userId: 'friend-uuid',
+            domain: 'comic',
+            externalId: 'berserk-id',
+            title: 'Berserk',
+            coverUrl: 'https://anilist.co/berserk.jpg',
+            releaseYear: 1989,
+            status: 'completed',
+            userRating: 5,
+            notes: 'Arte transcendental',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ]);
+
+      const result = await compareUserLibraries('user-1', 'friend-uuid');
+      expect(result).not.toBeNull();
+      expect(result!.friend.username).toBe('viajante_multidominio');
+
+      // 1. watchTogether deve conter o jogo
+      expect(result!.watchTogether).toHaveLength(1);
+      expect(result!.watchTogether[0].domain).toBe('game');
+      expect(result!.watchTogether[0].title).toBe('The Witcher 3: Wild Hunt');
+      expect(result!.watchTogether[0].coverUrl).toBe('https://images.igdb.com/witcher.jpg');
+
+      // 2. ratedOverlap deve conter o livro com consenso
+      expect(result!.ratedOverlap).toHaveLength(1);
+      expect(result!.ratedOverlap[0].domain).toBe('book');
+      expect(result!.ratedOverlap[0].title).toBe('Duna');
+      expect(result!.ratedOverlap[0].myRating).toBe(5);
+      expect(result!.ratedOverlap[0].friendRating).toBe(5);
+      expect(result!.ratedOverlap[0].delta).toBe(0);
+
+      // 3. friendRecommendations deve conter o quadrinho/mangá
+      expect(result!.friendRecommendations).toHaveLength(1);
+      expect(result!.friendRecommendations[0].domain).toBe('comic');
+      expect(result!.friendRecommendations[0].title).toBe('Berserk');
+      expect(result!.friendRecommendations[0].friendRating).toBe(5);
+
+      // 4. domainAffinities deve conter métricas individualizadas
+      expect(result!.domainAffinities).toBeDefined();
+      expect(result!.domainAffinities?.game?.percentage).toBe(100);
+      expect(result!.domainAffinities?.book?.percentage).toBe(100);
+    });
+
+    it('deve aplicar domainFilter corretamente quando fornecido', async () => {
+      vi.mocked(prisma.profile.findUnique).mockResolvedValue({
+        id: 'friend-uuid',
+        username: 'viajante_filtro',
+        avatarUrl: null,
+        friendCode: 'AK-2222-3333',
+      });
+
+      vi.mocked(prisma.wishlist.findMany)
+        .mockResolvedValueOnce([
+          {
+            id: 1,
+            userId: 'user-1',
+            domain: 'game',
+            externalId: '10',
+            title: 'Zelda',
+            status: 'plan_to_watch',
+            userRating: null,
+            notes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: 2,
+            userId: 'user-1',
+            domain: 'book',
+            externalId: '20',
+            title: 'Neuromancer',
+            status: 'plan_to_watch',
+            userRating: null,
+            notes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            id: 3,
+            userId: 'friend-uuid',
+            domain: 'game',
+            externalId: '10',
+            title: 'Zelda',
+            status: 'plan_to_watch',
+            userRating: null,
+            notes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: 4,
+            userId: 'friend-uuid',
+            domain: 'book',
+            externalId: '20',
+            title: 'Neuromancer',
+            status: 'plan_to_watch',
+            userRating: null,
+            notes: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ]);
+
+      // Filtrar apenas para 'game'
+      const result = await compareUserLibraries('user-1', 'friend-uuid', 'game');
+      expect(result).not.toBeNull();
+      expect(result!.watchTogether).toHaveLength(1);
+      expect(result!.watchTogether[0].domain).toBe('game');
+      expect(result!.watchTogether[0].title).toBe('Zelda');
+    });
+  });
+
+  describe('calculateDomainAffinities', () => {
+    it('deve calcular afinidades separadas para cada módulo presente', () => {
+      const myItems = [
+        {
+          id: 1,
+          userId: 'u1',
+          domain: 'game',
+          externalId: 'g1',
+          status: 'completed' as const,
+          userRating: 5,
+          notes: null,
+          updatedAt: new Date(),
+        },
+        {
+          id: 2,
+          userId: 'u1',
+          domain: 'book',
+          externalId: 'b1',
+          status: 'completed' as const,
+          userRating: 5,
+          notes: null,
+          updatedAt: new Date(),
+        },
+      ];
+
+      const friendItems = [
+        {
+          id: 3,
+          userId: 'u2',
+          domain: 'game',
+          externalId: 'g1',
+          status: 'completed' as const,
+          userRating: 5,
+          notes: null,
+          updatedAt: new Date(),
+        },
+        {
+          id: 4,
+          userId: 'u2',
+          domain: 'book',
+          externalId: 'b1',
+          status: 'completed' as const,
+          userRating: 1, // Divergência total em livros
+          notes: null,
+          updatedAt: new Date(),
+        },
+      ];
+
+      const affinities = calculateDomainAffinities(myItems, friendItems);
+      expect(affinities.game?.percentage).toBe(100);
+      expect(affinities.game?.label).toBe('Almas Cósmicas');
+      expect(affinities.book?.percentage).toBe(40);
+      expect(affinities.book?.label).toBe('Caos Gravitacional');
     });
   });
 });

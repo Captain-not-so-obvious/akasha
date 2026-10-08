@@ -9,7 +9,10 @@ import {
   friendParamSchema,
   updateProfileSchema,
 } from '../schemas/friends.schema.js';
-import { compareFriendParamSchema } from '../schemas/comparison.schema.js';
+import {
+  compareFriendParamSchema,
+  compareFriendQuerySchema,
+} from '../schemas/comparison.schema.js';
 import { compareUserLibraries } from '../services/comparison.service.js';
 import { notifyFriendRequest, notifyFriendAccepted } from '../services/notification.service.js';
 
@@ -502,7 +505,10 @@ export const friendsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
       });
     }
 
-    const comparison = await compareUserLibraries(request.userId, friendId);
+    const queryResult = compareFriendQuerySchema.safeParse(request.query);
+    const domainFilter = queryResult.success ? queryResult.data.domain : undefined;
+
+    const comparison = await compareUserLibraries(request.userId, friendId, domainFilter);
 
     if (!comparison) {
       return reply.status(404).send({ error: 'Perfil de amigo não encontrado.' });

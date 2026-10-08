@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import { fetchMediaDetails } from './tmdb.service.js';
-import { MediaType, WatchStatus } from '@prisma/client';
+import { DomainType, MediaType, WatchStatus } from '@prisma/client';
 
 export interface AffinityResult {
   percentage: number;
@@ -9,18 +9,19 @@ export interface AffinityResult {
   totalOverlapRated: number;
 }
 
-export interface WatchTogetherItem {
-  tmdbId: number;
-  mediaType: MediaType;
+export interface ComparisonItem {
+  domain: DomainType;
+  externalId: string;
   title: string;
-  posterUrl: string | null;
+  coverUrl: string | null;
+  releaseYear?: number | null;
+  tmdbId?: number | null;
+  mediaType?: MediaType | null;
 }
 
-export interface RatedOverlapItem {
-  tmdbId: number;
-  mediaType: MediaType;
-  title: string;
-  posterUrl: string | null;
+export interface WatchTogetherItem extends ComparisonItem {}
+
+export interface RatedOverlapItem extends ComparisonItem {
   myRating: number;
   friendRating: number;
   myReview: string | null;
@@ -28,11 +29,7 @@ export interface RatedOverlapItem {
   delta: number;
 }
 
-export interface FriendRecommendationItem {
-  tmdbId: number;
-  mediaType: MediaType;
-  title: string;
-  posterUrl: string | null;
+export interface FriendRecommendationItem extends ComparisonItem {
   friendRating: number;
   friendReview: string | null;
   inMyBacklog: boolean;
@@ -46,22 +43,51 @@ export interface ComparisonResult {
     friendCode: string | null;
   };
   affinity: AffinityResult;
+  domainAffinities?: Partial<Record<DomainType, AffinityResult>>;
   watchTogether: WatchTogetherItem[];
   ratedOverlap: RatedOverlapItem[];
   friendRecommendations: FriendRecommendationItem[];
 }
 
-interface WishlistRecord {
+export interface WishlistRecord {
   id: number;
   userId: string;
+  domain?: DomainType | string;
+  externalId?: string;
   tmdbId?: number | null;
   mediaType?: MediaType | null;
-  domain?: string;
-  externalId?: string;
   status: WatchStatus;
   userRating: number | null;
   notes: string | null;
+  title?: string;
+  coverUrl?: string | null;
+  releaseYear?: number | null;
   updatedAt: Date;
+}
+
+/**
+ * Identifica o domínio canônico do item
+ */
+export function getDomain(item: WishlistRecord): DomainType {
+  if (item.domain && ['movie', 'tv', 'game', 'book', 'comic'].includes(item.domain)) {
+    return item.domain as DomainType;
+  }
+  if (item.mediaType === 'tv') return 'tv';
+  return 'movie';
+}
+
+/**
+ * Gera a chave única de equivalência universal de uma obra (domain:externalId)
+ */
+export function getItemKey(item: WishlistRecord): string {
+  const domain = getDomain(item);
+  const extId =
+    item.externalId && item.externalId.trim() !== ''
+      ? item.externalId
+      : item.tmdbId
+        ? String(item.tmdbId)
+        : String(item.id);
+  return `${domain}:${extId}`;
 }
 
 /**
@@ -76,12 +102,10 @@ export function calculateAffinity(
   const friendMap = new Map<string, WishlistRecord>();
 
   for (const item of myItems) {
-    const key = item.domain && item.externalId ? `${item.domain}:${item.externalId}` : `${item.mediaType}:${item.tmdbId}`;
-    myMap.set(key, item);
+    myMap.set(getItemKey(item), item);
   }
   for (const item of friendItems) {
-    const key = item.domain && item.externalId ? `${item.domain}:${item.externalId}` : `${item.mediaType}:${item.tmdbId}`;
-    friendMap.set(key, item);
+    friendMap.set(getItemKey(item), item);
   }
 
   const allKeys = new Set<string>([...myMap.keys(), ...friendMap.keys()]);
@@ -140,7 +164,29 @@ export function calculateAffinity(
 }
 
 /**
- * Hidrata metadados de mídias (título, pôster) consultando primeiro
+ * Calcula afinidade individualizada para cada módulo/domínio cultural
+ */
+export function calculateDomainAffinities(
+  myItems: WishlistRecord[],
+  friendItems: WishlistRecord[]
+): Partial<Record<DomainType, AffinityResult>> {
+  const allDomains: DomainType[] = ['movie', 'tv', 'game', 'book', 'comic'];
+  const domainAffinities: Partial<Record<DomainType, AffinityResult>> = {};
+
+  for (const domain of allDomains) {
+    const myDomainItems = myItems.filter((i) => getDomain(i) === domain);
+    const friendDomainItems = friendItems.filter((i) => getDomain(i) === domain);
+
+    if (myDomainItems.length > 0 || friendDomainItems.length > 0) {
+      domainAffinities[domain] = calculateAffinity(myDomainItems, friendDomainItems);
+    }
+  }
+
+  return domainAffinities;
+}
+
+/**
+ * Hidrata metadados de mídias audiovisuais consultando primeiro
  * o cache em atividades gravadas no banco e, como fallback, o serviço TMDB.
  */
 export async function hydrateMediaBatch(
@@ -213,11 +259,59 @@ export async function hydrateMediaBatch(
 }
 
 /**
+ * Constrói o objeto universal de item de comparação preservando domínio e metadados
+ */
+function buildComparisonItem(
+  item: WishlistRecord,
+  hydratedMap: Map<string, { title: string; posterUrl: string | null }>
+): ComparisonItem {
+  const domain = getDomain(item);
+  const extId =
+    item.externalId && item.externalId.trim() !== ''
+      ? item.externalId
+      : item.tmdbId
+        ? String(item.tmdbId)
+        : String(item.id);
+
+  let title = item.title && item.title !== 'Sem título' ? item.title : '';
+  let coverUrl = item.coverUrl || null;
+
+  // Se for audiovisual e faltar metadados, consultar cache hidratado
+  if (item.tmdbId && item.mediaType) {
+    const cached = hydratedMap.get(`${item.mediaType}:${item.tmdbId}`);
+    if (cached) {
+      if (!title || title === `Mídia #${item.tmdbId}`) {
+        title = cached.title;
+      }
+      if (!coverUrl) {
+        coverUrl = cached.posterUrl;
+      }
+    }
+  }
+
+  if (!title) {
+    title = item.title || `Obra #${extId}`;
+  }
+
+  return {
+    domain,
+    externalId: extId,
+    title,
+    coverUrl,
+    releaseYear: item.releaseYear ?? null,
+    tmdbId: item.tmdbId ?? (domain === 'movie' || domain === 'tv' ? Number(extId) || undefined : undefined),
+    mediaType: item.mediaType ?? (domain === 'movie' || domain === 'tv' ? (domain as MediaType) : undefined),
+  };
+}
+
+/**
  * Orquestrador principal da comparação de acervos entre o usuário autenticado e um amigo
+ * Suporta todos os módulos culturais do Akasha (SPEC-006 v2.0.0)
  */
 export async function compareUserLibraries(
   currentUserId: string,
-  friendId: string
+  friendId: string,
+  domainFilter?: string
 ): Promise<ComparisonResult | null> {
   // 1. Validar perfil do amigo
   const friendProfile = await prisma.profile.findUnique({
@@ -233,7 +327,7 @@ export async function compareUserLibraries(
   if (!friendProfile) return null;
 
   // 2. Buscar acervos de ambos
-  const [myItems, friendItems] = await Promise.all([
+  const [allMyItems, allFriendItems] = await Promise.all([
     prisma.wishlist.findMany({
       where: { userId: currentUserId },
       orderBy: { updatedAt: 'desc' },
@@ -244,29 +338,36 @@ export async function compareUserLibraries(
     }),
   ]);
 
-  // 3. Calcular Afinidade Cósmica
-  const affinity = calculateAffinity(myItems, friendItems);
+  // Se houver filtro de domínio específico (e não 'all'), aplicar aos itens
+  const myItems =
+    domainFilter && domainFilter !== 'all'
+      ? allMyItems.filter((i) => getDomain(i) === domainFilter)
+      : allMyItems;
 
-  // Mapeamentos rápidos
+  const friendItems =
+    domainFilter && domainFilter !== 'all'
+      ? allFriendItems.filter((i) => getDomain(i) === domainFilter)
+      : allFriendItems;
+
+  // 3. Calcular Afinidade Cósmica Universal e por Domínio
+  const affinity = calculateAffinity(myItems, friendItems);
+  const domainAffinities = calculateDomainAffinities(allMyItems, allFriendItems);
+
+  // Mapeamentos rápidos polimórficos
   const myMap = new Map<string, WishlistRecord>();
   for (const item of myItems) {
-    if (item.mediaType && item.tmdbId) {
-      myMap.set(`${item.mediaType}:${item.tmdbId}`, item);
-    }
+    myMap.set(getItemKey(item), item);
   }
 
   const friendMap = new Map<string, WishlistRecord>();
   for (const item of friendItems) {
-    if (item.mediaType && item.tmdbId) {
-      friendMap.set(`${item.mediaType}:${item.tmdbId}`, item);
-    }
+    friendMap.set(getItemKey(item), item);
   }
 
   // 4. Identificar obras para cada aba
-  const rawWatchTogether: Array<{ tmdbId: number; mediaType: MediaType }> = [];
+  const rawWatchTogether: WishlistRecord[] = [];
   const rawRatedOverlap: Array<{
-    tmdbId: number;
-    mediaType: MediaType;
+    item: WishlistRecord;
     myRating: number;
     friendRating: number;
     myReview: string | null;
@@ -274,24 +375,21 @@ export async function compareUserLibraries(
     delta: number;
   }> = [];
   const rawFriendRecommendations: Array<{
-    tmdbId: number;
-    mediaType: MediaType;
+    item: WishlistRecord;
     friendRating: number;
     friendReview: string | null;
     inMyBacklog: boolean;
   }> = [];
 
-  // A. O que ver juntos: ambos com status 'plan_to_watch'
+  // A. O que curtir juntos: ambos com status 'plan_to_watch'
   for (const [key, myItem] of myMap.entries()) {
     const friendItem = friendMap.get(key);
     if (
       friendItem &&
       myItem.status === 'plan_to_watch' &&
-      friendItem.status === 'plan_to_watch' &&
-      myItem.tmdbId &&
-      myItem.mediaType
+      friendItem.status === 'plan_to_watch'
     ) {
-      rawWatchTogether.push({ tmdbId: myItem.tmdbId, mediaType: myItem.mediaType });
+      rawWatchTogether.push(myItem);
     }
   }
 
@@ -301,13 +399,10 @@ export async function compareUserLibraries(
     if (
       friendItem &&
       myItem.userRating !== null &&
-      friendItem.userRating !== null &&
-      myItem.tmdbId &&
-      myItem.mediaType
+      friendItem.userRating !== null
     ) {
       rawRatedOverlap.push({
-        tmdbId: myItem.tmdbId,
-        mediaType: myItem.mediaType,
+        item: myItem,
         myRating: myItem.userRating,
         friendRating: friendItem.userRating,
         myReview: myItem.notes,
@@ -325,16 +420,13 @@ export async function compareUserLibraries(
   for (const [key, friendItem] of friendMap.entries()) {
     if (
       friendItem.userRating !== null &&
-      friendItem.userRating >= 4 &&
-      friendItem.tmdbId &&
-      friendItem.mediaType
+      friendItem.userRating >= 4
     ) {
       const myItem = myMap.get(key);
       const userAlreadyRated = myItem && myItem.userRating !== null;
       if (!userAlreadyRated) {
         rawFriendRecommendations.push({
-          tmdbId: friendItem.tmdbId,
-          mediaType: friendItem.mediaType,
+          item: friendItem,
           friendRating: friendItem.userRating,
           friendReview: friendItem.notes,
           inMyBacklog: Boolean(myItem && myItem.status === 'plan_to_watch'),
@@ -346,42 +438,55 @@ export async function compareUserLibraries(
   // Ordenar recomendações: nota maior do amigo primeiro
   rawFriendRecommendations.sort((a, b) => b.friendRating - a.friendRating);
 
-  // 5. Hidratação dos metadados visuais (título, poster)
-  const mediaToHydrate: Array<{ tmdbId: number; mediaType: MediaType }> = [
+  // 5. Hidratação complementar (apenas para audiovisuais legados que ainda precisem)
+  const allReferencedItems: WishlistRecord[] = [
     ...rawWatchTogether,
-    ...rawRatedOverlap.map((r) => ({ tmdbId: r.tmdbId, mediaType: r.mediaType })),
-    ...rawFriendRecommendations.map((r) => ({ tmdbId: r.tmdbId, mediaType: r.mediaType })),
+    ...rawRatedOverlap.map((r) => r.item),
+    ...rawFriendRecommendations.map((r) => r.item),
   ];
 
-  const hydratedMap = await hydrateMediaBatch(mediaToHydrate);
+  const tmdbMediaToHydrate = allReferencedItems
+    .filter(
+      (item) =>
+        item.tmdbId &&
+        item.mediaType &&
+        (!item.coverUrl || !item.title || item.title === 'Sem título')
+    )
+    .map((item) => ({
+      tmdbId: item.tmdbId!,
+      mediaType: item.mediaType!,
+    }));
 
-  const watchTogether: WatchTogetherItem[] = rawWatchTogether.map((item) => {
-    const meta = hydratedMap.get(`${item.mediaType}:${item.tmdbId}`);
+  const hydratedMap = await hydrateMediaBatch(tmdbMediaToHydrate);
+
+  // 6. Montagem dos arrays finais com interfaces estritamente tipadas
+  const watchTogether: WatchTogetherItem[] = rawWatchTogether.map((item) =>
+    buildComparisonItem(item, hydratedMap)
+  );
+
+  const ratedOverlap: RatedOverlapItem[] = rawRatedOverlap.map((r) => {
+    const base = buildComparisonItem(r.item, hydratedMap);
     return {
-      tmdbId: item.tmdbId,
-      mediaType: item.mediaType,
-      title: meta?.title || `Mídia #${item.tmdbId}`,
-      posterUrl: meta?.posterUrl || null,
+      ...base,
+      myRating: r.myRating,
+      friendRating: r.friendRating,
+      myReview: r.myReview,
+      friendReview: r.friendReview,
+      delta: r.delta,
     };
   });
 
-  const ratedOverlap: RatedOverlapItem[] = rawRatedOverlap.map((item) => {
-    const meta = hydratedMap.get(`${item.mediaType}:${item.tmdbId}`);
-    return {
-      ...item,
-      title: meta?.title || `Mídia #${item.tmdbId}`,
-      posterUrl: meta?.posterUrl || null,
-    };
-  });
-
-  const friendRecommendations: FriendRecommendationItem[] = rawFriendRecommendations.map((item) => {
-    const meta = hydratedMap.get(`${item.mediaType}:${item.tmdbId}`);
-    return {
-      ...item,
-      title: meta?.title || `Mídia #${item.tmdbId}`,
-      posterUrl: meta?.posterUrl || null,
-    };
-  });
+  const friendRecommendations: FriendRecommendationItem[] = rawFriendRecommendations.map(
+    (r) => {
+      const base = buildComparisonItem(r.item, hydratedMap);
+      return {
+        ...base,
+        friendRating: r.friendRating,
+        friendReview: r.friendReview,
+        inMyBacklog: r.inMyBacklog,
+      };
+    }
+  );
 
   return {
     friend: {
@@ -391,6 +496,7 @@ export async function compareUserLibraries(
       friendCode: friendProfile.friendCode,
     },
     affinity,
+    domainAffinities,
     watchTogether,
     ratedOverlap,
     friendRecommendations,

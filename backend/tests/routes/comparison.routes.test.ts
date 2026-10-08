@@ -159,4 +159,45 @@ describe('Integração: Rota GET /friends/:id/compare (SPEC-006)', () => {
     expect(body.affinity.label).toBe('Frequência Harmônica');
     expect(body.friend.username).toBe('viajante_parceiro');
   });
+
+  it('deve repassar domainFilter quando fornecido como query param (?domain=game)', async () => {
+    vi.mocked(prisma.friendship.findFirst).mockResolvedValue({
+      id: 13,
+      requesterId: '00000000-0000-0000-0000-000000000001',
+      addresseeId: '00000000-0000-0000-0000-000000000002',
+      status: 'accepted',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    vi.mocked(comparisonService.compareUserLibraries).mockResolvedValue({
+      friend: {
+        id: '00000000-0000-0000-0000-000000000002',
+        username: 'viajante_parceiro',
+        avatarUrl: null,
+        friendCode: 'AK-9999-8888',
+      },
+      affinity: {
+        percentage: 95,
+        label: 'Almas Cósmicas',
+        totalShared: 5,
+        totalOverlapRated: 3,
+      },
+      watchTogether: [],
+      ratedOverlap: [],
+      friendRecommendations: [],
+    });
+
+    const res = await fastify.inject({
+      method: 'GET',
+      url: '/friends/00000000-0000-0000-0000-000000000002/compare?domain=game',
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(comparisonService.compareUserLibraries).toHaveBeenCalledWith(
+      '00000000-0000-0000-0000-000000000001',
+      '00000000-0000-0000-0000-000000000002',
+      'game'
+    );
+  });
 });
