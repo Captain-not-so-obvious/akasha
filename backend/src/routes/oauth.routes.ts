@@ -31,11 +31,16 @@ interface TokenBody {
   code_verifier?: string;
 }
 
+interface AuthenticatedOAuthUser {
+  id: string;
+  email?: string | null;
+}
+
 /**
  * Identifica com segurança o usuário autenticado via cookies HttpOnly ou Bearer token Supabase.
  * Previne falsificação de identidade (LGPD Art. 46).
  */
-async function resolveAuthenticatedUser(request: FastifyRequest): Promise<{ id: string; email?: string } | null> {
+async function resolveAuthenticatedUser(request: FastifyRequest): Promise<AuthenticatedOAuthUser | null> {
   const candidateTokens: string[] = [];
 
   if (request.headers.authorization?.startsWith('Bearer ')) {
@@ -104,7 +109,7 @@ function renderAuthorizeHtml(params: {
   codeChallenge?: string;
   codeChallengeMethod?: string;
   scope?: string;
-  user: { id: string; email?: string } | null;
+  user: AuthenticatedOAuthUser | null;
   error?: string;
   frontendUrl: string;
 }): string {
