@@ -1,47 +1,63 @@
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { createMcpServer, AKASHA_MCP_TOOLS, executeAkashaMcpTool } from '../mcp/mcp-server.js';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../lib/prisma.js';
+import { verifyMcpToken } from '../lib/mcpToken.js';
 
 // Mapa para armazenar os transportes ativos e dados de sessão SSE
 const transports = new Map<string, { transport: SSEServerTransport; userId: string }>();
 
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || 'akasha-mcp-jwt-secret-2026-v1';
+interface McpQuery {
+  token?: string;
+  access_token?: string;
+  sessionId?: string;
+}
 
-// Helper para autenticar o token Bearer ou query param
-async function authenticateMcpUser(request: any): Promise<string | null> {
-  let token = (request.query as any)?.token || (request.query as any)?.access_token;
+interface JsonRpcRequest {
+  jsonrpc?: string;
+  id?: string | number | null;
+  method?: string;
+  params?: {
+    name?: string;
+    arguments?: Record<string, unknown>;
+  };
+}
+
+/**
+ * Autentica o usuário de forma criptograficamente segura:
+ * 1. Tenta validar como token MCP assinado (McpGrant ativo)
+ * 2. Fallback: Tenta validar como Supabase JWT emitido para a aplicação
+ * 3. Fallback: Consulta remota ao Supabase Auth
+ * NUNCA aceita tokens sem validação de assinatura (LGPD Art. 46).
+ */
+export async function authenticateMcpUser(request: FastifyRequest): Promise<string | null> {
+  const query = request.query as McpQuery | undefined;
+  let token = query?.token?.trim() || query?.access_token?.trim();
 
   if (!token && request.headers.authorization?.startsWith('Bearer ')) {
-    token = request.headers.authorization.split(' ')[1].trim();
+    token = request.headers.authorization.split(' ')[1]?.trim();
   }
 
   if (!token) return null;
 
-  // 1. Tenta verificar via JWT usando JWT_SECRET
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { sub: string };
-    if (decoded?.sub) return decoded.sub;
-  } catch {}
+  // 1. Validar como token MCP criptograficamente assinado com McpGrant ativo
+  const mcpUserId = await verifyMcpToken(token);
+  if (mcpUserId) {
+    return mcpUserId;
+  }
 
-const isUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
-
-  // 2. Tenta decodificar se for token do tipo oauth_mcp emitido pelo Akasha
-  try {
-    const decoded = jwt.decode(token) as { sub: string; type?: string };
-    if (decoded?.sub && decoded?.type === 'oauth_mcp') {
-      if (isUuid(decoded.sub)) {
-        const profile = await prisma.profile.findUnique({ where: { id: decoded.sub } });
-        if (profile) return profile.id;
-      } else {
-        const profile = await prisma.profile.findFirst({ where: { username: decoded.sub } });
-        if (profile) return profile.id;
-      }
+  // 2. Validar token de sessão do Supabase (quando chamado diretamente pelo frontend)
+  const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
+  if (supabaseJwtSecret) {
+    try {
+      const decoded = jwt.verify(token, supabaseJwtSecret) as { sub?: string };
+      if (decoded?.sub) return decoded.sub;
+    } catch {
+      // Continua para o fallback do Supabase Auth
     }
-  } catch {}
+  }
 
-  // 3. Fallback: Tenta autenticar na API do Supabase Auth
+  // 3. Fallback remoto ao Supabase Auth
   const supabaseUrl = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
 
@@ -56,17 +72,18 @@ const isUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9
       });
 
       if (res.ok) {
-        const user = await res.json();
+        const user = (await res.json()) as { id?: string };
         if (user?.id) return user.id;
       }
-    } catch {}
+    } catch {
+      // Ignora falha de rede e rejeita
+    }
   }
 
   return null;
 }
 
 export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
-  
   // GET /mcp — Retorna status e metadados básicos do servidor MCP
   fastify.get('/', async (request, reply) => {
     const protocol = request.headers['x-forwarded-proto'] || request.protocol;
@@ -78,27 +95,27 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
       version: '1.0.0',
       protocolVersion: '2024-11-05',
       capabilities: {
-        tools: {}
+        tools: {},
       },
       sse_endpoint: `${baseUrl}/mcp/sse`,
     });
   });
 
-  // POST /mcp — Endpoint HTTP JSON-RPC 2.0 direto (Arquitetura SmartBolsa / Google Spark)
+  // POST /mcp — Endpoint HTTP JSON-RPC 2.0 direto
   fastify.post('/', async (request, reply) => {
-    const body = request.body as any;
+    const body = request.body as JsonRpcRequest | undefined;
 
     if (!body || typeof body !== 'object') {
       return reply.status(400).send({
-        error: { code: -32700, message: 'Parse error / JSON inválido' }
+        error: { code: -32700, message: 'Parse error / JSON inválido' },
       });
     }
 
     const method = body.method;
     const params = body.params || {};
-    const reqId = body.id;
+    const reqId = body.id ?? null;
 
-    // 1. Handshake / Initialize (pode ocorrer antes da autenticação)
+    // 1. Handshake / Initialize (RFC MCP)
     if (method === 'initialize') {
       return reply.send({
         jsonrpc: '2.0',
@@ -106,13 +123,13 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
         result: {
           protocolVersion: '2024-11-05',
           capabilities: {
-            tools: {}
+            tools: {},
           },
           serverInfo: {
             name: 'Akasha MCP Server',
-            version: '1.0.0'
-          }
-        }
+            version: '1.0.0',
+          },
+        },
       });
     }
 
@@ -137,11 +154,10 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
         id: reqId,
         error: {
           code: -32001,
-          message: 'Não autorizado. Forneça um token válido no cabeçalho Authorization: Bearer <token>'
-        }
+          message: 'Não autorizado. Forneça um token válido no cabeçalho Authorization: Bearer <token>',
+        },
       });
     }
-
 
     // 3. Listar Ferramentas
     if (method === 'tools/list' || method === 'tools/list_tools') {
@@ -149,8 +165,8 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
         jsonrpc: '2.0',
         id: reqId,
         result: {
-          tools: AKASHA_MCP_TOOLS
-        }
+          tools: AKASHA_MCP_TOOLS,
+        },
       });
     }
 
@@ -158,6 +174,14 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
     if (method === 'tools/call' || method === 'tools/execute') {
       const toolName = params.name;
       const args = params.arguments || {};
+
+      if (!toolName) {
+        return reply.status(400).send({
+          jsonrpc: '2.0',
+          id: reqId,
+          error: { code: -32602, message: 'Parâmetro params.name é obrigatório.' },
+        });
+      }
 
       try {
         const result = await executeAkashaMcpTool(toolName, args, userId);
@@ -168,19 +192,20 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
             content: [
               {
                 type: 'text',
-                text: typeof result === 'string' ? result : JSON.stringify(result, null, 2)
-              }
-            ]
-          }
+                text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+              },
+            ],
+          },
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
         return reply.send({
           jsonrpc: '2.0',
           id: reqId,
           error: {
             code: -32603,
-            message: `Erro interno ao executar ferramenta: ${err.message}`
-          }
+            message: `Erro interno ao executar ferramenta: ${message}`,
+          },
         });
       }
     }
@@ -190,30 +215,43 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
       id: reqId,
       error: {
         code: -32601,
-        message: `Método '${method}' desconhecido.`
-      }
+        message: `Método '${method}' desconhecido.`,
+      },
     });
   });
 
-  // GET /mcp/sse — Permite o handshake inicial de conexão SSE do protocolo MCP
+  // GET /mcp/sse — Handshake de conexão SSE
   fastify.get('/sse', async (request, reply) => {
-    const userId = (await authenticateMcpUser(request)) || 'guest';
+    const userId = await authenticateMcpUser(request);
 
+    // LGPD Art. 46: Proibido conectar como 'guest' e expor dados ou criar sessões fantasmas
+    if (!userId) {
+      const protocol = request.headers['x-forwarded-proto'] || request.protocol;
+      const host = request.headers.host || 'akasha-backend.onrender.com';
+      const baseUrl = `${protocol}://${host}`;
+
+      reply.header(
+        'WWW-Authenticate',
+        `Bearer realm="akasha", resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`
+      );
+
+      return reply.status(401).send({ error: 'Token de autenticação ausente ou inválido para conexão SSE.' });
+    }
 
     reply.hijack();
-    reply.raw.setHeader('Access-Control-Allow-Origin', '*');
 
     const protocol = request.headers['x-forwarded-proto'] || request.protocol;
     const host = request.headers.host || 'akasha-backend.onrender.com';
     const baseUrl = `${protocol}://${host}`;
 
-    const token = (request.query as any)?.token || (request.query as any)?.access_token;
-    const messageEndpoint = token 
-      ? `${baseUrl}/mcp/message?token=${token}`
+    const query = request.query as McpQuery | undefined;
+    const token = query?.token?.trim() || query?.access_token?.trim();
+    const messageEndpoint = token
+      ? `${baseUrl}/mcp/message?token=${encodeURIComponent(token)}`
       : `${baseUrl}/mcp/message`;
-      
+
     const transport = new SSEServerTransport(messageEndpoint, reply.raw);
-    
+
     transports.set(transport.sessionId, { transport, userId });
 
     const server = createMcpServer(userId);
@@ -227,23 +265,19 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /mcp/message — Recebe as mensagens JSON-RPC do MCP para sessões SSE
   fastify.post('/message', async (request, reply) => {
-    const sessionId = (request.query as { sessionId?: string }).sessionId;
+    const query = request.query as McpQuery | undefined;
+    const sessionId = query?.sessionId?.trim();
 
     if (!sessionId) {
-      reply.status(400).send({ error: 'sessionId é obrigatório' });
-      return;
+      return reply.status(400).send({ error: 'sessionId é obrigatório' });
     }
 
     const sessionData = transports.get(sessionId);
     if (!sessionData) {
-      reply.status(404).send({ error: 'Sessão MCP não encontrada' });
-      return;
+      return reply.status(404).send({ error: 'Sessão MCP não encontrada' });
     }
 
     await sessionData.transport.handlePostMessage(request.raw, reply.raw, request.body);
     reply.hijack();
   });
 };
-
-
-

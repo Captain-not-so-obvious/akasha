@@ -10,7 +10,8 @@
 > 📄 **Especificação Técnica Separação entre Recomendação (ML) e Sinopse:** [`specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md`](specs/SPEC-014-separation-of-recommendation-reason-and-synopsis.md)  
 > 📄 **Especificação Técnica Módulo de Quadrinhos & Mangás (Sagas & Volumes):** [`specs/SPEC-015-comics-and-manga-module.md`](specs/SPEC-015-comics-and-manga-module.md)  
 > 📄 **Especificação Técnica Motor Inteligente de Recomendações de Quadrinhos & Mangás:** [`specs/SPEC-016-enhanced-comic-recommendation-engine.md`](specs/SPEC-016-enhanced-comic-recommendation-engine.md)  
-> 📄 **Especificação Técnica Motor Transmídia, Dashboard do Grande Acervo e MCP Universal:** [`specs/SPEC-017-transmedia-engine-and-grand-archive-dashboard.md`](specs/SPEC-017-transmedia-engine-and-grand-archive-dashboard.md)
+> 📄 **Especificação Técnica Motor Transmídia, Dashboard do Grande Acervo e MCP Universal:** [`specs/SPEC-017-transmedia-engine-and-grand-archive-dashboard.md`](specs/SPEC-017-transmedia-engine-and-grand-archive-dashboard.md)  
+> 📄 **Especificação Técnica Conformidade LGPD & Governança:** [`specs/SPEC-020-lgpd-compliance.md`](specs/SPEC-020-lgpd-compliance.md)
 
 ## 1. Visão Geral da Arquitetura
 
@@ -723,3 +724,25 @@ cp .env.example .env
 npm install
 npm run dev  # App rodando em http://localhost:5173
 ```
+
+---
+
+## 10. Arquitetura de Conformidade LGPD & Criptografia MCP
+
+> 📄 **Especificação Técnica:** [`specs/SPEC-020-lgpd-compliance.md`](specs/SPEC-020-lgpd-compliance.md)
+
+### 10.1 Módulos de Segurança e Direitos do Titular (Backend)
+* **Assinatura e Validação de Tokens MCP (`src/lib/mcpToken.ts`):** Elimina uso de `jwt.decode` sem assinatura. Assina tokens com algoritmo `HS256`, valida `jwtid` atrelado a registros ativos em `McpGrant` com expiração de 30 dias e revogabilidade imediata.
+* **Validação de OAuth & PKCE (`src/lib/oauthValidator.ts`):** Validação estrita de `redirect_uri` contra allowlist configurável (`MCP_ALLOWED_REDIRECT_URIS`) e verificação de `code_challenge` S256 para prevenir interceptação de códigos.
+* **Serviço de Direitos do Titular (`src/services/privacy.service.ts`):**
+  - `exportUserData(userId)`: Consolida dados do titular em JSON estruturado para portabilidade (Art. 18, II e V).
+  - `deleteUserAccount(userId)`: Executa eliminação definitiva (*Hard Delete*) em cascata de todas as entidades associadas (Art. 18, VI).
+  - `revokeUserMcpConnection(userId, grantId)`: Revoga imediatamente concessões ativas do MCP.
+  - `recordConsent(...)` e `getPendingConsents(...)`: Rastreamento auditável de versões aceitas de Termos e Política.
+* **Rotas de Privacidade (`src/routes/privacy.routes.ts`):** Endpoints `/privacy/export`, `/privacy/account`, `/privacy/connections`, `/privacy/settings` e `/privacy/consent`.
+* **Expurgo Automatizado (`src/services/retention.service.ts`):** Agendamento diário para expurgo de códigos OAuth expirados (>24h), notificações antigas (>90d) e tokens revogados (>30d).
+
+### 10.2 Experiência do Titular e Acessibilidade (Frontend)
+* **`ConsentGate.tsx`:** Modal bloqueante que valida pendências de consentimento e exige aceite explícito antes de conceder acesso à interface.
+* **`PrivacySettingsPanel.tsx`:** Painel no perfil para controle de visibilidade (público entre amigos vs privado), busca por e-mail, revogação de agentes MCP, download do dump JSON e exclusão da conta (com proteção de foco para Android TV D-Pad).
+* **Páginas Legais:** `/privacidade` e `/termos` com termos vigentes, identificação do controlador (Fillipe Moreira) e salvaguardas de transferência internacional (Oregon, EUA via Art. 33, IX da LGPD).

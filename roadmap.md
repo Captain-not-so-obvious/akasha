@@ -243,7 +243,8 @@
 | 10.2 | **Dashboard do Grande Acervo:** Métricas consolidadas de consumo cultural (horas de tela, jogos, páginas, volumes e Índice de Amplitude Akasha) | 🟡 | Fases 7, 8, 9 | **Done** |
 | 10.3 | **Tools MCP Fastify Universais:** Atualização para aceitar parâmetro `domain` e novas rotas analíticas | 🟡 | Fase 6 | **Done** |
 | 10.4 | **Testes de Integração e Ponta a Ponta:** Cobertura completa no backend (221 testes) e frontend (203 testes) | 🔴 | 10.1–10.3 | **Done** |
-| 10.5 | **Integração de Avaliação e Sincronização de Biblioteca nos Modais do Grande Acervo:** Abertura do `RatingModal` ao concluir obras sugeridas ("Já Assisti", "Já Zerei", "Já Li"), sincronização em tempo real com `useWishlist` e ciclo completo de gerenciamento ([`SPEC-019`](specs/SPEC-019-grand-archive-modal-rating-and-library-integration.md)) | 🟡 | 10.1, 10.2 | **Done** |
+| 10.5 | **Integração de Avaliação e Sincronização de Biblioteca nos Modais do Grande Acervo:** Abertura do `RatingModal` ao concluir obras sugeridas ("Já Assisti", "Já Zerei", "Já Li"), sincronização em tempo real com `useWishlist` e ciclo completo de gerenciamento ([`SPEC-019`](specs/SPEC-019-grand-archive-modal-rating-and-library-integration.md)) |
+ 🟡 | 10.1, 10.2 | **Done** |
 
 ---
 
@@ -258,5 +259,22 @@
 | 11.3 | **Seletor de Módulos & Badges Temáticos:** Interface `ComparisonView` com filtros para Cinema/TV, Jogos, Livros e Quadrinhos | 🟡 | 11.2 | **Done** |
 | 11.4 | **Ações Semânticas Contextuais:** Botões rápidos de adição ao backlog com verbos por mídia ("+ Quero Jogar", "+ Quero Ler", "+ Quero Assistir") integrados ao `POST /wishlist` polimórfico | 🟢 | 11.3 | **Done** |
 | 11.5 | **Cobertura de Testes Automatizados:** Testes unitários e de integração no backend (225 testes) e frontend (204 testes) com Vitest | 🔴 | 11.1–11.4 | **Done** |
+
+---
+
+## FASE 12 — Conformidade com a LGPD e Segurança de Dados (100% Concluída)
+> 📄 **Spec:** [`specs/SPEC-020-lgpd-compliance.md`](specs/SPEC-020-lgpd-compliance.md)  
+**Objetivo:** Implementação abrangente das diretrizes da Lei Geral de Proteção de Dados (Lei nº 13.709/2018), blindagem criptográfica do protocolo MCP/OAuth 2.0, exercício autônomo dos direitos do titular (Art. 18), governança de retenção de dados e conformidade para transferência internacional (Art. 33, IX).
+
+| # | Feature | Complexidade | Dependência | Status |
+|---|---|---|---|---|
+| 12.1 | **Segurança Criptográfica MCP & OAuth:** Assinatura HS256 atrelada a `McpGrant` ativo no banco, eliminação de decodificação insegura (`jwt.decode`), proteção contra open-redirect via allowlist estrita, PKCE S256 e sanitização de logs | 🔴 | Fase 2, 10 | **Done** |
+| 12.2 | **Extensão do Esquema de Dados (Prisma & Supabase):** Modelos `McpGrant` e `ConsentRecord`, campos de privacidade em `Profile` (`activity_visibility`, `discoverable_by_email`) e parâmetros PKCE em `OAuthCode` | 🟡 | Fase 1 | **Done** |
+| 12.3 | **Direitos do Titular (Art. 18 LGPD):** Endpoints Fastify para portabilidade JSON (`/privacy/export`), exclusão definitiva imediata em cascata (`/privacy/account`), revogação de acessos de IA e versionamento de termos/política | 🔴 | 12.1, 12.2 | **Done** |
+| 12.4 | **Minimização de Dados & Privacy by Default:** Feed social e notificações filtradas para perfis com visibilidade privada; busca social por e-mail condicionada a consentimento explícito (`discoverableByEmail = true`) | 🟡 | Fase 5 | **Done** |
+| 12.5 | **Governança, Retenção & Documentação:** Serviço de expurgo automático de dados efêmeros (`retention.service.ts`), Registro de Operações (ROPA - Art. 37) e Procedimento de Resposta a Incidentes (Art. 48) | 🟡 | 12.2 | **Done** |
+| 12.6 | **Interface e Experiência do Titular (Frontend):** Modal bloqueante de consentimento (`ConsentGate`), painel de privacidade no Perfil (`PrivacySettingsPanel`), páginas `/privacidade` e `/termos`, links no Login e foco seguro para controle remoto Android TV (D-Pad) | 🔴 | 12.3 | **Done** |
+| 12.7 | **Cobertura de Testes Automatizados:** Suíte de testes atualizada e validada com 253 testes no backend e 220 testes no frontend (100% passando com Vitest) | 🔴 | 12.1–12.6 | **Done** |
+
 
 

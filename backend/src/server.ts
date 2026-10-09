@@ -14,6 +14,9 @@ import { gamesRoutes } from './routes/games.routes.js';
 import { booksRoutes } from './routes/books.routes.js';
 import { comicsRoutes } from './routes/comics.routes.js';
 import { transmediaRoutes } from './routes/transmedia.routes.js';
+import { privacyRoutes } from './routes/privacy.routes.js';
+import { stripSensitiveQuery } from './lib/sanitizeUrl.js';
+import { initRetentionSchedule } from './services/retention.service.js';
 import cookie from '@fastify/cookie';
 
 const fastify = Fastify({
@@ -22,6 +25,22 @@ const fastify = Fastify({
       process.env.NODE_ENV === 'development'
         ? { target: 'pino-pretty', options: { colorize: true } }
         : undefined,
+    redact: [
+      'req.headers.authorization',
+      'req.headers.cookie',
+      'res.headers["set-cookie"]',
+      'req.headers["x-api-key"]',
+    ],
+    serializers: {
+      req(req) {
+        return {
+          method: req.method,
+          url: stripSensitiveQuery(req.url),
+          hostname: req.hostname,
+          remoteAddress: req.ip,
+        };
+      },
+    },
   },
 });
 
@@ -63,11 +82,40 @@ fastify.addContentTypeParser(
 // Registrar plugin de cookie
 await fastify.register(cookie);
 
-// CORS: Permite origin dinâmico para integrações MCP (Gemini, Claude, web app local, etc.)
+// CORS Seguro (LGPD Art. 46):
+// Restringe cookies e credenciais às origens permitidas (Vercel, localhost e CORS_ALLOWED_ORIGINS)
+const allowedOrigins = (
+  process.env.CORS_ALLOWED_ORIGINS ||
+  process.env.FRONTEND_URL ||
+  'http://localhost:5173'
+)
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 await fastify.register(cors, {
-  origin: true,
+  origin: (origin, cb) => {
+    // Permite chamadas sem header origin (como ferramentas MCP locais, curl, apps server-to-server)
+    if (!origin) {
+      return cb(null, true);
+    }
+    // Em desenvolvimento, permite origens localhost
+    if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost:')) {
+      return cb(null, true);
+    }
+    const isAllowed = allowedOrigins.includes(origin);
+    cb(null, isAllowed);
+  },
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Mcp-Version', 'Mcp-Session-Id', 'Last-Event-ID'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'Accept',
+    'X-Requested-With',
+    'Mcp-Version',
+    'Mcp-Session-Id',
+    'Last-Event-ID',
+  ],
   credentials: true,
 });
 
@@ -86,6 +134,7 @@ await fastify.register(gamesRoutes, { prefix: '/games' });
 await fastify.register(booksRoutes, { prefix: '/books' });
 await fastify.register(comicsRoutes, { prefix: '/comics' });
 await fastify.register(transmediaRoutes, { prefix: '/transmedia' });
+await fastify.register(privacyRoutes, { prefix: '/privacy' });
 
 // Helper para obter a URL base dinâmica
 const getBaseUrl = (request: FastifyRequest) => {
@@ -191,6 +240,7 @@ const PORT = Number(process.env.PORT) || 3000;
 
 try {
   await fastify.listen({ port: PORT, host: '0.0.0.0' });
+  initRetentionSchedule(fastify.log);
 } catch (err) {
   fastify.log.error(err);
   process.exit(1);

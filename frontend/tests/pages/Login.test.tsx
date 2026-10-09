@@ -14,13 +14,13 @@ describe('Componente de Login', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useAuth as any).mockReturnValue({
+    (useAuth as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       user: null,
       signInWithGoogle: mockSignInWithGoogle,
     });
   });
 
-  it('deve renderizar a logo do Akasha e o botão de autenticação do Google', () => {
+  it('deve renderizar a logo do Akasha, o botão de autenticação e os links de Termos e Privacidade', () => {
     render(
       <MemoryRouter>
         <Login />
@@ -29,6 +29,8 @@ describe('Componente de Login', () => {
     
     expect(screen.getByText('AKASHA')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /entrar com o google/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /termos de uso/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /política de privacidade/i })).toBeInTheDocument();
   });
 
   it('deve chamar signInWithGoogle ao clicar no botão de autenticação', () => {

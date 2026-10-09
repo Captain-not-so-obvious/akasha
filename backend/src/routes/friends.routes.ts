@@ -38,7 +38,10 @@ export const friendsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
     const targetProfile = await prisma.profile.findFirst({
       where: {
         OR: [
-          { email: { equals: rawTarget, mode: 'insensitive' } },
+          {
+            email: { equals: rawTarget, mode: 'insensitive' },
+            discoverableByEmail: true,
+          },
           { username: { equals: cleanHandle, mode: 'insensitive' } },
           { friendCode: { equals: normalizedCode, mode: 'insensitive' } },
           { friendCode: { equals: rawTarget, mode: 'insensitive' } },

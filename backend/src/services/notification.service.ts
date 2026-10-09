@@ -120,11 +120,17 @@ export async function notifyFriendsOnRating(
   title?: string | null,
   posterPath?: string | null
 ) {
-  // 1. Obter perfil do autor para exibir o nome de usuário amigável
+  // 1. Obter perfil do autor para exibir o nome de usuário amigável e checar visibilidade
   const authorProfile = await prisma.profile.findUnique({
     where: { id: authorUserId },
-    select: { username: true, avatarUrl: true },
+    select: { username: true, avatarUrl: true, activityVisibility: true },
   });
+
+  // Privacidade por design: se o autor definiu visibilidade privada, não notifica a rede
+  if (authorProfile?.activityVisibility === 'private') {
+    return [];
+  }
+
   const authorName = authorProfile?.username || 'Um amigo';
 
   // 2. Localizar amigos confirmados (status = accepted)

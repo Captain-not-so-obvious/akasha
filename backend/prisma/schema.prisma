@@ -17,18 +17,27 @@ enum FriendshipStatus {
   blocked
 }
 
+enum ActivityVisibility {
+  friends
+  private
+}
+
 model Profile {
-  id                  String       @id @db.Uuid
-  email               String?      @unique
-  username            String?      @unique
-  avatarUrl           String?      @map("avatar_url")
-  friendCode          String?      @unique @map("friend_code")
-  updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at")
+  id                  String             @id @db.Uuid
+  email               String?            @unique
+  username            String?            @unique
+  avatarUrl           String?            @map("avatar_url")
+  friendCode          String?            @unique @map("friend_code")
+  activityVisibility  ActivityVisibility @default(friends) @map("activity_visibility")
+  discoverableByEmail Boolean            @default(false)   @map("discoverable_by_email")
+  updatedAt           DateTime           @default(now()) @updatedAt @map("updated_at")
   wishlists           Wishlist[]
   oauthCodes          OAuthCode[]
+  mcpGrants           McpGrant[]
+  consentRecords      ConsentRecord[]
   activities          Activity[]
-  sentFriendships     Friendship[] @relation("SentFriendships")
-  receivedFriendships Friendship[] @relation("ReceivedFriendships")
+  sentFriendships     Friendship[]       @relation("SentFriendships")
+  receivedFriendships Friendship[]       @relation("ReceivedFriendships")
   notifications       Notification[]
   pushSubscriptions   PushSubscription[]
 
@@ -53,18 +62,48 @@ model Friendship {
 }
 
 model OAuthCode {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  userId      String   @db.Uuid @map("user_id")
-  clientId    String   @map("client_id")
-  redirectUri String   @map("redirect_uri")
-  expiresAt   DateTime @map("expires_at")
-  used        Boolean  @default(false)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  code          String   @unique
+  userId        String   @db.Uuid @map("user_id")
+  clientId      String   @map("client_id")
+  redirectUri   String   @map("redirect_uri")
+  codeChallenge String?  @map("code_challenge")
+  scope         String   @default("mcp:read mcp:write")
+  expiresAt     DateTime @map("expires_at")
+  used          Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at")
 
-  profile     Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile       Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("oauth_codes")
+}
+
+model McpGrant {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id") @db.Uuid
+  clientId   String    @map("client_id")
+  scope      String    @default("mcp:read mcp:write")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  revokedAt  DateTime? @map("revoked_at")
+
+  profile    Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@map("mcp_grants")
+}
+
+model ConsentRecord {
+  id         Int      @id @default(autoincrement())
+  userId     String   @map("user_id") @db.Uuid
+  document   String   // 'terms' | 'privacy'
+  version    String   // ex: '2026-10-01'
+  acceptedAt DateTime @default(now()) @map("accepted_at")
+
+  profile    Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, document])
+  @@map("consent_records")
 }
 
 enum DomainType {

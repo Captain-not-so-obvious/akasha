@@ -3,6 +3,9 @@ import { AuthProvider } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
 import { OAuthAuthorize } from './pages/OAuthAuthorize';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { TermsOfUse } from './pages/TermsOfUse';
+import { ConsentGate } from './components/privacy/ConsentGate';
 import { SearchPage } from './pages/Search';
 import { Library } from './pages/Library';
 import { Profile } from './pages/Profile';
@@ -51,77 +54,35 @@ function OAuthRedirectGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function ProtectedLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <ConsentGate>
+        <Layout>{children}</Layout>
+      </ConsentGate>
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <OAuthRedirectGuard>
         <BrowserRouter>
           <Routes>
-            {/* Rotas Públicas de Autenticação & Autorização OAuth */}
+            {/* Rotas Públicas de Autenticação, Autorização e Conformidade Legal */}
             <Route path="/login" element={<Login />} />
             <Route path="/oauth/authorize" element={<OAuthAuthorize />} />
+            <Route path="/privacidade" element={<PrivacyPolicy />} />
+            <Route path="/termos" element={<TermsOfUse />} />
 
             {/* Rotas Privadas/Protegidas */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Library />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/library"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Library />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Profile />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/search"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <SearchPage />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/transmedia"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <TransmediaPage />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/social"
-              element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Social />
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/" element={<ProtectedLayout><Library /></ProtectedLayout>} />
+            <Route path="/library" element={<ProtectedLayout><Library /></ProtectedLayout>} />
+            <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
+            <Route path="/search" element={<ProtectedLayout><SearchPage /></ProtectedLayout>} />
+            <Route path="/transmedia" element={<ProtectedLayout><TransmediaPage /></ProtectedLayout>} />
+            <Route path="/social" element={<ProtectedLayout><Social /></ProtectedLayout>} />
           </Routes>
         </BrowserRouter>
       </OAuthRedirectGuard>

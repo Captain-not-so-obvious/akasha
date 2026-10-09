@@ -21,6 +21,7 @@ import {
   Camera,
 } from 'lucide-react';
 import { AvatarPickerModal } from '../components/profile/AvatarPickerModal';
+import { PrivacySettingsPanel } from '../components/privacy/PrivacySettingsPanel';
 
 export const Profile: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -314,6 +315,9 @@ export const Profile: React.FC = () => {
           </button>
         </div>
       </GlassPanel>
+
+      {/* Painel de Governança, Preferências e Direitos do Titular LGPD */}
+      <PrivacySettingsPanel />
 
       <AvatarPickerModal
         isOpen={isAvatarModalOpen}

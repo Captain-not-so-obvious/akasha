@@ -1,104 +1,163 @@
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../lib/prisma.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
+import { escapeHtml, isAllowedRedirectUri, verifyCodeChallenge } from '../lib/oauthValidator.js';
+import { signMcpToken, verifyMcpToken } from '../lib/mcpToken.js';
 
-export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
-  
-  // RFC 8414 - OAuth 2.0 Authorization Server Metadata
-  fastify.get('/metadata', async (request, reply) => {
-    const protocol = request.headers['x-forwarded-proto'] || request.protocol;
-    const host = request.headers.host;
-    const baseUrl = `${protocol}://${host}`;
-    return reply.send({
-      issuer: baseUrl,
-      authorization_endpoint: `${baseUrl}/oauth/authorize`,
-      token_endpoint: `${baseUrl}/oauth/token`,
-      response_types_supported: ['code'],
-      grant_types_supported: ['authorization_code'],
-      code_challenge_methods_supported: ['S256', 'plain'],
-      token_endpoint_auth_methods_supported: ['none', 'client_secret_basic', 'client_secret_post'],
-      scopes_supported: ['mcp:read', 'mcp:write'],
-    });
-  });
+interface AuthorizeQuery {
+  client_id?: string;
+  redirect_uri?: string;
+  state?: string;
+  code_challenge?: string;
+  code_challenge_method?: string;
+  scope?: string;
+}
 
-  // RFC 9700 - OAuth Protected Resource Metadata
-  fastify.get('/resource-metadata', async (request, reply) => {
-    const protocol = request.headers['x-forwarded-proto'] || request.protocol;
-    const host = request.headers.host;
-    const baseUrl = `${protocol}://${host}`;
-    return reply.send({
-      resource: `${baseUrl}/mcp`,
-      authorization_servers: [baseUrl],
-      scopes_supported: ['mcp:read', 'mcp:write']
-    });
-  });
+interface AuthorizeBody {
+  client_id?: string;
+  redirect_uri?: string;
+  state?: string;
+  code_challenge?: string;
+  code_challenge_method?: string;
+  scope?: string;
+}
 
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET || 'akasha-mcp-jwt-secret-2026-v1';
-const isUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str);
+interface TokenBody {
+  grant_type?: string;
+  code?: string;
+  redirect_uri?: string;
+  client_id?: string;
+  code_verifier?: string;
+}
 
-  // Helper para identificar usuário logado via cookie / header / query token
-  async function resolveUserId(request: any): Promise<string | null> {
-    let token = (request.query as any)?.token || (request.query as any)?.access_token || request.cookies?.access_token;
-    if (!token && request.headers.authorization?.startsWith('Bearer ')) {
-      token = request.headers.authorization.split(' ')[1].trim();
+/**
+ * Identifica com segurança o usuário autenticado via cookies HttpOnly ou Bearer token Supabase.
+ * Previne falsificação de identidade (LGPD Art. 46).
+ */
+async function resolveAuthenticatedUser(request: FastifyRequest): Promise<{ id: string; email?: string } | null> {
+  const candidateTokens: string[] = [];
+
+  if (request.headers.authorization?.startsWith('Bearer ')) {
+    const bearer = request.headers.authorization.split(' ')[1]?.trim();
+    if (bearer) candidateTokens.push(bearer);
+  }
+
+  if (request.cookies?.access_token) {
+    const cookieToken = request.cookies.access_token.trim();
+    if (cookieToken && !candidateTokens.includes(cookieToken)) {
+      candidateTokens.push(cookieToken);
+    }
+  }
+
+  if (candidateTokens.length === 0) return null;
+
+  const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET;
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+
+  for (const token of candidateTokens) {
+    // 1. Tenta verificar token MCP existente
+    const mcpUserId = await verifyMcpToken(token);
+    if (mcpUserId) {
+      const profile = await prisma.profile.findUnique({
+        where: { id: mcpUserId },
+        select: { id: true, email: true },
+      });
+      if (profile) return profile;
     }
 
-    if (!token) return null;
-
-    // 1. Tenta verificar via JWT usando JWT_SECRET
-    try {
-      const payload = jwt.verify(token, JWT_SECRET) as { sub: string };
-      if (payload?.sub) return payload.sub;
-    } catch {}
-
-    // 2. Tenta decodificar se for token do tipo oauth_mcp emitido pelo Akasha
-    try {
-      const payload = jwt.decode(token) as { sub: string; type?: string };
-      if (payload?.sub && payload?.type === 'oauth_mcp') {
-        if (isUuid(payload.sub)) {
-          const profile = await prisma.profile.findUnique({ where: { id: payload.sub } });
-          if (profile) return profile.id;
-        } else {
-          const profile = await prisma.profile.findFirst({ where: { username: payload.sub } });
-          if (profile) return profile.id;
-        }
-      }
-    } catch {}
-
-    // 3. Fallback: Tenta autenticar na API do Supabase Auth
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const anonKey = process.env.SUPABASE_ANON_KEY;
-    if (supabaseUrl && anonKey) {
+    // 2. Tenta verificar como token JWT do Supabase
+    if (supabaseJwtSecret) {
       try {
-        const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
-          headers: { Authorization: `Bearer ${token}`, apikey: anonKey }
-        });
-        if (res.ok) {
-          const u = await res.json();
-          if (u?.id) return u.id;
+        const decoded = jwt.verify(token, supabaseJwtSecret) as { sub?: string; email?: string };
+        if (decoded?.sub) {
+          return { id: decoded.sub, email: decoded.email };
         }
       } catch {}
     }
 
-    return null;
+    // 3. Fallback para verificação remota no Supabase Auth
+    if (supabaseUrl && anonKey) {
+      try {
+        const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          headers: { Authorization: `Bearer ${token}`, apikey: anonKey },
+        });
+        if (res.ok) {
+          const u = (await res.json()) as { id?: string; email?: string };
+          if (u?.id) return { id: u.id, email: u.email };
+        }
+      } catch {}
+    }
   }
 
-  // Renderiza a página HTML Server-Side de Autorização (Arquitetura SmartBolsa / RFC 6749)
-  function renderAuthorizeHtml(clientId: string, redirectUri: string, state: string, userId: string | null, error?: string): string {
-    const userBadgeHtml = userId
-      ? `<div class="user-badge"><div><div class="user-info">${userId}</div><span class="user-auth-type">Conta Autenticada</span></div></div>`
-      : '';
+  return null;
+}
 
-    const errorAlertHtml = error
-      ? `<div class="alert">${error}</div>`
-      : '';
+/**
+ * Renderiza página HTML Server-Side de Autorização com proteção XSS (escapeHtml).
+ */
+function renderAuthorizeHtml(params: {
+  clientId: string;
+  redirectUri: string;
+  state: string;
+  codeChallenge?: string;
+  codeChallengeMethod?: string;
+  scope?: string;
+  user: { id: string; email?: string } | null;
+  error?: string;
+  frontendUrl: string;
+}): string {
+  const { clientId, redirectUri, state, codeChallenge, codeChallengeMethod, scope, user, error, frontendUrl } = params;
 
-    const inputEmailHtml = !userId
-      ? `<div class="input-group"><label>E-mail ou ID do Usuário Akasha</label><input type="text" name="username" required placeholder="seu.email@gmail.com"></div>`
-      : '';
+  const safeClientId = escapeHtml(clientId);
+  const safeRedirectUri = escapeHtml(redirectUri);
+  const safeState = escapeHtml(state);
+  const safeChallenge = escapeHtml(codeChallenge || '');
+  const safeChallengeMethod = escapeHtml(codeChallengeMethod || 'S256');
+  const safeScope = escapeHtml(scope || 'mcp:read mcp:write');
+  const safeUserEmail = user ? escapeHtml(user.email || user.id) : '';
 
-    return `<!DOCTYPE html>
+  const userBadgeHtml = user
+    ? `<div class="user-badge"><div><div class="user-info">${safeUserEmail}</div><span class="user-auth-type">Conta Autenticada</span></div></div>`
+    : '';
+
+  const errorAlertHtml = error ? `<div class="alert">${escapeHtml(error)}</div>` : '';
+
+  const returnToUrl = `/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}${codeChallenge ? `&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=${encodeURIComponent(codeChallengeMethod || 'S256')}` : ''}`;
+
+  const actionFormHtml = user
+    ? `
+    <form method="POST" action="/oauth/authorize">
+      <input type="hidden" name="client_id" value="${safeClientId}">
+      <input type="hidden" name="redirect_uri" value="${safeRedirectUri}">
+      <input type="hidden" name="state" value="${safeState}">
+      <input type="hidden" name="code_challenge" value="${safeChallenge}">
+      <input type="hidden" name="code_challenge_method" value="${safeChallengeMethod}">
+      <input type="hidden" name="scope" value="${safeScope}">
+
+      <div class="permissions">
+        <h4>Permissões autorizadas para o agente:</h4>
+        <ul>
+          <li>✓ Visualizar e atualizar sua lista de mídias (Wishlist)</li>
+          <li>✓ Registrar avaliações (1 a 5 estrelas) de filmes, séries, livros e games</li>
+          <li>✓ Obter recomendações personalizadas via IA do Akasha</li>
+        </ul>
+      </div>
+
+      <button type="submit" class="btn">Autorizar Conexão</button>
+    </form>`
+    : `
+    <div class="login-notice">
+      <p style="font-size: 0.9rem; margin-bottom: 1.25rem; color: rgba(241, 235, 217, 0.85);">
+        Para autorizar o aplicativo <strong>${safeClientId}</strong> a interagir com seu acervo, é necessário estar conectado na sua conta Akasha.
+      </p>
+      <a href="${frontendUrl}/login?returnTo=${encodeURIComponent(returnToUrl)}" class="btn" style="text-decoration: none; display: block; text-align: center;">
+        Entrar no Akasha com o Google
+      </a>
+    </div>`;
+
+  return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -187,22 +246,9 @@ const isUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9
       justify-content: space-between;
       margin-bottom: 1.25rem;
     }
-    .user-info { font-size: 0.875rem; font-weight: 600; color: #ffffff; }
+    .user-info { font-size: 0.875rem; font-weight: 600; color: #ffffff; word-break: break-all; }
     .user-auth-type { font-size: 0.75rem; color: #34d399; background: rgba(52, 211, 153, 0.1); padding: 0.2rem 0.6rem; border-radius: 6px; }
     .alert { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 0.75rem; border-radius: 10px; font-size: 0.85rem; margin-bottom: 1.25rem; text-align: left; }
-    .input-group { margin-bottom: 1.25rem; text-align: left; }
-    .input-group label { display: block; font-size: 0.8rem; color: #f59e0b; margin-bottom: 0.4rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-    .input-group input {
-      width: 100%;
-      padding: 0.85rem 1rem;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      background: rgba(0, 0, 0, 0.4);
-      color: #fff;
-      font-size: 0.95rem;
-      outline: none;
-    }
-    .input-group input:focus { border-color: #f59e0b; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2); }
     .permissions { background: rgba(0, 0, 0, 0.25); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; border: 1px solid rgba(255, 255, 255, 0.05); text-align: left; }
     .permissions h4 { font-size: 0.75rem; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.6rem; }
     .permissions ul { list-style: none; font-size: 0.8rem; color: rgba(241, 235, 217, 0.8); }
@@ -230,123 +276,129 @@ const isUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9
       <div style="font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 700; color: #f1ebd9;">AKASHA</div>
     </div>
     <div class="title">AUTORIZAR INTEGRAÇÃO</div>
-    <div class="subtitle">Conectar conta ao <strong>Google Spark</strong></div>
+    <div class="subtitle">Conectar conta ao cliente <strong>${safeClientId}</strong></div>
     <div class="divider"></div>
 
     ${userBadgeHtml}
     ${errorAlertHtml}
-
-    <form method="POST" action="/oauth/authorize">
-      <input type="hidden" name="client_id" value="${clientId}">
-      <input type="hidden" name="redirect_uri" value="${redirectUri}">
-      <input type="hidden" name="state" value="${state}">
-
-      ${inputEmailHtml}
-
-      <div class="permissions">
-        <h4>Permissões autorizadas para a IA:</h4>
-        <ul>
-          <li>✓ Visualizar e atualizar sua lista de mídias (Wishlist)</li>
-          <li>✓ Registrar avaliações (1 a 5 estrelas) de filmes e séries</li>
-          <li>✓ Obter recomendações personalizadas via Inteligência Artificial</li>
-        </ul>
-      </div>
-
-      <button type="submit" class="btn">Autorizar Conexão</button>
-    </form>
+    ${actionFormHtml}
   </div>
 </body>
 </html>`;
-  }
+}
 
-  // GET /oauth/authorize — Renderiza a página HTML Server-Side de Autorização (Arquitetura SmartBolsa)
-  fastify.get('/authorize', async (request, reply) => {
-    const query = request.query as any;
+export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
+  // Helper para URL base dinâmica
+  const getBaseUrl = (request: FastifyRequest) => {
+    const protocol = request.headers['x-forwarded-proto'] || request.protocol;
+    const host = request.headers.host || 'akasha-backend.onrender.com';
+    return `${protocol}://${host}`;
+  };
+
+  // RFC 8414 - OAuth 2.0 Authorization Server Metadata
+  fastify.get('/metadata', async (request, reply) => {
+    const baseUrl = getBaseUrl(request);
+    return reply.send({
+      issuer: baseUrl,
+      authorization_endpoint: `${baseUrl}/oauth/authorize`,
+      token_endpoint: `${baseUrl}/oauth/token`,
+      response_types_supported: ['code'],
+      grant_types_supported: ['authorization_code'],
+      code_challenge_methods_supported: ['S256', 'plain'],
+      token_endpoint_auth_methods_supported: ['none', 'client_secret_basic', 'client_secret_post'],
+      scopes_supported: ['mcp:read', 'mcp:write'],
+    });
+  });
+
+  // RFC 9728 - OAuth Protected Resource Metadata
+  fastify.get('/resource-metadata', async (request, reply) => {
+    const baseUrl = getBaseUrl(request);
+    return reply.send({
+      resource: `${baseUrl}/mcp`,
+      authorization_servers: [baseUrl],
+      scopes_supported: ['mcp:read', 'mcp:write'],
+    });
+  });
+
+  // GET /oauth/authorize — Renderiza a página HTML Server-Side de Autorização
+  fastify.get('/authorize', async (request: FastifyRequest<{ Querystring: AuthorizeQuery }>, reply: FastifyReply) => {
+    const query = request.query;
     const clientId = query.client_id || 'spark';
     let redirectUri = query.redirect_uri || '';
     const state = query.state || '';
+    const codeChallenge = query.code_challenge;
+    const codeChallengeMethod = query.code_challenge_method || 'S256';
+    const scope = query.scope || 'mcp:read mcp:write';
 
     if (!redirectUri) {
       return reply.status(400).send({ error: 'redirect_uri é obrigatório' });
     }
 
     if (redirectUri.includes('%3A') || redirectUri.includes('%2F')) {
-      try { redirectUri = decodeURIComponent(redirectUri); } catch {}
+      try {
+        redirectUri = decodeURIComponent(redirectUri);
+      } catch {}
     }
 
-    const userId = await resolveUserId(request);
-    const html = renderAuthorizeHtml(clientId, redirectUri, state, userId);
+    // Validação estrita de redirect_uri contra Open Redirect
+    if (!isAllowedRedirectUri(redirectUri)) {
+      request.log.warn({ redirectUri }, 'Tentativa de OAuth com redirect_uri não autorizado.');
+      return reply.status(400).send({
+        error: 'redirect_uri_unauthorized',
+        message: 'A URL de redirecionamento fornecida não está autorizada na política de segurança do Akasha.',
+      });
+    }
+
+    const user = await resolveAuthenticatedUser(request);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    const html = renderAuthorizeHtml({
+      clientId,
+      redirectUri,
+      state,
+      codeChallenge,
+      codeChallengeMethod,
+      scope,
+      user,
+      frontendUrl,
+    });
+
     return reply.type('text/html').send(html);
   });
 
-  // POST /oauth/authorize — Processa a submissão do formulário e emite HTTP 302 Redirect direto para a URI do Spark!
-  fastify.post('/authorize', async (request, reply) => {
-    let body = request.body as any;
-    if (typeof body === 'string') {
-      try { body = Object.fromEntries(new URLSearchParams(body)); } catch {}
-    }
-
-    const clientId = body?.client_id || (request.query as any)?.client_id || 'spark';
-    let redirectUri = body?.redirect_uri || (request.query as any)?.redirect_uri || '';
-    const state = body?.state || (request.query as any)?.state || '';
-    const submittedUsername = body?.username?.trim();
+  // POST /oauth/authorize — Processa a submissão do formulário de autorização
+  fastify.post('/authorize', async (request: FastifyRequest<{ Body: AuthorizeBody }>, reply: FastifyReply) => {
+    const body = (request.body || {}) as AuthorizeBody;
+    const clientId = body.client_id || 'spark';
+    let redirectUri = body.redirect_uri || '';
+    const state = body.state || '';
+    const codeChallenge = body.code_challenge;
+    const scope = body.scope || 'mcp:read mcp:write';
 
     if (!redirectUri) {
       return reply.status(400).send({ error: 'redirect_uri é obrigatório' });
     }
 
     if (redirectUri.includes('%3A') || redirectUri.includes('%2F')) {
-      try { redirectUri = decodeURIComponent(redirectUri); } catch {}
+      try {
+        redirectUri = decodeURIComponent(redirectUri);
+      } catch {}
     }
 
-    let userId = await resolveUserId(request);
-
-    // Se o usuário digitou o e-mail ou nome no formulário
-    if (!userId && submittedUsername) {
-      // Busca EXATA por UUID ou por username/e-mail cadastrado
-      const existingProfile = await prisma.profile.findFirst({
-        where: isUuid(submittedUsername)
-          ? { OR: [{ username: { equals: submittedUsername, mode: 'insensitive' } }, { id: submittedUsername }] }
-          : { username: { equals: submittedUsername, mode: 'insensitive' } }
+    if (!isAllowedRedirectUri(redirectUri)) {
+      return reply.status(400).send({
+        error: 'redirect_uri_unauthorized',
+        message: 'URL de redirecionamento não autorizada.',
       });
-
-      if (existingProfile) {
-        userId = existingProfile.id;
-      } else {
-        // E-mail ou usuário não encontrado — sem fallbacks ou adivinhações
-        const html = renderAuthorizeHtml(
-          clientId,
-          redirectUri,
-          state,
-          null,
-          'E-mail ou usuário não encontrado. Por favor, utilize o e-mail exato cadastrado no Akasha.'
-        );
-        return reply.type('text/html').send(html);
-      }
     }
 
-    if (!userId) {
-      const html = renderAuthorizeHtml(clientId, redirectUri, state, null, 'Por favor, informe seu e-mail cadastrado no Akasha.');
-      return reply.type('text/html').send(html);
+    // LGPD Art. 46 / Mitigação G2: Proibido impersonação ou emissão de token sem autenticação real
+    const user = await resolveAuthenticatedUser(request);
+    if (!user) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const returnTo = `/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
+      return reply.redirect(`${frontendUrl}/login?returnTo=${encodeURIComponent(returnTo)}`);
     }
-
-    // Garantir que userId é um UUID válido antes de passar para Prisma @db.Uuid
-    if (!isUuid(userId)) {
-      const profile = await prisma.profile.findFirst({ where: { username: userId } });
-      if (profile) {
-        userId = profile.id;
-      } else {
-        const html = renderAuthorizeHtml(clientId, redirectUri, state, null, 'E-mail ou usuário não encontrado.');
-        return reply.type('text/html').send(html);
-      }
-    }
-
-    // Garantir que o perfil existe no banco relacional
-    await prisma.profile.upsert({
-      where: { id: userId },
-      update: {},
-      create: { id: userId, username: submittedUsername || 'Viajante' },
-    });
 
     // Gera o código de autorização no banco (expira em 5 minutos)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
@@ -355,58 +407,51 @@ const isUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9
     await prisma.oAuthCode.create({
       data: {
         code,
-        userId,
+        userId: user.id,
         clientId,
         redirectUri,
+        codeChallenge: codeChallenge || null,
+        scope,
         expiresAt,
-      }
+      },
     });
 
-    // Retorna HTTP 302 Found direto para a URI do Spark!
     const separator = redirectUri.includes('?') ? '&' : '?';
-    let targetUrl = `${redirectUri}${separator}code=${code}`;
+    let targetUrl = `${redirectUri}${separator}code=${encodeURIComponent(code)}`;
     if (state) {
-      targetUrl += `&state=${state}`;
+      targetUrl += `&state=${encodeURIComponent(state)}`;
     }
 
     return reply.redirect(targetUrl);
   });
 
-  // POST /oauth/confirm — Mantido para compatibilidade
-  fastify.post('/confirm', async (request, reply) => {
-    let body = request.body as any;
-    if (typeof body === 'string') {
-      try { body = Object.fromEntries(new URLSearchParams(body)); } catch {}
-    }
-
-    const clientId = body?.client_id || (request.query as any)?.client_id || 'spark';
-    let redirectUri = body?.redirect_uri || (request.query as any)?.redirect_uri || '';
-    const state = body?.state || (request.query as any)?.state || '';
+  // POST /oauth/confirm — Utilizado pelo frontend SPA React (OAuthAuthorize.tsx)
+  fastify.post('/confirm', async (request: FastifyRequest<{ Body: AuthorizeBody }>, reply: FastifyReply) => {
+    const body = (request.body || {}) as AuthorizeBody;
+    const clientId = body.client_id || 'spark';
+    let redirectUri = body.redirect_uri || '';
+    const state = body.state || '';
+    const codeChallenge = body.code_challenge;
+    const scope = body.scope || 'mcp:read mcp:write';
 
     if (!redirectUri) {
       return reply.status(400).send({ error: 'redirect_uri é obrigatório' });
     }
 
-    const userId = await resolveUserId(request);
-    if (!userId) {
+    if (redirectUri.includes('%3A') || redirectUri.includes('%2F')) {
+      try {
+        redirectUri = decodeURIComponent(redirectUri);
+      } catch {}
+    }
+
+    if (!isAllowedRedirectUri(redirectUri)) {
+      return reply.status(400).send({ error: 'URL de redirecionamento não autorizada.' });
+    }
+
+    const user = await resolveAuthenticatedUser(request);
+    if (!user) {
       return reply.status(401).send({ error: 'Usuário não autenticado.' });
     }
-
-    let activeUserId = userId;
-    if (!isUuid(activeUserId)) {
-      const profile = await prisma.profile.findFirst({ where: { username: activeUserId } });
-      if (profile) {
-        activeUserId = profile.id;
-      } else {
-        return reply.status(404).send({ error: 'Usuário não encontrado.' });
-      }
-    }
-
-    await prisma.profile.upsert({
-      where: { id: activeUserId },
-      update: {},
-      create: { id: activeUserId },
-    });
 
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const code = crypto.randomUUID();
@@ -414,83 +459,97 @@ const isUuid = (str: string) => typeof str === 'string' && /^[0-9a-fA-F]{8}-[0-9
     await prisma.oAuthCode.create({
       data: {
         code,
-        userId,
+        userId: user.id,
         clientId,
         redirectUri,
+        codeChallenge: codeChallenge || null,
+        scope,
         expiresAt,
-      }
+      },
     });
 
     const separator = redirectUri.includes('?') ? '&' : '?';
-    let targetUrl = `${redirectUri}${separator}code=${code}`;
+    let targetUrl = `${redirectUri}${separator}code=${encodeURIComponent(code)}`;
     if (state) {
-      targetUrl += `&state=${state}`;
+      targetUrl += `&state=${encodeURIComponent(state)}`;
     }
 
     return reply.send({ redirect_url: targetUrl });
   });
 
-  // POST /oauth/token - Troca do código pelo token de acesso
-  fastify.post('/token', async (request, reply) => {
-    let body = request.body as any;
-    if (typeof body === 'string') {
-      try {
-        body = Object.fromEntries(new URLSearchParams(body));
-      } catch {
-        body = {};
-      }
-    }
-    
-    let code = body?.code || (request.query as any)?.code;
-    let grantType = body?.grant_type || (request.query as any)?.grant_type || 'authorization_code';
+  // POST /oauth/token - Troca do código de autorização pelo token de acesso com criação de McpGrant
+  fastify.post('/token', async (request: FastifyRequest<{ Body: TokenBody }>, reply: FastifyReply) => {
+    const body = (request.body || {}) as TokenBody;
+    const code = body.code;
+    const grantType = body.grant_type || 'authorization_code';
+    const codeVerifier = body.code_verifier;
 
     if (grantType !== 'authorization_code' || !code) {
-      return reply.status(400).send({ 
-        error: 'invalid_grant', 
-        error_description: 'Código de autorização necessário.' 
+      return reply.status(400).send({
+        error: 'invalid_grant',
+        error_description: 'Código de autorização necessário e grant_type deve ser authorization_code.',
       });
     }
 
-    // Buscar no banco pelo código de autorização
     const oauthCode = await prisma.oAuthCode.findUnique({ where: { code } });
 
     if (!oauthCode || oauthCode.used || oauthCode.expiresAt < new Date()) {
-      return reply.status(400).send({ 
-        error: 'invalid_grant', 
-        error_description: 'Código inválido ou expirado.' 
+      return reply.status(400).send({
+        error: 'invalid_grant',
+        error_description: 'Código de autorização inválido ou expirado.',
       });
     }
 
-    // Marcar como usado
+    // Validação de PKCE (se codeChallenge estiver presente)
+    if (oauthCode.codeChallenge) {
+      if (!codeVerifier) {
+        return reply.status(400).send({
+          error: 'invalid_request',
+          error_description: 'code_verifier é obrigatório quando a requisição de autorização utilizou PKCE.',
+        });
+      }
+
+      const isValidVerifier = verifyCodeChallenge(codeVerifier, oauthCode.codeChallenge, 'S256');
+      if (!isValidVerifier) {
+        return reply.status(400).send({
+          error: 'invalid_grant',
+          error_description: 'code_verifier inválido para o code_challenge associado.',
+        });
+      }
+    }
+
+    // Invalida o código para evitar reutilização (RFC 6749)
     await prisma.oAuthCode.update({
       where: { code },
       data: { used: true },
     });
 
-    // Gerar JWT Stateless para o Access Token (30 dias)
-    const accessToken = jwt.sign(
-      { 
-        sub: oauthCode.userId,
-        type: 'oauth_mcp'
-      }, 
-      JWT_SECRET, 
-      { expiresIn: '30d' }
-    );
+    // Cria a concessão explícita no banco (LGPD Art. 8º §5 / Art. 18 IX)
+    const mcpGrant = await prisma.mcpGrant.create({
+      data: {
+        userId: oauthCode.userId,
+        clientId: oauthCode.clientId,
+        scope: oauthCode.scope,
+      },
+    });
+
+    // Emite o token assinado e vinculado ao Grant
+    const accessToken = signMcpToken(oauthCode.userId, mcpGrant.id, mcpGrant.scope);
 
     return reply.send({
       access_token: accessToken,
       token_type: 'Bearer',
       expires_in: 30 * 24 * 60 * 60, // 30 dias em segundos
-      scope: 'mcp:read mcp:write',
+      scope: mcpGrant.scope,
     });
   });
 
-  // GET /oauth/userinfo - OpenID Connect UserInfo endpoint
-  fastify.get('/userinfo', async (request, reply) => {
-    const userId = await resolveUserId(request);
-    if (!userId) {
+  // GET /oauth/userinfo - Endpoint UserInfo OpenID Connect
+  fastify.get('/userinfo', async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = await resolveAuthenticatedUser(request);
+    if (!user) {
       return reply.status(401).send({ error: 'unauthorized' });
     }
-    return reply.send({ sub: userId });
+    return reply.send({ sub: user.id });
   });
 };

@@ -53,4 +53,14 @@ Componente universal de carregamento que substitui spinners estáticos por uma e
 ### Ciclo de Ações Unificadas Multiplataforma & Mobile
 > 📄 **Especificação Técnica:** [`specs/SPEC-013-unified-mobile-actions.md`](specs/SPEC-013-unified-mobile-actions.md)  
 Centralização das quatro ações essenciais do ciclo de vida de consumo cultural ("Começar a assistir/jogar/ler", "Concluir", "Avaliar" e "Remover") no mesmo painel unificado em modais de detalhes e cards, eliminando a dependência de `:hover` no celular e garantindo navegação D-Pad contínua na Android TV.
+
+## 4. Conformidade com a LGPD e Segurança de Dados
+> 📄 **Especificação Técnica:** [`specs/SPEC-020-lgpd-compliance.md`](specs/SPEC-020-lgpd-compliance.md)  
+Operação e governança em total conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018):
+* **Controlador e Contato:** Fillipe Moreira (`fillipemoreira979@gmail.com`).
+* **Direitos do Titular (Art. 18):** Portabilidade integral do acervo em formato JSON (`/privacy/export`), exclusão imediata e definitiva da conta em cascata (`/privacy/account`) e revogação autônoma de integrações MCP.
+* **Consentimento e Versionamento:** Modal bloqueante (`ConsentGate`) que exige concordância explícita antes do acesso a novos termos ou políticas vigentes.
+* **Privacidade por Padrão e Minimização:** Localização por e-mail desativada por padrão (`discoverableByEmail = false`) e suporte a perfil privado de atividades.
+* **Segurança Criptográfica no MCP:** Assinatura HS256 em tokens atrelados a concessões registradas no banco (`McpGrant`), proteção contra open-redirect via allowlist estrita e expurgo periódico de credenciais efêmeras.
+* **Transferência Internacional (Art. 33, IX):** Amparo formal para infraestrutura de banco de dados nos EUA (Supabase us-west-2 / Oregon) com criptografia TLS 1.3 e repouso AES-256.
 

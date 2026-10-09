@@ -132,6 +132,10 @@ describe('Activity Service - Unit Tests', () => {
       expect.objectContaining({
         where: {
           userId: { in: [mockUserId, mockFriendId] },
+          OR: [
+            { userId: mockUserId },
+            { profile: { activityVisibility: 'friends' } },
+          ],
         },
       })
     );

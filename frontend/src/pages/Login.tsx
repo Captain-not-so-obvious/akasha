@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { GlassPanel } from '../components/ui/GlassPanel';
 
@@ -16,9 +16,10 @@ export const Login: React.FC = () => {
     try {
       const returnTo = searchParams.get('returnTo');
       await signInWithGoogle(returnTo || undefined);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Falha no login com Google:', err);
-      setErrorMsg(err.message || 'Ocorreu um erro ao conectar com o Google.');
+      const message = err instanceof Error ? err.message : 'Ocorreu um erro ao conectar com o Google.';
+      setErrorMsg(message);
       setIsSubmitting(false);
     }
   };
@@ -106,8 +107,27 @@ export const Login: React.FC = () => {
           </span>
         </button>
 
+        {/* Links Legais e Conformidade LGPD */}
+        <div className="mt-6 flex items-center justify-center gap-4 text-xs font-outfit text-[var(--color-seda-milharal)] opacity-70">
+          <Link
+            to="/termos"
+            tabIndex={0}
+            className="tv-focus-glow rounded px-2 py-1 transition-colors hover:text-white underline underline-offset-2"
+          >
+            Termos de Uso
+          </Link>
+          <span>•</span>
+          <Link
+            to="/privacidade"
+            tabIndex={0}
+            className="tv-focus-glow rounded px-2 py-1 transition-colors hover:text-white underline underline-offset-2"
+          >
+            Política de Privacidade
+          </Link>
+        </div>
+
         {/* Footer Discreto da TV */}
-        <p className="mt-8 font-outfit text-xs text-[var(--color-seda-milharal)] opacity-40">
+        <p className="mt-4 font-outfit text-xs text-[var(--color-seda-milharal)] opacity-40">
           Utilize o controle remoto da TV (teclas direcionais) ou o teclado para navegar.
         </p>
       </GlassPanel>

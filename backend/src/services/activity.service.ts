@@ -84,11 +84,21 @@ export async function getFeedForUser(userId: string, page = 1, limit = 20) {
 
   const skip = (page - 1) * limit;
 
+  const whereClause = {
+    userId: { in: allowedUserIds },
+    OR: [
+      { userId }, // O próprio usuário sempre visualiza suas próprias atividades
+      {
+        profile: {
+          activityVisibility: 'friends' as const,
+        },
+      },
+    ],
+  };
+
   const [activities, total] = await Promise.all([
     prisma.activity.findMany({
-      where: {
-        userId: { in: allowedUserIds },
-      },
+      where: whereClause,
       orderBy: {
         createdAt: 'desc',
       },
@@ -105,9 +115,7 @@ export async function getFeedForUser(userId: string, page = 1, limit = 20) {
       },
     }),
     prisma.activity.count({
-      where: {
-        userId: { in: allowedUserIds },
-      },
+      where: whereClause,
     }),
   ]);
 
