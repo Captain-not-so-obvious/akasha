@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { GlassPanel } from '../components/ui/GlassPanel';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'https://akasha-backend.onrender.com';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
 
 export const OAuthAuthorize: React.FC = () => {
   const { user, session, signInWithGoogle, loading } = useAuth();

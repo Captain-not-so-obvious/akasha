@@ -150,4 +150,17 @@ describe('lib/api: apiFetch', () => {
     const headers = secondInit?.headers as Headers;
     expect(headers.get('Authorization')).toBe('Bearer new-refreshed-token');
   });
+
+  it('DEVE retentar requisições GET em caso de erro de rede transitório (Failed to fetch)', async () => {
+    // 1ª tentativa falha com erro de rede, 2ª tentativa tem sucesso
+    globalThis.fetch = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ recommendations: [] }), { status: 200 }));
+
+    const res = await apiFetch('/comics/recommendations?limit=14');
+
+    expect(res.status).toBe(200);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+  });
 });

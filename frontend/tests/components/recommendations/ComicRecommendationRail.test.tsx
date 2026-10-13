@@ -90,4 +90,25 @@ describe('ComicRecommendationRail Component', () => {
 
     expect(container.firstChild).toBeNull();
   });
+
+  it('deve renderizar o alerta com botão de recarregar quando houver erro', () => {
+    vi.mocked(useComicRecsModule.useComicRecommendations).mockReturnValue({
+      recommendations: [],
+      isLoading: false,
+      error: 'Erro de conexão',
+      fetchRecommendations: mockFetchRecommendations,
+    });
+
+    render(<ComicRecommendationRail onSelectComic={mockSelectComic} onQuickAdd={mockQuickAdd} />);
+
+    expect(
+      screen.getByText('Não foi possível carregar as recomendações de sagas e mangás no momento.')
+    ).toBeInTheDocument();
+
+    const reloadBtn = screen.getByRole('button', { name: 'Recarregar' });
+    expect(reloadBtn).toBeInTheDocument();
+    fireEvent.click(reloadBtn);
+
+    expect(mockFetchRecommendations).toHaveBeenCalledWith({ limit: 14, type: 'all' });
+  });
 });

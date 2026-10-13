@@ -63,7 +63,7 @@ export const Library: React.FC = () => {
               setSelectedMedia(data);
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       }
     }
   }, [tmdbIdParam, typeParam]);
@@ -429,11 +429,10 @@ export const Library: React.FC = () => {
             type="button"
             tabIndex={0}
             onClick={() => setActiveDomain('movie')}
-            className={`tv-focus-glow px-4 py-2 rounded-lg font-cinzel text-xs md:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
-              activeDomain === 'movie'
+            className={`tv-focus-glow px-4 py-2 rounded-lg font-cinzel text-xs md:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${activeDomain === 'movie'
                 ? 'bg-[var(--color-caramelo-claro)] text-black shadow-md shadow-yellow-900/40 font-bold'
                 : 'text-[var(--color-seda-milharal)] opacity-70 hover:opacity-100 hover:bg-white/5'
-            }`}
+              }`}
           >
             <span>🎬</span> Cinema & Séries
           </button>
@@ -441,23 +440,21 @@ export const Library: React.FC = () => {
             type="button"
             tabIndex={0}
             onClick={() => setActiveDomain('game')}
-            className={`tv-focus-glow px-4 py-2 rounded-lg font-cinzel text-xs md:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
-              activeDomain === 'game'
+            className={`tv-focus-glow px-4 py-2 rounded-lg font-cinzel text-xs md:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${activeDomain === 'game'
                 ? 'bg-[var(--color-caramelo-claro)] text-black shadow-md shadow-yellow-900/40 font-bold'
                 : 'text-[var(--color-seda-milharal)] opacity-70 hover:opacity-100 hover:bg-white/5'
-            }`}
+              }`}
           >
-            <span>🎮</span> Jogos (Games)
+            <span>🎮</span> Jogos
           </button>
           <button
             type="button"
             tabIndex={0}
             onClick={() => setActiveDomain('book')}
-            className={`tv-focus-glow px-4 py-2 rounded-lg font-cinzel text-xs md:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
-              activeDomain === 'book'
+            className={`tv-focus-glow px-4 py-2 rounded-lg font-cinzel text-xs md:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${activeDomain === 'book'
                 ? 'bg-[var(--color-caramelo-claro)] text-black shadow-md shadow-yellow-900/40 font-bold'
                 : 'text-[var(--color-seda-milharal)] opacity-70 hover:opacity-100 hover:bg-white/5'
-            }`}
+              }`}
           >
             <span>📚</span> Livros (Leituras)
           </button>
@@ -465,11 +462,10 @@ export const Library: React.FC = () => {
             type="button"
             tabIndex={0}
             onClick={() => setActiveDomain('comic')}
-            className={`tv-focus-glow px-4 py-2 rounded-lg font-cinzel text-xs md:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
-              activeDomain === 'comic'
+            className={`tv-focus-glow px-4 py-2 rounded-lg font-cinzel text-xs md:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${activeDomain === 'comic'
                 ? 'bg-[var(--color-caramelo-claro)] text-black shadow-md shadow-yellow-900/40 font-bold'
                 : 'text-[var(--color-seda-milharal)] opacity-70 hover:opacity-100 hover:bg-white/5'
-            }`}
+              }`}
           >
             <span>📖</span> Quadrinhos & Mangás
           </button>
@@ -592,11 +588,10 @@ export const Library: React.FC = () => {
             key={tab}
             tabIndex={0}
             onClick={() => setActiveTab(tab)}
-            className={`tv-focus-glow font-outfit text-sm md:text-base px-4 py-2 rounded-lg transition-colors cursor-pointer ${
-              activeTab === tab
+            className={`tv-focus-glow font-outfit text-sm md:text-base px-4 py-2 rounded-lg transition-colors cursor-pointer ${activeTab === tab
                 ? 'bg-[var(--color-caramelo-claro)] text-black font-bold'
                 : 'text-[var(--color-seda-milharal)] opacity-60 hover:opacity-100 hover:bg-white/5'
-            }`}
+              }`}
           >
             {activeDomain === 'game' ? (
               <>
@@ -650,10 +645,10 @@ export const Library: React.FC = () => {
               {activeDomain === 'game'
                 ? 'Nenhum jogo nesta lista'
                 : activeDomain === 'book'
-                ? 'Nenhum livro nesta estante'
-                : activeDomain === 'comic'
-                ? 'Nenhuma saga ou mangá nesta estante'
-                : 'Nenhum título encontrado'}
+                  ? 'Nenhum livro nesta estante'
+                  : activeDomain === 'comic'
+                    ? 'Nenhuma saga ou mangá nesta estante'
+                    : 'Nenhum título encontrado'}
             </h3>
             <p className="font-outfit text-[var(--color-seda-milharal)] opacity-50 max-w-sm">
               {activeDomain === 'game' ? (
@@ -716,15 +711,14 @@ export const Library: React.FC = () => {
         onSubmit={handleRatingSubmit}
         initialRating={editingItem?.userRating}
         initialReview={editingItem?.notes}
-        title={`Avaliar ${
-          editingItem?.title ||
+        title={`Avaliar ${editingItem?.title ||
           editingItem?.media?.title ||
           pendingRatingComic?.title ||
           pendingRatingBook?.title ||
           pendingRatingGame?.title ||
           pendingRatingMedia?.title ||
           'Obra'
-        }`}
+          }`}
       />
 
       {/* Modal de Cinema / Séries (TMDB) */}

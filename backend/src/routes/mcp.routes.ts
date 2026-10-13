@@ -3,6 +3,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { createMcpServer, AKASHA_MCP_TOOLS, executeAkashaMcpTool } from '../mcp/mcp-server.js';
 import jwt from 'jsonwebtoken';
 import { verifyMcpToken } from '../lib/mcpToken.js';
+import { getBaseUrl } from '../lib/baseUrl.js';
 
 // Mapa para armazenar os transportes ativos e dados de sessão SSE
 const transports = new Map<string, { transport: SSEServerTransport; userId: string }>();
@@ -86,9 +87,7 @@ export async function authenticateMcpUser(request: FastifyRequest): Promise<stri
 export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /mcp — Retorna status e metadados básicos do servidor MCP
   fastify.get('/', async (request, reply) => {
-    const protocol = request.headers['x-forwarded-proto'] || request.protocol;
-    const host = request.headers.host || 'akasha-backend.onrender.com';
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = getBaseUrl(request);
     return reply.send({
       status: 'online',
       name: 'Akasha MCP Server',
@@ -140,9 +139,7 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
     // 2. Autenticação estrita para listar e chamar ferramentas
     const userId = await authenticateMcpUser(request);
     if (!userId) {
-      const protocol = request.headers['x-forwarded-proto'] || request.protocol;
-      const host = request.headers.host || 'akasha-backend.onrender.com';
-      const baseUrl = `${protocol}://${host}`;
+      const baseUrl = getBaseUrl(request);
 
       reply.header(
         'WWW-Authenticate',
@@ -226,9 +223,7 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
 
     // LGPD Art. 46: Proibido conectar como 'guest' e expor dados ou criar sessões fantasmas
     if (!userId) {
-      const protocol = request.headers['x-forwarded-proto'] || request.protocol;
-      const host = request.headers.host || 'akasha-backend.onrender.com';
-      const baseUrl = `${protocol}://${host}`;
+      const baseUrl = getBaseUrl(request);
 
       reply.header(
         'WWW-Authenticate',
@@ -240,9 +235,7 @@ export const mcpRoutes: FastifyPluginAsync = async (fastify) => {
 
     reply.hijack();
 
-    const protocol = request.headers['x-forwarded-proto'] || request.protocol;
-    const host = request.headers.host || 'akasha-backend.onrender.com';
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = getBaseUrl(request);
 
     const query = request.query as McpQuery | undefined;
     const token = query?.token?.trim() || query?.access_token?.trim();

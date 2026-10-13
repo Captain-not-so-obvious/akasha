@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma.js';
 import { generateFriendCode, generateInitialUsername } from '../lib/friendCode.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import jwt from 'jsonwebtoken';
+import { getBaseUrl } from '../lib/baseUrl.js';
 
 // Estende o tipo do Fastify para incluir userId — sem uso de 'any'
 declare module 'fastify' {
@@ -50,13 +51,12 @@ export async function authMiddleware(
 
   const queryToken = (request.query as Record<string, string | undefined>)?.token?.trim();
   if (queryToken && !candidateTokens.includes(queryToken)) {
+    request.log.warn('Aviso de Segurança: Uso desaconselhado de token na query string (?token=). Prefira o cabeçalho Authorization: Bearer <token>.');
     candidateTokens.push(queryToken);
   }
 
   if (candidateTokens.length === 0 && !request.cookies?.refresh_token) {
-    const protocol = request.headers['x-forwarded-proto'] || request.protocol;
-    const host = request.headers.host || 'akasha-backend.onrender.com';
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = getBaseUrl(request);
     reply.header(
       'WWW-Authenticate',
       `Bearer realm="akasha", resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`

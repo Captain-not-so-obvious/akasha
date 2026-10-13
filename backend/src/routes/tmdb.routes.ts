@@ -1,31 +1,23 @@
 import { FastifyInstance } from 'fastify';
 import { fetchMediaDetails, searchMedia } from '../services/tmdb.service.js';
-
-interface SearchQuerystring {
-  q: string;
-  type: 'movie' | 'tv';
-  page?: string;
-}
-
-interface DetailsParams {
-  type: 'movie' | 'tv';
-  id: string;
-}
+import {
+  searchMediaQuerystringSchema,
+  mediaDetailsParamSchema,
+} from '../schemas/tmdb.schema.js';
 
 export async function tmdbRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /tmdb/search?q=batman&type=movie — Busca de filmes ou séries
-  fastify.get<{ Querystring: SearchQuerystring }>('/search', async (request, reply) => {
-    const { q, type, page } = request.query;
-
-    if (!q || !q.trim()) {
-      return reply.status(400).send({ error: 'Parâmetro "q" é obrigatório.' });
+  fastify.get('/search', async (request, reply) => {
+    const parsed = searchMediaQuerystringSchema.safeParse(request.query);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: 'Parâmetros de busca inválidos.',
+        details: parsed.error.flatten().fieldErrors,
+      });
     }
 
-    if (type !== 'movie' && type !== 'tv') {
-      return reply.status(400).send({ error: 'Parâmetro "type" deve ser "movie" ou "tv".' });
-    }
-
-    const results = await searchMedia(q.trim(), type, page ? Number(page) : 1);
+    const { q, type, page } = parsed.data;
+    const results = await searchMedia(q.trim(), type, page);
 
     if (!results) {
       return reply.status(502).send({ error: 'Falha ao comunicar com o TMDB.' });
@@ -35,14 +27,17 @@ export async function tmdbRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   // GET /tmdb/:type/:id — Detalhes de um filme ou série específico
-  fastify.get<{ Params: DetailsParams }>('/:type/:id', async (request, reply) => {
-    const { type, id } = request.params;
-
-    if (type !== 'movie' && type !== 'tv') {
-      return reply.status(400).send({ error: 'Tipo deve ser "movie" ou "tv".' });
+  fastify.get('/:type/:id', async (request, reply) => {
+    const parsed = mediaDetailsParamSchema.safeParse(request.params);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: 'Parâmetros de rota inválidos.',
+        details: parsed.error.flatten().fieldErrors,
+      });
     }
 
-    const details = await fetchMediaDetails(Number(id), type);
+    const { type, id } = parsed.data;
+    const details = await fetchMediaDetails(id, type);
 
     if (!details) {
       return reply.status(404).send({ error: 'Mídia não encontrada.' });

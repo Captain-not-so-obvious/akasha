@@ -11,7 +11,8 @@
 > 📄 **Especificação Técnica Módulo de Quadrinhos & Mangás (Sagas & Volumes):** [`specs/SPEC-015-comics-and-manga-module.md`](specs/SPEC-015-comics-and-manga-module.md)  
 > 📄 **Especificação Técnica Motor Inteligente de Recomendações de Quadrinhos & Mangás:** [`specs/SPEC-016-enhanced-comic-recommendation-engine.md`](specs/SPEC-016-enhanced-comic-recommendation-engine.md)  
 > 📄 **Especificação Técnica Motor Transmídia, Dashboard do Grande Acervo e MCP Universal:** [`specs/SPEC-017-transmedia-engine-and-grand-archive-dashboard.md`](specs/SPEC-017-transmedia-engine-and-grand-archive-dashboard.md)  
-> 📄 **Especificação Técnica Conformidade LGPD & Governança:** [`specs/SPEC-020-lgpd-compliance.md`](specs/SPEC-020-lgpd-compliance.md)
+> 📄 **Especificação Técnica Conformidade LGPD & Governança:** [`specs/SPEC-020-lgpd-compliance.md`](specs/SPEC-020-lgpd-compliance.md)  
+> 📄 **Especificação Técnica Blindagem de Segurança & Proteção de APIs:** [`specs/SPEC-021-security-hardening-and-api-shielding.md`](specs/SPEC-021-security-hardening-and-api-shielding.md)
 
 ## 1. Visão Geral da Arquitetura
 
@@ -745,4 +746,25 @@ npm run dev  # App rodando em http://localhost:5173
 ### 10.2 Experiência do Titular e Acessibilidade (Frontend)
 * **`ConsentGate.tsx`:** Modal bloqueante que valida pendências de consentimento e exige aceite explícito antes de conceder acesso à interface.
 * **`PrivacySettingsPanel.tsx`:** Painel no perfil para controle de visibilidade (público entre amigos vs privado), busca por e-mail, revogação de agentes MCP, download do dump JSON e exclusão da conta (com proteção de foco para Android TV D-Pad).
-* **Páginas Legais:** `/privacidade` e `/termos` com termos vigentes, identificação do controlador (Fillipe Moreira) e salvaguardas de transferência internacional (Oregon, EUA via Art. 33, IX da LGPD).
+* **Páginas Legais:** `/privacidade` e `/termos` com termos vigentes, identificação do controlador (Fillipe Moreira) e salvaguardas de transferência internacional (Oregon, EUA via Art. 33, IX da LGPD).
+
+---
+
+## 11. Arquitetura de Blindagem de Segurança da Aplicação (SPEC-021)
+
+> 📄 **Especificação Técnica:** [`specs/SPEC-021-security-hardening-and-api-shielding.md`](specs/SPEC-021-security-hardening-and-api-shielding.md)
+
+### 11.1 Defesas Ativas de Rede e Cabeçalhos HTTP (Backend Fastify)
+* **Cabeçalhos Defensivos (`@fastify/helmet`):** Emissão de cabeçalhos RFC modernos, bloqueio total de Clickjacking via `X-Frame-Options: DENY`, Content Security Policy com `frame-ancestors 'none'`, e `X-Content-Type-Options: nosniff`.
+* **Rate Limiting Defensivo (`@fastify/rate-limit`):** Proteção global de 600 req/min por IP em produção (configurável via `RATE_LIMIT_MAX`) e 3000 req/min em desenvolvimento com bypass para loopback local (`127.0.0.1`, `::1`) e monitoramento (`/health`), mitigando ataques de DoS e prevenindo esgotamento de cotas de APIs externas sem estrangular a navegação da SPA.
+* **Otimização de Biblioteca Anti-N+1 (`useWishlist.ts`):** Renderização direta a partir dos metadados persistidos no banco de dados (`title`, `coverUrl`, `releaseYear`), eliminando rajadas de chamadas de rede paralelas e transferindo o carregamento profundo de streaming para abertura sob demanda do modal.
+* **Proteção Anti-CSRF Server-Side no Fluxo OAuth:** Emissão de token criptográfico randômico em cookie HttpOnly com política `SameSite=Lax` durante o consentimento do MCP (`GET /oauth/authorize`), com injeção de campo oculto e validação estrita no `POST /oauth/authorize`.
+* **Prevenção de Host Header Poisoning:** Helper `getBaseUrl` centralizado e sanitizado que prioriza `process.env.BACKEND_URL` e valida o cabeçalho `Host` contra caracteres e portas inválidas.
+
+### 11.2 Sanitização e Validação Zod Universal em Rotas de Catálogo
+* **Blindagem contra Injeção de Apicalypse (IGDB):** Parâmetros de rota validados estritamente como dígitos numéricos (`/^\d+$/`). Sanitização ativa de termos de pesquisa com remoção de caracteres de controle e quebras de linha (`/["';\r\n\\]/g`).
+* **Validação Zod Estrita em Parâmetros de Mídia:** Criação e aplicação de schemas Zod (`searchMediaQuerystringSchema`, `mediaDetailsParamSchema`, `bookParamSchema`, `comicIdParamSchema`) em `/tmdb/:type/:id`, `/books/:id` e `/comics/:id`, assegurando tipagem segura e rejeição com HTTP 400 antes de consultas externas.
+
+### 11.3 Proteção contra Open Redirect no Frontend (React)
+* **Validador de Caminhos Relativos (`safeRedirect.ts`):** Verificação rigorosa de URLs no redirecionamento pós-login (`returnTo`), rejeitando esquemas arbitrários (`http:`, `https:`, `javascript:`, `data:`) e esquemas agnósticos (`//evil.com`), forçando fallback seguro para a raiz `/`.
+

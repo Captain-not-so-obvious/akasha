@@ -157,8 +157,8 @@ describe('Library Page', () => {
     expect(screen.getByRole('button', { name: /Assistindo/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Quero Ver/i })).toBeInTheDocument();
 
-    // Clica no seletor de Jogos (Games)
-    const gamesToggle = screen.getByRole('button', { name: /Jogos \(Games\)/i });
+    // Clica no seletor de Jogos
+    const gamesToggle = screen.getByRole('button', { name: /Jogos/i });
     fireEvent.click(gamesToggle);
 
     // Agora as abas devem mudar para o vocabulário de jogos

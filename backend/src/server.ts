@@ -18,6 +18,9 @@ import { privacyRoutes } from './routes/privacy.routes.js';
 import { stripSensitiveQuery } from './lib/sanitizeUrl.js';
 import { initRetentionSchedule } from './services/retention.service.js';
 import cookie from '@fastify/cookie';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
+import { getBaseUrl } from './lib/baseUrl.js';
 
 const fastify = Fastify({
   logger: {
@@ -82,6 +85,49 @@ fastify.addContentTypeParser(
 // Registrar plugin de cookie
 await fastify.register(cookie);
 
+// Proteção de Cabeçalhos HTTP (Helmet) & Anti-Clickjacking (CSP / frame-ancestors: 'none')
+await fastify.register(helmet, {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'https:', 'http:'],
+      scriptSrc: ["'self'"],
+      frameAncestors: ["'none'"], // Anti-Clickjacking: proíbe carregar páginas em iframe
+    },
+  },
+  frameguard: { action: 'deny' }, // X-Frame-Options: DENY
+  crossOriginEmbedderPolicy: false,
+});
+
+// Rate Limiting Global: Defesa contra DoS, Brute Force e Quota Exhaustion
+const maxRequests = process.env.RATE_LIMIT_MAX
+  ? Number(process.env.RATE_LIMIT_MAX)
+  : (process.env.NODE_ENV === 'production' ? 600 : 3000);
+
+await fastify.register(rateLimit, {
+  max: maxRequests,
+  timeWindow: '1 minute',
+  allowList: (req) => {
+    // Permitir verificação de integridade sem rate limiting
+    if (req.url === '/health') return true;
+    // Em desenvolvimento, permitir chamadas locais sem choking
+    if (process.env.NODE_ENV !== 'production') {
+      const ip = req.ip;
+      if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') {
+        return true;
+      }
+    }
+    return false;
+  },
+  errorResponseBuilder: (_req, context) => ({
+    statusCode: 429,
+    error: 'Too Many Requests',
+    message: `Limite de taxa de requisições excedido. Tente novamente em ${Math.ceil(context.ttl / 1000)} segundos.`,
+  }),
+});
+
 // CORS Seguro (LGPD Art. 46):
 // Restringe cookies e credenciais às origens permitidas (Vercel, localhost e CORS_ALLOWED_ORIGINS)
 const allowedOrigins = (
@@ -136,12 +182,8 @@ await fastify.register(comicsRoutes, { prefix: '/comics' });
 await fastify.register(transmediaRoutes, { prefix: '/transmedia' });
 await fastify.register(privacyRoutes, { prefix: '/privacy' });
 
-// Helper para obter a URL base dinâmica
-const getBaseUrl = (request: FastifyRequest) => {
-  const protocol = request.headers['x-forwarded-proto'] || request.protocol;
-  const host = request.headers.host || 'akasha-backend.onrender.com';
-  return `${protocol}://${host}`;
-};
+// Re-exporta utilitário getBaseUrl centralizado
+export { getBaseUrl };
 
 const sendAuthServerMetadata = async (request: FastifyRequest, reply: FastifyReply) => {
   const baseUrl = getBaseUrl(request);

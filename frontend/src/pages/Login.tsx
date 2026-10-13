@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { GlassPanel } from '../components/ui/GlassPanel';
+import { isSafeRelativePath } from '../utils/safeRedirect';
 
 export const Login: React.FC = () => {
   const { signInWithGoogle, user } = useAuth();
@@ -14,8 +15,9 @@ export const Login: React.FC = () => {
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
-      const returnTo = searchParams.get('returnTo');
-      await signInWithGoogle(returnTo || undefined);
+      const rawReturnTo = searchParams.get('returnTo');
+      const safeReturnTo = isSafeRelativePath(rawReturnTo) ? rawReturnTo! : undefined;
+      await signInWithGoogle(safeReturnTo);
     } catch (err: unknown) {
       console.error('Falha no login com Google:', err);
       const message = err instanceof Error ? err.message : 'Ocorreu um erro ao conectar com o Google.';
@@ -26,14 +28,9 @@ export const Login: React.FC = () => {
 
   // Se o usuário de alguma forma já estiver logado na tela de login
   if (user) {
-    const returnTo = searchParams.get('returnTo');
-    if (returnTo) {
-      if (returnTo.startsWith('/oauth/authorize')) {
-        window.location.href = returnTo;
-      } else {
-        const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'https://akasha-backend.onrender.com';
-        window.location.href = `${BACKEND_URL}${returnTo.startsWith('/') ? '' : '/'}${returnTo}`;
-      }
+    const rawReturnTo = searchParams.get('returnTo');
+    if (isSafeRelativePath(rawReturnTo)) {
+      window.location.href = rawReturnTo!;
     } else {
       window.location.href = '/';
     }

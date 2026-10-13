@@ -66,6 +66,23 @@ export function useWishlist() {
             return { ...item, media: gameMedia };
           }
 
+          // Para Cinema e Séries: se os metadados já estiverem persistidos no banco, constrói a mídia diretamente
+          if (item.title && item.title !== 'Sem título') {
+            const meta = item.extraMeta as Record<string, unknown> | null | undefined;
+            const movieMedia: MediaDetails = {
+              id: item.tmdbId || Number(item.externalId) || item.id,
+              title: item.title,
+              overview: typeof meta?.overview === 'string' ? meta.overview : '',
+              posterUrl: item.coverUrl || '',
+              backdropUrl: typeof meta?.backdropUrl === 'string' ? meta.backdropUrl : '',
+              mediaType: (item.mediaType as 'movie' | 'tv') || 'movie',
+              releaseDate: item.releaseYear ? `${item.releaseYear}-01-01` : '',
+              voteAverage: typeof meta?.voteAverage === 'number' ? meta.voteAverage : 0,
+            };
+            return { ...item, media: movieMedia };
+          }
+
+          // Fallback para itens legados sem título salvo no banco
           if (item.tmdbId && item.mediaType) {
             try {
               const mediaRes = await apiFetch(`/tmdb/${item.mediaType}/${item.tmdbId}`);

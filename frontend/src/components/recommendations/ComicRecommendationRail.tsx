@@ -74,7 +74,26 @@ export const ComicRecommendationRail: React.FC<ComicRecommendationRailProps> = (
     );
   }
 
-  if (error || recommendations.length === 0) {
+  if (error) {
+    return (
+      <div className="w-full my-6 p-4 rounded-xl border border-amber-900/40 bg-amber-950/20 backdrop-blur-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-outfit text-sm">
+        <div className="flex items-center gap-3 text-amber-200">
+          <Layers className="w-5 h-5 text-[var(--color-caramelo-claro)] shrink-0" />
+          <span>Não foi possível carregar as recomendações de sagas e mangás no momento.</span>
+        </div>
+        <button
+          type="button"
+          tabIndex={0}
+          onClick={() => fetchRecommendations({ limit: 14, type: filterType })}
+          className="tv-focus-glow px-4 py-2 rounded-lg bg-[var(--color-caramelo-claro)] text-black font-semibold text-xs hover:bg-amber-400 transition-colors cursor-pointer shrink-0"
+        >
+          Recarregar
+        </button>
+      </div>
+    );
+  }
+
+  if (recommendations.length === 0) {
     return null;
   }
 

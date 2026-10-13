@@ -243,17 +243,17 @@ export async function searchGames(query: string, limit = 10): Promise<GameDetail
   const token = await getTwitchAccessToken();
   const clientId = process.env.TWITCH_CLIENT_ID || process.env.IGDB_CLIENT_ID;
 
-  const normalizedQuery = query.toLowerCase().trim();
+  const sanitizedQuery = query.replace(/["';\r\n\\]/g, ' ').trim();
 
-  // Se não foi fornecido termo de busca, exibe as tendências ao vivo da Twitch
-  if (!normalizedQuery) {
+  // Se não foi fornecido termo de busca válido, exibe as tendências ao vivo da Twitch
+  if (!sanitizedQuery) {
     return fetchTwitchTrendingGames(limit);
   }
 
   if (token && clientId) {
     try {
       const igdbQuery = `
-        search "${query.replace(/"/g, '')}";
+        search "${sanitizedQuery}";
         fields id, name, slug, summary, cover.url, screenshots.url, first_release_date, genres.name, platforms.name, total_rating, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, similar_games;
         limit ${limit};
       `;
@@ -310,13 +310,18 @@ export async function searchGames(query: string, limit = 10): Promise<GameDetail
  * Busca detalhes completos de um jogo pelo ID externo da IGDB.
  */
 export async function fetchGameDetails(gameId: string): Promise<GameDetails | null> {
+  const cleanId = gameId.trim();
+  if (!/^\d+$/.test(cleanId)) {
+    return null;
+  }
+
   const token = await getTwitchAccessToken();
   const clientId = process.env.TWITCH_CLIENT_ID || process.env.IGDB_CLIENT_ID;
 
   if (token && clientId) {
     try {
       const igdbQuery = `
-        where id = ${gameId};
+        where id = ${cleanId};
         fields id, name, slug, summary, cover.url, screenshots.url, first_release_date, genres.name, platforms.name, total_rating, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, similar_games;
       `;
 

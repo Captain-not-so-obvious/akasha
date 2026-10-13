@@ -276,5 +276,23 @@
 | 12.6 | **Interface e Experiência do Titular (Frontend):** Modal bloqueante de consentimento (`ConsentGate`), painel de privacidade no Perfil (`PrivacySettingsPanel`), páginas `/privacidade` e `/termos`, links no Login e foco seguro para controle remoto Android TV (D-Pad) | 🔴 | 12.3 | **Done** |
 | 12.7 | **Cobertura de Testes Automatizados:** Suíte de testes atualizada e validada com 253 testes no backend e 220 testes no frontend (100% passando com Vitest) | 🔴 | 12.1–12.6 | **Done** |
 
+---
+
+## FASE 13 — Blindagem de Segurança da Aplicação e Proteção de APIs (100% Concluída)
+> 📄 **Spec:** [`specs/SPEC-021-security-hardening-and-api-shielding.md`](specs/SPEC-021-security-hardening-and-api-shielding.md)  
+**Objetivo:** Blindagem abrangente de segurança contra injeções, Clickjacking, ataques DoS, exaustão de cotas de APIs externas, CSRF em fluxos de consentimento OAuth, Open Redirect e validação Zod universal em parâmetros dinâmicos.
+
+| # | Feature | Complexidade | Dependência | Status |
+|---|---|---|---|---|
+| 13.1 | **Sanitização de Dialetos Externos & Anti-Injeção Apicalypse:** Validação numérica estrita de identificadores de games e sanitização de termos de busca no IGDB (`/["';\r\n\\]/g`) | 🟡 | Fase 8 | **Done** |
+| 13.2 | **Cabeçalhos Defensivos HTTP & Anti-Clickjacking:** Integração de `@fastify/helmet` com `X-Frame-Options: DENY`, Content-Security-Policy com `frame-ancestors 'none'` e `nosniff` | 🟢 | Fase 2 | **Done** |
+| 13.3 | **Rate Limiting Defensivo Global:** Configuração de `@fastify/rate-limit` (120 req/min por IP) para proteção contra DoS e esgotamento de cotas de APIs (TMDB, Twitch, Google Books, AniList) | 🟡 | Fase 2 | **Done** |
+| 13.4 | **Proteção Anti-CSRF no Formulário OAuth:** Emissão e conferência de token criptográfico temporário em cookie HttpOnly com política `SameSite=Lax` no fluxo de autorização do MCP | 🟡 | Fase 10, 12 | **Done** |
+| 13.5 | **Validação Zod Universal em Parâmetros de Catálogo:** Criação e imposição de schemas Zod para parâmetros `:id` e rotas de busca de mídias (`/tmdb`, `/books`, `/comics`) | 🟢 | Fases 7, 8, 9 | **Done** |
+| 13.6 | **Proteção Anti-Open Redirect no Frontend:** Utilitário `safeRedirect.ts` aplicado no fluxo de autenticação para neutralizar redirecionamentos arbitrários para domínios ou protocolos externos | 🟢 | Fase 3 | **Done** |
+| 13.7 | **Mitigação de Host Header Poisoning & Sanitização de Tokens:** Blindagem de `getBaseUrl` com validação de host e prioridade para variável de ambiente; alerta para depreciação de tokens em query params | 🟢 | Fase 2 | **Done** |
+| 13.8 | **Bateria de Testes Automatizados:** Testes dedicados de segurança no backend e frontend elevando a cobertura para 263 testes no backend e 227 no frontend (100% passando) | 🔴 | 13.1–13.7 | **Done** |
+
+
 
 

@@ -4,6 +4,7 @@ import {
   searchBooksQuerySchema,
   popularBooksQuerySchema,
   bookRecommendationsQuerySchema,
+  bookParamSchema,
 } from '../schemas/book.schema.js';
 import {
   searchBooks,
@@ -65,8 +66,16 @@ export async function booksRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // GET /books/:id — Detalhes de um livro
-  fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
-    const { id } = request.params;
+  fastify.get('/:id', async (request, reply) => {
+    const paramResult = bookParamSchema.safeParse(request.params);
+    if (!paramResult.success) {
+      return reply.status(400).send({
+        error: 'Parâmetro de rota inválido.',
+        details: paramResult.error.flatten().fieldErrors,
+      });
+    }
+
+    const { id } = paramResult.data;
 
     try {
       const book = await fetchBookDetails(id);

@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
 import { escapeHtml, isAllowedRedirectUri, verifyCodeChallenge } from '../lib/oauthValidator.js';
 import { signMcpToken, verifyMcpToken } from '../lib/mcpToken.js';
+import { getBaseUrl } from '../lib/baseUrl.js';
 
 interface AuthorizeQuery {
   client_id?: string;
@@ -21,6 +22,7 @@ interface AuthorizeBody {
   code_challenge?: string;
   code_challenge_method?: string;
   scope?: string;
+  csrf_token?: string;
 }
 
 interface TokenBody {
@@ -100,7 +102,7 @@ async function resolveAuthenticatedUser(request: FastifyRequest): Promise<Authen
 }
 
 /**
- * Renderiza página HTML Server-Side de Autorização com proteção XSS (escapeHtml).
+ * Renderiza página HTML Server-Side de Autorização com proteção XSS (escapeHtml) e CSRF.
  */
 function renderAuthorizeHtml(params: {
   clientId: string;
@@ -109,11 +111,12 @@ function renderAuthorizeHtml(params: {
   codeChallenge?: string;
   codeChallengeMethod?: string;
   scope?: string;
+  csrfToken: string;
   user: AuthenticatedOAuthUser | null;
   error?: string;
   frontendUrl: string;
 }): string {
-  const { clientId, redirectUri, state, codeChallenge, codeChallengeMethod, scope, user, error, frontendUrl } = params;
+  const { clientId, redirectUri, state, codeChallenge, codeChallengeMethod, scope, csrfToken, user, error, frontendUrl } = params;
 
   const safeClientId = escapeHtml(clientId);
   const safeRedirectUri = escapeHtml(redirectUri);
@@ -121,6 +124,7 @@ function renderAuthorizeHtml(params: {
   const safeChallenge = escapeHtml(codeChallenge || '');
   const safeChallengeMethod = escapeHtml(codeChallengeMethod || 'S256');
   const safeScope = escapeHtml(scope || 'mcp:read mcp:write');
+  const safeCsrfToken = escapeHtml(csrfToken);
   const safeUserEmail = user ? escapeHtml(user.email || user.id) : '';
 
   const userBadgeHtml = user
@@ -134,6 +138,7 @@ function renderAuthorizeHtml(params: {
   const actionFormHtml = user
     ? `
     <form method="POST" action="/oauth/authorize">
+      <input type="hidden" name="csrf_token" value="${safeCsrfToken}">
       <input type="hidden" name="client_id" value="${safeClientId}">
       <input type="hidden" name="redirect_uri" value="${safeRedirectUri}">
       <input type="hidden" name="state" value="${safeState}">
@@ -293,13 +298,6 @@ function renderAuthorizeHtml(params: {
 }
 
 export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
-  // Helper para URL base dinâmica
-  const getBaseUrl = (request: FastifyRequest) => {
-    const protocol = request.headers['x-forwarded-proto'] || request.protocol;
-    const host = request.headers.host || 'akasha-backend.onrender.com';
-    return `${protocol}://${host}`;
-  };
-
   // RFC 8414 - OAuth 2.0 Authorization Server Metadata
   fastify.get('/metadata', async (request, reply) => {
     const baseUrl = getBaseUrl(request);
@@ -357,6 +355,16 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
     const user = await resolveAuthenticatedUser(request);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
+    // Gera token anti-CSRF efêmero vinculado ao cookie HttpOnly (Lax)
+    const csrfToken = crypto.randomUUID();
+    reply.setCookie('oauth_csrf_token', csrfToken, {
+      path: '/oauth',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 600, // 10 minutos
+    });
+
     const html = renderAuthorizeHtml({
       clientId,
       redirectUri,
@@ -364,6 +372,7 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
       codeChallenge,
       codeChallengeMethod,
       scope,
+      csrfToken,
       user,
       frontendUrl,
     });
@@ -403,6 +412,22 @@ export const oauthRoutes: FastifyPluginAsync = async (fastify) => {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const returnTo = `/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
       return reply.redirect(`${frontendUrl}/login?returnTo=${encodeURIComponent(returnTo)}`);
+    }
+
+    // Verificação rigorosa anti-CSRF do formulário quando emitido via cookie
+    const cookieCsrfToken = request.cookies?.oauth_csrf_token;
+    const bodyCsrfToken = body.csrf_token;
+
+    if (cookieCsrfToken && (!bodyCsrfToken || cookieCsrfToken !== bodyCsrfToken)) {
+      request.log.warn('Tentativa de POST /oauth/authorize rejeitada por token CSRF inválido ou ausente.');
+      return reply.status(403).send({
+        error: 'csrf_validation_failed',
+        message: 'Falha na validação de segurança anti-CSRF da requisição. Tente autorizar novamente.',
+      });
+    }
+
+    if (cookieCsrfToken) {
+      reply.clearCookie('oauth_csrf_token', { path: '/oauth' });
     }
 
     // Gera o código de autorização no banco (expira em 5 minutos)

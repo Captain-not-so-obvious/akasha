@@ -4,6 +4,7 @@ import {
   searchGamesQuerySchema,
   popularGamesQuerySchema,
   gameRecommendationsQuerySchema,
+  gameParamSchema,
 } from '../schemas/game.schema.js';
 import {
   searchGames,
@@ -65,8 +66,16 @@ export async function gamesRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // GET /games/:id — Detalhes de um jogo
-  fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
-    const { id } = request.params;
+  fastify.get('/:id', async (request, reply) => {
+    const paramResult = gameParamSchema.safeParse(request.params);
+    if (!paramResult.success) {
+      return reply.status(400).send({
+        error: 'Parâmetro de rota inválido.',
+        details: paramResult.error.flatten().fieldErrors,
+      });
+    }
+
+    const { id } = paramResult.data;
 
     try {
       const game = await fetchGameDetails(id);

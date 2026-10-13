@@ -26,11 +26,28 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}): Pro
     ? endpoint
     : `${BACKEND_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 
-  let res = await fetch(url, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
+  const isGet = !options.method || options.method.toUpperCase() === 'GET';
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+  } catch (networkErr) {
+    // Tolerância a falhas transitórias de conexão durante hot-reloads ou oscilações de rede (GET idempotente)
+    if (isGet) {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      res = await fetch(url, {
+        ...options,
+        headers,
+        credentials: 'include',
+      });
+    } else {
+      throw networkErr;
+    }
+  }
 
   // Se a requisição falhar com 401 (token expirado), tenta renovar a sessão uma vez e retentar
   if (res.status === 401) {

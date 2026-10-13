@@ -13,6 +13,11 @@ export const gameRecommendationsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(30).default(10),
 });
 
+export const gameParamSchema = z.object({
+  id: z.string().regex(/^\d+$/, 'ID do jogo deve ser estritamente numérico.'),
+});
+
 export type SearchGamesQuery = z.infer<typeof searchGamesQuerySchema>;
 export type PopularGamesQuery = z.infer<typeof popularGamesQuerySchema>;
 export type GameRecommendationsQuery = z.infer<typeof gameRecommendationsQuerySchema>;
+export type GameParamInput = z.infer<typeof gameParamSchema>;

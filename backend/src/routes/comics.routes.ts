@@ -4,6 +4,7 @@ import {
   searchComicsQuerySchema,
   popularComicsQuerySchema,
   comicRecommendationsQuerySchema,
+  comicIdParamSchema,
 } from '../schemas/comic.schema.js';
 import {
   searchComics,
@@ -70,8 +71,16 @@ export async function comicsRoutes(fastify: FastifyInstance): Promise<void> {
   );
 
   // GET /comics/:id — Detalhes da saga ou mangá com edições/volumes enumerados
-  fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
-    const { id } = request.params;
+  fastify.get('/:id', async (request, reply) => {
+    const paramResult = comicIdParamSchema.safeParse(request.params);
+    if (!paramResult.success) {
+      return reply.status(400).send({
+        error: 'Parâmetro de rota inválido.',
+        details: paramResult.error.flatten().fieldErrors,
+      });
+    }
+
+    const { id } = paramResult.data;
 
     try {
       const comic = await getComicDetails(id);
