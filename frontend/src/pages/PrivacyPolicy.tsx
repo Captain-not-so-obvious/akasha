@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GlassPanel } from '../components/ui/GlassPanel';
-import { ArrowLeft, Shield, Lock, Eye, Download, Trash2, Cpu } from 'lucide-react';
+import { ArrowLeft, Shield, Lock, Eye, Cpu } from 'lucide-react';
 import { CURRENT_PRIVACY_VERSION } from '../lib/legalVersions';
 
 export const PrivacyPolicy: React.FC = () => {

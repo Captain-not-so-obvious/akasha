@@ -10,7 +10,6 @@ import {
   Download,
   Trash2,
   AlertTriangle,
-  Check,
   X,
 } from 'lucide-react';
 
