@@ -293,6 +293,20 @@
 | 13.7 | **Mitigação de Host Header Poisoning & Sanitização de Tokens:** Blindagem de `getBaseUrl` com validação de host e prioridade para variável de ambiente; alerta para depreciação de tokens em query params | 🟢 | Fase 2 | **Done** |
 | 13.8 | **Bateria de Testes Automatizados:** Testes dedicados de segurança no backend e frontend elevando a cobertura para 263 testes no backend e 227 no frontend (100% passando) | 🔴 | 13.1–13.7 | **Done** |
 
+---
+
+## FASE 14 — Onboarding de Agentes de IA (MCP) & 1-Click Setup (100% Concluída)
+> 📄 **Spec:** [`specs/SPEC-022-mcp-connection-helper-and-onboarding.md`](specs/SPEC-022-mcp-connection-helper-and-onboarding.md)  
+**Objetivo:** Transformar o card passivo de Agentes MCP em um ponto de integração fluida e acionável, com resolução dinâmica do endpoint SSE, ações de 1-Click Copy para URLs e configuração JSON pronta para Claude Desktop/Cursor, além de modal didático com acessibilidade total para TV e dispositivos touch.
+
+| # | Feature | Complexidade | Dependência | Status |
+|---|---|---|---|---|
+| 14.1 | **Resolução Dinâmica do Endpoint MCP:** Utilitário `mcpUrl.ts` com fallback inteligente para dev/produção | 🟢 | Fase 10 | **Done** |
+| 14.2 | **1-Click Copy de URL e JSON Config:** Ações de cópia instantânea com feedback visual de confirmação | 🟢 | 14.1 | **Done** |
+| 14.3 | **Modal Acessível "Como Conectar":** Passo a passo para Claude Desktop, Cursor e Google Spark com compatibilidade D-Pad Android TV | 🟡 | 14.2 | **Done** |
+| 14.4 | **Cobertura de Testes Automatizados:** Testes de componentes e utilitários validados no Vitest | 🟢 | 14.1–14.3 | **Done** |
+
+
 
 
 

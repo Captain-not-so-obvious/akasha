@@ -11,7 +11,17 @@ import {
   Trash2,
   AlertTriangle,
   X,
+  Copy,
+  Check,
+  HelpCircle,
+  Sparkles,
+  Terminal,
 } from 'lucide-react';
+import {
+  getBackendBaseUrl,
+  getMcpSseUrl,
+  getMcpClaudeConfigJson,
+} from '../../utils/mcpUrl';
 
 export const PrivacySettingsPanel: React.FC = () => {
   const { signOut } = useAuth();
@@ -29,12 +39,15 @@ export const PrivacySettingsPanel: React.FC = () => {
   } = usePrivacy();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMcpGuideModal, setShowMcpGuideModal] = useState(false);
+  const [copiedField, setCopiedField] = useState<'url' | 'json' | 'spark' | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
-  // Ref para focar automaticamente no botão "Cancelar" ao abrir o modal (proteção D-Pad Android TV)
+  // Ref para focar automaticamente no botão "Cancelar" ao abrir os modais (proteção D-Pad Android TV)
   const cancelDeleteButtonRef = useRef<HTMLButtonElement>(null);
+  const closeMcpGuideButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -48,6 +61,33 @@ export const PrivacySettingsPanel: React.FC = () => {
       }, 50);
     }
   }, [showDeleteModal]);
+
+  useEffect(() => {
+    if (showMcpGuideModal) {
+      setTimeout(() => {
+        closeMcpGuideButtonRef.current?.focus();
+      }, 50);
+    }
+  }, [showMcpGuideModal]);
+
+  const handleCopy = async (text: string, field: 'url' | 'json' | 'spark') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setFeedbackMsg(
+        field === 'json'
+          ? 'Configuração JSON copiada! Cole no claude_desktop_config.json ou Cursor.'
+          : 'URL copiada para a área de transferência!'
+      );
+      setTimeout(() => {
+        setCopiedField(null);
+        setFeedbackMsg(null);
+      }, 3500);
+    } catch {
+      setFeedbackMsg('Não foi possível copiar automaticamente para a área de transferência.');
+      setTimeout(() => setFeedbackMsg(null), 3500);
+    }
+  };
 
   const handleToggleVisibility = async () => {
     if (!settings) return;
@@ -108,6 +148,10 @@ export const PrivacySettingsPanel: React.FC = () => {
       setIsDeleting(false);
     }
   };
+
+  const mcpSseUrl = getMcpSseUrl();
+  const mcpClaudeJson = getMcpClaudeConfigJson();
+  const backendBaseUrl = getBackendBaseUrl();
 
   return (
     <div className="space-y-6 font-outfit">
@@ -207,17 +251,96 @@ export const PrivacySettingsPanel: React.FC = () => {
 
         {/* Painel 2: Conexões de IA & Agentes MCP */}
         <GlassPanel className="p-5 md:p-6 space-y-4">
-          <div className="flex items-center gap-2 text-amber-200 border-b border-white/5 pb-3">
-            <Cpu className="w-4 h-4 text-amber-400" />
-            <h3 className="font-cinzel text-base font-semibold tracking-wider">
-              Agentes Conectados (MCP)
-            </h3>
+          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+            <div className="flex items-center gap-2 text-amber-200">
+              <Cpu className="w-4 h-4 text-amber-400" />
+              <h3 className="font-cinzel text-base font-semibold tracking-wider">
+                Agentes Conectados (MCP)
+              </h3>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowMcpGuideModal(true)}
+              tabIndex={0}
+              aria-label="Abrir guia de como conectar agentes de IA"
+              className="tv-focus-glow inline-flex items-center gap-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 text-[11px] font-medium transition-colors cursor-pointer"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>Como Conectar</span>
+            </button>
           </div>
 
+          {/* Bloco de Integração Rápida (1-Click Copy) */}
+          <div className="p-3.5 rounded-xl bg-black/30 border border-white/10 space-y-2.5 text-xs">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-amber-200/90 font-medium flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                Endpoint do Servidor MCP (SSE)
+              </span>
+              <span className="text-white/40 text-[10px]">Pronto para IA</span>
+            </div>
+
+            {/* URL e Botão de Cópia */}
+            <div className="flex items-center gap-2 bg-black/50 p-1.5 rounded-lg border border-white/10">
+              <code className="flex-1 text-[11px] text-amber-100 font-mono truncate px-1.5 select-all">
+                {mcpSseUrl}
+              </code>
+              <button
+                type="button"
+                onClick={() => handleCopy(mcpSseUrl, 'url')}
+                tabIndex={0}
+                title="Copiar URL do Servidor MCP"
+                aria-label="Copiar URL do Servidor MCP"
+                className="tv-focus-glow inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-[11px] font-medium transition-colors cursor-pointer shrink-0"
+              >
+                {copiedField === 'url' ? (
+                  <>
+                    <Check className="w-3 h-3 text-emerald-400" />
+                    <span className="text-emerald-300 text-[10px]">Copiado</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3 text-amber-300" />
+                    <span className="text-[10px]">Copiar URL</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Ação Rápida: Copiar Configuração JSON Claude/Cursor */}
+            <div className="pt-1 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => handleCopy(mcpClaudeJson, 'json')}
+                tabIndex={0}
+                aria-label="Copiar configuração JSON para Claude Desktop ou Cursor"
+                className="tv-focus-glow flex-1 min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-lg bg-[var(--color-caramelo-claro)]/15 hover:bg-[var(--color-caramelo-claro)]/25 text-[var(--color-caramelo-claro)] border border-[var(--color-caramelo-claro)]/30 px-3 py-1.5 text-[11px] font-semibold transition-colors cursor-pointer"
+              >
+                {copiedField === 'json' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>JSON Copiado!</span>
+                  </>
+                ) : (
+                  <>
+                    <Terminal className="w-3.5 h-3.5" />
+                    <span>Copiar JSON (Claude & Cursor)</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Lista de Conexões Ativas */}
           <div className="space-y-2 text-xs">
+            <span className="text-[10px] uppercase font-bold text-white/50 tracking-wider">
+              Acessos Autorizados
+            </span>
+
             {connections.length === 0 ? (
-              <p className="p-4 rounded-xl bg-black/20 border border-white/5 text-center text-white/50 text-[11px]">
-                Nenhum agente de IA (Google Spark, Claude) conectado no momento.
+              <p className="p-3.5 rounded-xl bg-black/20 border border-white/5 text-center text-white/50 text-[11px] leading-relaxed">
+                Nenhum agente de IA conectado no momento. Copie a URL ou JSON acima para vincular o Claude Desktop, Google Spark ou Cursor.
               </p>
             ) : (
               connections.map((c) => (
@@ -265,7 +388,7 @@ export const PrivacySettingsPanel: React.FC = () => {
             disabled={isExporting}
             tabIndex={0}
             aria-label="Baixar todos os meus dados em formato JSON"
-            className="tv-focus-glow inline-flex items-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 px-4 py-2.5 text-xs font-semibold text-white transition-colors cursor-pointer disabled:opacity-50"
+            className="tv-focus-glow inline-flex items-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 px-4 py-2.5 text-xs font-semibold text-white transition-colors cursor-pointer disabled:opacity-50 min-h-[44px]"
           >
             <Download className="w-3.5 h-3.5 text-amber-300" />
             <span>{isExporting ? 'Exportando...' : 'Baixar Meus Dados (JSON)'}</span>
@@ -277,13 +400,150 @@ export const PrivacySettingsPanel: React.FC = () => {
             onClick={() => setShowDeleteModal(true)}
             tabIndex={0}
             aria-label="Abrir modal para excluir conta e dados pessoais"
-            className="tv-focus-glow inline-flex items-center gap-2 rounded-xl bg-red-950/30 hover:bg-red-900/40 border border-red-500/30 px-4 py-2.5 text-xs font-semibold text-red-300 transition-colors cursor-pointer"
+            className="tv-focus-glow inline-flex items-center gap-2 rounded-xl bg-red-950/30 hover:bg-red-900/40 border border-red-500/30 px-4 py-2.5 text-xs font-semibold text-red-300 transition-colors cursor-pointer min-h-[44px]"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Excluir Minha Conta</span>
           </button>
         </div>
       </GlassPanel>
+
+      {/* Modal Interativo: Como Conectar Agentes de IA ao Akasha (MCP) */}
+      {showMcpGuideModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-mcp-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+        >
+          <GlassPanel className="w-full max-w-xl p-6 md:p-7 space-y-5 border border-amber-500/30 text-left max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2 text-amber-200">
+                <Cpu className="h-5 w-5 text-amber-400" />
+                <h4 id="modal-mcp-title" className="font-cinzel text-lg md:text-xl font-bold">
+                  Conectar Agente de IA (MCP)
+                </h4>
+              </div>
+              <button
+                ref={closeMcpGuideButtonRef}
+                type="button"
+                onClick={() => setShowMcpGuideModal(false)}
+                tabIndex={0}
+                aria-label="Fechar guia de conexão MCP"
+                className="tv-focus-glow p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-white/80 leading-relaxed font-outfit">
+              O Akasha suporta o padrão aberto <strong>Model Context Protocol (MCP)</strong>. Ao conectar seu agente, ele poderá consultar suas recomendações culturais, buscar obras e avaliar filmes ou séries diretamente no chat de IA em seu nome.
+            </p>
+
+            <div className="space-y-4 font-outfit text-xs">
+              {/* Opção 1: Claude Desktop & Cursor */}
+              <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-amber-300 text-sm flex items-center gap-1.5">
+                    <Terminal className="w-4 h-4" />
+                    Opção 1: Claude Desktop & Cursor
+                  </span>
+                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                    Mais Fácil
+                  </span>
+                </div>
+                <p className="text-white/70 text-[11px] leading-relaxed">
+                  Basta colar este bloco no seu arquivo <code className="text-amber-200 bg-white/5 px-1 py-0.5 rounded">claude_desktop_config.json</code> ou nas configurações de MCP do Cursor:
+                </p>
+
+                <div className="relative">
+                  <pre className="p-3 rounded-lg bg-black/60 border border-white/10 text-[11px] font-mono text-amber-100 overflow-x-auto select-all">
+                    {mcpClaudeJson}
+                  </pre>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(mcpClaudeJson, 'json')}
+                    tabIndex={0}
+                    aria-label="Copiar JSON de configuração do Claude"
+                    className="tv-focus-glow absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-[10px] font-medium transition-colors cursor-pointer"
+                  >
+                    {copiedField === 'json' ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span className="text-emerald-300">Copiado</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3 text-amber-300" />
+                        <span>Copiar JSON</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Opção 2: Google Spark & Clientes OAuth Web */}
+              <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-2.5">
+                <span className="font-semibold text-amber-300 text-sm flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4" />
+                  Opção 2: Google Spark & Agentes Web
+                </span>
+                <p className="text-white/70 text-[11px] leading-relaxed">
+                  No Google Spark ou clientes com descoberta automática OAuth, adicione um novo servidor e insira apenas a URL Base do Akasha:
+                </p>
+
+                <div className="flex items-center gap-2 bg-black/60 p-2 rounded-lg border border-white/10">
+                  <code className="flex-1 text-[11px] text-amber-100 font-mono truncate select-all">
+                    {backendBaseUrl}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(backendBaseUrl, 'spark')}
+                    tabIndex={0}
+                    aria-label="Copiar URL base para o Google Spark"
+                    className="tv-focus-glow inline-flex items-center gap-1 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-[10px] font-medium transition-colors cursor-pointer shrink-0"
+                  >
+                    {copiedField === 'spark' ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span className="text-emerald-300">Copiado</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3 text-amber-300" />
+                        <span>Copiar URL</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-[10px] text-white/50">
+                  O Spark detectará as ferramentas automaticamente e abrirá a tela de autorização do Akasha para o seu login.
+                </p>
+              </div>
+
+              {/* Garantias de Segurança e Revogação */}
+              <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-amber-200/90 text-[11px] leading-relaxed flex items-start gap-2">
+                <Shield className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Segurança e LGPD:</strong> O agente nunca tem acesso à sua senha. A qualquer momento você pode revogar o acesso de qualquer agente clicando em <em>Revogar</em> nesta mesma tela.
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setShowMcpGuideModal(false)}
+                tabIndex={0}
+                aria-label="Entendi e fechar guia de conexão"
+                className="tv-focus-glow w-full rounded-xl bg-white/10 hover:bg-white/15 px-4 py-3 text-xs font-semibold text-white transition-colors cursor-pointer min-h-[44px]"
+              >
+                Entendi e Fechar
+              </button>
+            </div>
+          </GlassPanel>
+        </div>
+      )}
 
       {/* Modal de Confirmação de Exclusão (Acessível para TV e Touch) */}
       {showDeleteModal && (
@@ -315,7 +575,7 @@ export const PrivacySettingsPanel: React.FC = () => {
                 onClick={() => setShowDeleteModal(false)}
                 tabIndex={0}
                 aria-label="Cancelar exclusão da conta"
-                className="tv-focus-glow w-full rounded-xl bg-white/10 hover:bg-white/15 px-4 py-3 text-xs font-semibold text-white transition-colors cursor-pointer"
+                className="tv-focus-glow w-full rounded-xl bg-white/10 hover:bg-white/15 px-4 py-3 text-xs font-semibold text-white transition-colors cursor-pointer min-h-[44px]"
               >
                 Cancelar e Manter Minha Conta
               </button>
@@ -326,7 +586,7 @@ export const PrivacySettingsPanel: React.FC = () => {
                 disabled={isDeleting}
                 tabIndex={0}
                 aria-label="Confirmar exclusão definitiva da conta"
-                className="tv-focus-glow w-full rounded-xl bg-red-600 hover:bg-red-500 px-4 py-3 text-xs font-semibold text-white transition-colors cursor-pointer disabled:opacity-50"
+                className="tv-focus-glow w-full rounded-xl bg-red-600 hover:bg-red-500 px-4 py-3 text-xs font-semibold text-white transition-colors cursor-pointer disabled:opacity-50 min-h-[44px]"
               >
                 {isDeleting ? 'Excluindo...' : 'Sim, Excluir Meus Dados Agora'}
               </button>

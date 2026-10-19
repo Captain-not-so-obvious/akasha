@@ -49,6 +49,12 @@ describe('Componente PrivacySettingsPanel (Painel de Privacidade e Direitos LGPD
       exportData: mockExportData,
       deleteAccount: mockDeleteAccount,
     });
+
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
   });
 
   it('deve carregar configurações e conexões ao montar', () => {
@@ -60,6 +66,55 @@ describe('Componente PrivacySettingsPanel (Painel de Privacidade e Direitos LGPD
     expect(screen.getByText('Agentes Conectados (MCP)')).toBeInTheDocument();
     expect(screen.getByText('Seus Dados & Direitos LGPD')).toBeInTheDocument();
     expect(screen.getByText('claude')).toBeInTheDocument();
+  });
+
+  it('deve renderizar a URL do servidor MCP e permitir copiar a URL com feedback', async () => {
+    render(<PrivacySettingsPanel />);
+
+    expect(screen.getByText(/Endpoint do Servidor MCP \(SSE\)/i)).toBeInTheDocument();
+    const copyUrlBtn = screen.getByRole('button', { name: /Copiar URL do Servidor MCP/i });
+    expect(copyUrlBtn).toBeInTheDocument();
+
+    fireEvent.click(copyUrlBtn);
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('/mcp/sse'));
+      expect(screen.getByText(/URL copiada para a área de transferência/i)).toBeInTheDocument();
+    });
+  });
+
+  it('deve permitir copiar o bloco de configuração JSON para Claude Desktop e Cursor', async () => {
+    render(<PrivacySettingsPanel />);
+
+    const copyJsonBtn = screen.getByRole('button', {
+      name: /Copiar configuração JSON para Claude Desktop ou Cursor/i,
+    });
+    expect(copyJsonBtn).toBeInTheDocument();
+
+    fireEvent.click(copyJsonBtn);
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('"mcpServers"'));
+      expect(screen.getByText(/Configuração JSON copiada/i)).toBeInTheDocument();
+    });
+  });
+
+  it('deve abrir o modal de guia de conexão MCP e permitir fechamento', async () => {
+    render(<PrivacySettingsPanel />);
+
+    const openGuideBtn = screen.getByRole('button', {
+      name: /Abrir guia de como conectar agentes de IA/i,
+    });
+    fireEvent.click(openGuideBtn);
+
+    expect(screen.getByText('Conectar Agente de IA (MCP)')).toBeInTheDocument();
+    expect(screen.getByText(/Claude Desktop & Cursor/i)).toBeInTheDocument();
+    expect(screen.getByText(/Google Spark & Agentes Web/i)).toBeInTheDocument();
+
+    const closeBtn = screen.getByRole('button', { name: /Fechar guia de conexão MCP/i });
+    fireEvent.click(closeBtn);
+
+    expect(screen.queryByText('Conectar Agente de IA (MCP)')).not.toBeInTheDocument();
   });
 
   it('deve alternar visibilidade de atividades de amigos para privado', async () => {

@@ -8,7 +8,7 @@ A integração foi projetada para garantir que o LLM só consiga realizar açõe
 Isso é feito através de uma **Sessão MCP atrelada ao Token JWT do usuário**.
 O servidor MCP embutido no Fastify intercepta a conexão inicial do agente e extrai o ID do usuário. Dessa forma, as "Tools" expostas não recebem o ID do usuário como parâmetro do agente, mas sim utilizam o ID validado no momento da conexão (Contexto Seguro).
 
-**Configuração Automática (Recomendado):**
+**1. Configuração Automática via Google Spark (Web):**
 Graças à implementação do OAuth 2.0 Authorization Server nativo, o Google Spark consegue descobrir todas as rotas necessárias automaticamente.
 1. No Google Spark, insira a URL Base do backend:
    `https://akasha-backend.onrender.com`
@@ -16,8 +16,21 @@ Graças à implementação do OAuth 2.0 Authorization Server nativo, o Google Sp
 3. Uma janela será aberta pedindo para você fazer login no Akasha.
 4. Após o login, a janela fecha e a integração está pronta! O Spark usará um JWT Stateless seguro para realizar as ações.
 
+**2. Claude Desktop & Cursor (1-Click Copy via Perfil do Akasha):**
+No seu Perfil no Akasha (seção *Privacidade > Agentes Conectados*), utilize o botão **"Copiar JSON (Claude & Cursor)"** para obter a configuração instantânea:
+```json
+{
+  "mcpServers": {
+    "akasha": {
+      "url": "https://akasha-backend.onrender.com/mcp/sse"
+    }
+  }
+}
+```
+Cole o bloco no seu `claude_desktop_config.json` ou nas configurações de MCP do Cursor para ter acesso imediato às tools do Akasha via Server-Sent Events (SSE).
+
 > [!WARNING]
-> **Cold Start no Render:** Como o backend está hospedado no Render (plano gratuito), ele pode "dormir" após inatividade. Ao conectar o Spark, certifique-se de configurar um timeout generoso (pelo menos 60 segundos) para aguardar o Cold Start da aplicação caso seja a primeira requisição do dia.
+> **Cold Start no Render:** Como o backend está hospedado no Render (plano gratuito), ele pode "dormir" após inatividade. Ao conectar o Spark ou Claude, aguarde o Cold Start caso seja a primeira requisição do dia.
 
 ## Ferramentas Disponíveis (Tools)
 
