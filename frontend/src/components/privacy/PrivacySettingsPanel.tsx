@@ -16,6 +16,8 @@ import {
   HelpCircle,
   Sparkles,
   Terminal,
+  FileText,
+  ExternalLink,
 } from 'lucide-react';
 import {
   getBackendBaseUrl,
@@ -373,12 +375,38 @@ export const PrivacySettingsPanel: React.FC = () => {
 
       {/* Painel 3: Gestão de Dados e Direitos do Titular (Art. 18 LGPD) */}
       <GlassPanel className="p-5 md:p-6 space-y-4 border border-white/10">
-        <h3 className="font-cinzel text-base font-semibold text-[var(--color-caramelo-claro)]">
-          Seus Dados & Direitos LGPD
-        </h3>
-        <p className="text-xs opacity-70 leading-relaxed max-w-2xl">
-          Conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018), você pode solicitar a portabilidade completa de suas informações ou o expurgo definitivo de sua conta.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-white/5 pb-3">
+          <div>
+            <h3 className="font-cinzel text-base font-semibold text-[var(--color-caramelo-claro)]">
+              Seus Dados & Direitos LGPD
+            </h3>
+            <p className="text-xs opacity-70 leading-relaxed max-w-xl mt-1">
+              Conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018), você pode solicitar a portabilidade de suas informações, o expurgo definitivo ou consultar as salvaguardas da plataforma.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 pt-1 sm:pt-0">
+            <a
+              href="/privacidade"
+              tabIndex={0}
+              aria-label="Consultar documento integral da Política de Privacidade"
+              className="tv-focus-glow inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-amber-300 hover:text-amber-200 transition-colors cursor-pointer min-h-[36px]"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Política de Privacidade</span>
+              <ExternalLink className="w-3 h-3 opacity-60" />
+            </a>
+            <a
+              href="/termos"
+              tabIndex={0}
+              aria-label="Consultar documento integral dos Termos de Uso"
+              className="tv-focus-glow inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-amber-300 hover:text-amber-200 transition-colors cursor-pointer min-h-[36px]"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Termos de Uso</span>
+              <ExternalLink className="w-3 h-3 opacity-60" />
+            </a>
+          </div>
+        </div>
 
         <div className="flex flex-wrap gap-3 pt-2">
           {/* Botão Exportar Dados */}

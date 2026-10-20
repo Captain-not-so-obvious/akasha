@@ -66,11 +66,14 @@ Para operar em estrita conformidade com a **Lei Geral de Proteção de Dados (Le
 
 ### 2.6 Fase 5: Experiência do Usuário (Frontend)
 * **`ConsentGate.tsx`:** Modal bloqueante que intercepta qualquer usuário autenticado com versões pendentes de termos ou política, exigindo concordância explícita antes de liberar a aplicação.
-* **`PrivacySettingsPanel.tsx`:** Painel integrado à tela de Perfil (`/profile`) permitindo alterar visibilidade social, alternar busca por e-mail, visualizar/revogar agentes de IA, baixar dados em JSON e acionar a exclusão definitiva da conta.
+* **`PrivacySettingsPanel.tsx`:** Painel integrado à tela de Perfil (`/profile`) permitindo alterar visibilidade social, alternar busca por e-mail, visualizar/revogar agentes de IA, baixar dados em JSON, acionar a exclusão definitiva da conta e consultar os links diretos para a íntegra da **Política de Privacidade** e dos **Termos de Uso**.
 * **Páginas Legais Públicas:**
   - `/privacidade` (`PrivacyPolicy.tsx`): Detalha controlador (Fillipe Moreira), canal de atendimento (`fillipemoreira979@gmail.com`), bases legais, transferência internacional para servidores Supabase nos EUA (Oregon / *us-west-2*) via Art. 33, IX e direitos do titular.
   - `/termos` (`TermsOfUse.tsx`): Contrato de uso e regras de conduta.
-* **Tela de Login (`Login.tsx`):** Links para Termos e Política de Privacidade adicionados ao rodapé de autenticação.
+* **Navegação Global e Acesso Permanente (`Navbar.tsx` & `Login.tsx`):**
+  - Rodapé de autenticação em `Login.tsx`.
+  - Rodapé da Sidebar Desktop/TV em `Navbar.tsx` (acesso contínuo para usuários autenticados com foco D-Pad `tv-focus-glow`).
+  - Gaveta do menu mobile em `Navbar.tsx` (links com área de toque mínima de 36px e fechamento automático ao navegar).
 
 ---
 
@@ -89,4 +92,4 @@ Para operar em estrita conformidade com a **Lei Geral de Proteção de Dados (Le
 ## 4. Cobertura de Testes Automatizados
 
 * **Backend (253 testes):** Cobertura de schemas Zod, rotas privadas com token Supabase, exportação em JSON, expurgo com cascata, revogação de tokens MCP, validação de redirect URIs, PKCE S256 e sanitização de logs.
-* **Frontend:** Cobertura de `ConsentGate.test.tsx`, `PrivacySettingsPanel.test.tsx`, `PrivacyPolicy.test.tsx`, `TermsOfUse.test.tsx` e `Login.test.tsx`, validando estados de carregamento, interações de consentimento, chamadas de API e foco de acessibilidade.
+* **Frontend (238 testes):** Cobertura de `ConsentGate.test.tsx`, `PrivacySettingsPanel.test.tsx`, `PrivacyPolicy.test.tsx`, `TermsOfUse.test.tsx`, `Navbar.test.tsx` e `Login.test.tsx`, validando estados de carregamento, interações de consentimento, chamadas de API, presença dos links legais em todos os breakpoints e foco de acessibilidade.

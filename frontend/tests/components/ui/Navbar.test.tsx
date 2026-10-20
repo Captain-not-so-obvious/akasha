@@ -94,4 +94,33 @@ describe('Navbar Component', () => {
     expect(mockSignOut).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+
+  it('deve renderizar links para Privacidade (LGPD) e Termos de Uso na Sidebar desktop', () => {
+    renderNavbar();
+
+    const privacyLinks = screen.getAllByRole('link', { name: /Privacidade \(LGPD\)/i });
+    expect(privacyLinks.length).toBeGreaterThanOrEqual(1);
+    expect(privacyLinks[0]).toHaveAttribute('href', '/privacidade');
+
+    const termsLinks = screen.getAllByRole('link', { name: /Termos de Uso/i });
+    expect(termsLinks.length).toBeGreaterThanOrEqual(1);
+    expect(termsLinks[0]).toHaveAttribute('href', '/termos');
+  });
+
+  it('deve renderizar links para Privacidade (LGPD) e Termos de Uso no Menu mobile', () => {
+    renderNavbar();
+
+    const hamburgerButton = screen.getByRole('button', { name: /Abrir menu de navegação/i });
+    fireEvent.click(hamburgerButton);
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+
+    const privacyLinks = screen.getAllByRole('link', { name: /Privacidade \(LGPD\)/i });
+    // Deve haver na sidebar e no modal mobile
+    expect(privacyLinks.length).toBe(2);
+
+    const termsLinks = screen.getAllByRole('link', { name: /Termos de Uso/i });
+    expect(termsLinks.length).toBe(2);
+  });
 });

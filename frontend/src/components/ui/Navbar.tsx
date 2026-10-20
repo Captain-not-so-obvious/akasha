@@ -180,6 +180,26 @@ export function Navbar() {
                   <p className="text-xs text-[var(--color-seda-milharal)]/60 font-outfit uppercase tracking-wider">Conectado como</p>
                   <p className="text-sm font-medium font-outfit truncate text-[var(--color-seda-milharal)]">{user.email}</p>
                 </div>
+                {/* Links Legais Mobile */}
+                <div className="flex items-center justify-between px-2 text-xs font-outfit text-white/50 border-t border-white/5 pt-2">
+                  <NavLink
+                    to="/privacidade"
+                    onClick={() => setIsOpen(false)}
+                    tabIndex={0}
+                    className="hover:text-amber-300 transition-colors py-1.5 min-h-[36px] flex items-center"
+                  >
+                    Privacidade (LGPD)
+                  </NavLink>
+                  <span>•</span>
+                  <NavLink
+                    to="/termos"
+                    onClick={() => setIsOpen(false)}
+                    tabIndex={0}
+                    className="hover:text-amber-300 transition-colors py-1.5 min-h-[36px] flex items-center"
+                  >
+                    Termos de Uso
+                  </NavLink>
+                </div>
                 <button
                   onClick={() => {
                     setIsOpen(false);
@@ -244,9 +264,28 @@ export function Navbar() {
           </div>
         </div>
 
-        {user && (
-          <div className="border-t border-white/10 pt-4 mt-auto">
+        <div className="border-t border-white/10 pt-4 mt-auto">
+          {user && (
             <p className="text-xs opacity-65 truncate font-outfit mb-2">{user.email}</p>
+          )}
+          {/* Links Legais e Conformidade LGPD Desktop */}
+          <div className="flex flex-col gap-1 mb-3 text-xs font-outfit text-white/50">
+            <NavLink
+              to="/privacidade"
+              tabIndex={0}
+              className="tv-focus-glow hover:text-amber-300 transition-colors py-1 px-1 -mx-1 rounded"
+            >
+              Privacidade (LGPD)
+            </NavLink>
+            <NavLink
+              to="/termos"
+              tabIndex={0}
+              className="tv-focus-glow hover:text-amber-300 transition-colors py-1 px-1 -mx-1 rounded"
+            >
+              Termos de Uso
+            </NavLink>
+          </div>
+          {user && (
             <button
               onClick={() => signOut()}
               tabIndex={0}
@@ -254,8 +293,8 @@ export function Navbar() {
             >
               Sair
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </nav>
 
       {/* Central de Notificações Universal (Modal / Dialog) */}

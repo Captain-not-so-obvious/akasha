@@ -224,4 +224,16 @@ describe('Componente PrivacySettingsPanel (Painel de Privacidade e Direitos LGPD
       expect(mockSignOut).toHaveBeenCalledTimes(1);
     });
   });
+
+  it('deve renderizar links de acesso à Política de Privacidade e Termos de Uso no painel de direitos LGPD', () => {
+    render(<PrivacySettingsPanel />);
+
+    const privacyLink = screen.getByRole('link', { name: /Consultar documento integral da Política de Privacidade/i });
+    expect(privacyLink).toBeInTheDocument();
+    expect(privacyLink).toHaveAttribute('href', '/privacidade');
+
+    const termsLink = screen.getByRole('link', { name: /Consultar documento integral dos Termos de Uso/i });
+    expect(termsLink).toBeInTheDocument();
+    expect(termsLink).toHaveAttribute('href', '/termos');
+  });
 });
