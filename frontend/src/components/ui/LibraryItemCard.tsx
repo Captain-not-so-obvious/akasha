@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image as ImageIcon, Trash2, Star, ArrowRight, Info } from 'lucide-react';
+import { Image as ImageIcon, Star } from 'lucide-react';
 import type { LibraryItem, WishlistStatus } from '../../types/wishlist';
 import type { MediaDetails } from '../../types/media';
 import { StatusBadge } from './StatusBadge';
@@ -8,39 +8,34 @@ import { getReleaseYear } from '../../utils/date';
 
 interface LibraryItemCardProps {
   item: LibraryItem;
-  onEdit: (item: LibraryItem) => void;
-  onRemove: (item: LibraryItem) => void;
-  onStatusChange: (item: LibraryItem, newStatus: WishlistStatus) => void;
+  onEdit?: (item: LibraryItem) => void;
+  onRemove?: (item: LibraryItem) => void;
+  onStatusChange?: (item: LibraryItem, newStatus: WishlistStatus) => void;
   onSelect?: (media: MediaDetails) => void;
   onSelectItem?: (item: LibraryItem) => void;
 }
 
-export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSelect, onSelectItem }: LibraryItemCardProps) {
+/**
+ * Card de exibição de um item na Biblioteca do Akasha.
+ *
+ * Diretrizes de UX e Plataforma (Android TV, Mobile & Desktop):
+ * - TV/D-Pad First: O card inteiro é a única entidade focalizável (tabIndex={0}),
+ *   sem botões aninhados ou atalhos na superfície do card que possam causar focus traps
+ *   ou acionamentos acidentais (como exclusão ou conclusão indevida) via controle remoto.
+ * - Ao clicar ou pressionar Enter/Espaço no card, o modal de detalhes correspondente
+ *   é aberto, onde todas as opções (Começar, Concluir, Avaliar, Remover) são apresentadas
+ *   com segurança e contexto completo.
+ * - Mobile & Touch: Área de toque ampla (touch target total do card), sem dependência de hover.
+ */
+export function LibraryItemCard({
+  item,
+  onSelect,
+  onSelectItem,
+}: LibraryItemCardProps) {
   const { media, status, userRating, notes } = item;
   const year = getReleaseYear(media.releaseDate);
-  
-  const isGame = item.domain === 'game';
-  const isBook = item.domain === 'book';
-  const isComic = item.domain === 'comic';
 
-  const getNextStatusInfo = (currentStatus: WishlistStatus): { next: WishlistStatus; label: string } | null => {
-    if (currentStatus === 'plan_to_watch') {
-      return { next: 'watching', label: isGame ? 'Jogar' : (isBook || isComic) ? 'Ler' : 'Começar' };
-    }
-    if (currentStatus === 'watching') {
-      return { next: 'completed', label: isGame ? 'Zerar' : (isBook || isComic) ? 'Concluir' : 'Concluir' };
-    }
-    return null;
-  };
-
-  const nextStatusInfo = getNextStatusInfo(status);
-
-  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Se o clique foi originado de um botão interno, não dispara a seleção do card
-    const targetElement = e.target as HTMLElement;
-    if (targetElement.closest('button')) {
-      return;
-    }
+  const handleCardClick = () => {
     if (onSelectItem) {
       onSelectItem(item);
     } else {
@@ -50,16 +45,8 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
 
   const handleCardKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
-      const targetElement = e.target as HTMLElement;
-      if (targetElement.closest('button')) {
-        return;
-      }
       e.preventDefault();
-      if (onSelectItem) {
-        onSelectItem(item);
-      } else {
-        onSelect?.(media);
-      }
+      handleCardClick();
     }
   };
 
@@ -67,18 +54,18 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
     <div
       role="button"
       tabIndex={0}
-      aria-label={`Card de ${media.title}`}
+      aria-label={`Card de ${media.title || item.title}${year ? `, ${year}` : ''}`}
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
-      className="tv-focus-glow group relative flex flex-col rounded-xl overflow-hidden bg-white/[0.02] backdrop-blur-md border border-white/10 transition-all duration-300 hover:bg-white/[0.06] hover:border-white/20 hover:scale-[1.02] hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-caramelo-claro)]"
+      className="tv-focus-glow group relative flex flex-col rounded-xl overflow-hidden bg-white/[0.03] backdrop-blur-md border border-white/10 transition-all duration-300 hover:bg-white/[0.08] hover:border-[var(--color-caramelo-claro)]/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-caramelo-claro)]"
     >
       {/* Pôster container */}
-      <div className="relative aspect-[2/3] w-full bg-black/40">
+      <div className="relative aspect-[2/3] w-full bg-black/40 overflow-hidden">
         {media.posterUrl ? (
           <img
             src={media.posterUrl}
-            alt={media.title}
-            className="w-full h-full object-cover"
+            alt={media.title || item.title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
         ) : (
@@ -91,80 +78,24 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
         {userRating && (
           <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md border border-white/10 flex items-center gap-1 shadow-md z-10">
             <Star size={10} className="fill-[var(--color-caramelo-claro)] text-[var(--color-caramelo-claro)]" />
-            <span className="font-outfit text-[11px] font-bold text-[var(--color-seda-milharal)] leading-none">{userRating}</span>
+            <span className="font-outfit text-[11px] font-bold text-[var(--color-seda-milharal)] leading-none">
+              {userRating}
+            </span>
           </div>
         )}
-        
-        {/* Overlay com Ações */}
-        <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 p-4">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onSelectItem) {
-                  onSelectItem(item);
-                } else {
-                  onSelect?.(media);
-                }
-              }}
-              className="tv-focus-glow bg-white/20 text-white p-2.5 rounded-full hover:bg-white/40 transition-colors cursor-pointer"
-              title="Ver Detalhes"
-              aria-label={`Ver detalhes de ${item.title || media.title}`}
-            >
-              <Info size={18} />
-            </button>
-            <button
-              type="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(item);
-              }}
-              className="tv-focus-glow bg-[var(--color-caramelo-claro)] text-black p-2.5 rounded-full hover:bg-[var(--color-cobre)] hover:text-white transition-colors cursor-pointer"
-              title="Avaliar"
-              aria-label={`Avaliar ${media.title}`}
-            >
-              <Star size={18} className="fill-current" />
-            </button>
-            <button
-              type="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(item);
-              }}
-              className="tv-focus-glow bg-red-500/80 text-white p-2.5 rounded-full hover:bg-red-600 transition-colors cursor-pointer"
-              title="Remover"
-              aria-label={`Remover ${media.title} da biblioteca`}
-            >
-              <Trash2 size={18} />
-            </button>
-          </div>
-          
-          {nextStatusInfo && (
-            <button
-              type="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation();
-                onStatusChange(item, nextStatusInfo.next);
-              }}
-              className="tv-focus-glow bg-white/10 text-white text-xs font-bold font-outfit px-4 py-2 rounded-full flex items-center gap-1 hover:bg-white/20 transition-colors cursor-pointer"
-              aria-label={`Mudar status para ${nextStatusInfo.label}`}
-            >
-              {nextStatusInfo.label} <ArrowRight size={14} />
-            </button>
-          )}
-        </div>
+
+        {/* Shimmer de hover / foco */}
+        <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-t from-[var(--color-caramelo-claro)]/10 to-transparent" />
       </div>
 
       {/* Info do Card */}
       <div className="p-3 flex flex-col justify-between gap-2.5 flex-1">
         <div>
-          <h3 className="font-cinzel font-bold text-[var(--color-caramelo-claro)] text-sm line-clamp-1 group-hover:text-white transition-colors duration-300" title={media.title}>
-            {media.title}
+          <h3
+            className="font-cinzel font-bold text-[var(--color-caramelo-claro)] text-sm line-clamp-1 group-hover:text-white transition-colors duration-300"
+            title={media.title || item.title}
+          >
+            {media.title || item.title}
           </h3>
           {year && (
             <span className="font-outfit text-xs text-[var(--color-caramelo-claro)]/70">
@@ -172,34 +103,26 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
             </span>
           )}
         </div>
+
         <div className="flex flex-col gap-1.5 mt-auto">
           <div className="flex items-center justify-between gap-1">
             <StatusBadge status={status} domain={item.domain} />
-            {nextStatusInfo && (
-              <button
-                type="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onStatusChange(item, nextStatusInfo.next);
-                }}
-                className="md:hidden flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--color-caramelo-claro)]/20 hover:bg-[var(--color-caramelo-claro)]/30 border border-[var(--color-caramelo-claro)]/40 text-[var(--color-caramelo-claro)] text-[11px] font-bold font-outfit transition-colors cursor-pointer"
-                title={`Mudar para ${nextStatusInfo.label}`}
-                aria-label={`Mudar para ${nextStatusInfo.label}`}
-              >
-                <ArrowRight size={11} />
-                <span>{nextStatusInfo.label}</span>
-              </button>
-            )}
           </div>
+
           {userRating && (
             <div className="flex items-center gap-1.5">
               <RatingStars rating={userRating} size={11} />
-              <span className="text-[10px] font-bold text-[var(--color-seda-milharal)]/40 font-outfit">({userRating}/5)</span>
+              <span className="text-[10px] font-bold text-[var(--color-seda-milharal)]/40 font-outfit">
+                ({userRating}/5)
+              </span>
             </div>
           )}
+
           {notes && (
-            <p className="text-[10px] sm:text-[11px] font-outfit text-stone-400 italic line-clamp-1 border-l-2 border-[var(--color-caramelo-claro)]/40 pl-1.5 mt-0.5" title={notes}>
+            <p
+              className="text-[10px] sm:text-[11px] font-outfit text-stone-400 italic line-clamp-1 border-l-2 border-[var(--color-caramelo-claro)]/40 pl-1.5 mt-0.5"
+              title={notes}
+            >
               “{notes}”
             </p>
           )}
@@ -208,4 +131,3 @@ export function LibraryItemCard({ item, onEdit, onRemove, onStatusChange, onSele
     </div>
   );
 }
-

@@ -124,8 +124,8 @@ export const SearchPage: React.FC = () => {
     return items.find(
       (item) =>
         (item.domain === 'movie' || !item.domain) &&
-        item.tmdbId === selectedMedia.id &&
-        item.mediaType === selectedMedia.mediaType
+        (item.tmdbId === selectedMedia.id || item.externalId === String(selectedMedia.id) || item.media?.id === selectedMedia.id) &&
+        (item.mediaType === selectedMedia.mediaType || !item.mediaType)
     );
   }, [items, selectedMedia]);
 

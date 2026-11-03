@@ -305,8 +305,15 @@
 | 14.2 | **1-Click Copy de URL e JSON Config:** Ações de cópia instantânea com feedback visual de confirmação | 🟢 | 14.1 | **Done** |
 | 14.3 | **Modal Acessível "Como Conectar":** Passo a passo para Claude Desktop, Cursor e Google Spark com compatibilidade D-Pad Android TV | 🟡 | 14.2 | **Done** |
 | 14.4 | **Cobertura de Testes Automatizados:** Testes de componentes e utilitários validados no Vitest | 🟢 | 14.1–14.3 | **Done** |
+---
 
+## FASE 15 — Fluxo TV Modal-First & Limpeza de Atalhos de Cards (100% Concluída)
+> 📄 **Spec:** [specs/SPEC-023-tv-modal-first-clean-flow.md](specs/SPEC-023-tv-modal-first-clean-flow.md)  
+**Objetivo:** Otimização da experiência do Akasha em Android TV com controle remoto (D-Pad), eliminando botões aninhados de atalho na superfície dos cards que causavam disparos e exclusões acidentais, estabelecendo o fluxo Modal-First em que o clique sobre qualquer banner/card apresenta o card de opções fiel ao design do Akasha com os comandos unificados.
 
-
-
-
+| # | Feature | Complexidade | Dependência | Status |
+|---|---|---|---|---|
+| 15.1 | **Limpeza da Superfície de Cards (LibraryItemCard):** Remoção de botões aninhados e overlays sobrepostos, transformando o card em entidade focalizável atômica (	abIndex={0}) |	🟢 | Fase 3 | **Done** |
+| 15.2 | **Fidelidade Visual do Card de Opções (MediaDetailsModal):** Apresentação 1:1 com metadados, streaming via JustWatch, indicador de status e os 4 botões de ação horizontais (Começar, Concluir, Avaliar, Remover) | 🟡 | Fase 4 | **Done** |
+| 15.3 | **Resiliência de Associação de Itens:** Resolução robusta de identificadores TMDB e externas em Library.tsx e Search.tsx | 🟢 | Fase 4 | **Done** |
+| 15.4 | **Bateria de Testes Automatizados:** Suíte de testes atualizada e validada com 238 testes no frontend (100% passando com Vitest) | 🟢 | 15.1–15.3 | **Done** |

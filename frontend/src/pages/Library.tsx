@@ -94,7 +94,7 @@ export const Library: React.FC = () => {
       if (item.domain === 'game' || item.domain === 'book' || item.domain === 'comic') {
         return item.externalId === String(selectedMedia.id);
       }
-      return item.tmdbId === selectedMedia.id && item.mediaType === selectedMedia.mediaType;
+      return (item.tmdbId === selectedMedia.id || item.externalId === String(selectedMedia.id) || item.media?.id === selectedMedia.id) && (item.mediaType === selectedMedia.mediaType || !item.mediaType);
     });
   }, [items, selectedMedia]);
 

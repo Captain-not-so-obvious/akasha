@@ -63,4 +63,7 @@ Operação e governança em total conformidade com a Lei Geral de Proteção de 
 * **Privacidade por Padrão e Minimização:** Localização por e-mail desativada por padrão (`discoverableByEmail = false`) e suporte a perfil privado de atividades.
 * **Segurança Criptográfica no MCP:** Assinatura HS256 em tokens atrelados a concessões registradas no banco (`McpGrant`), proteção contra open-redirect via allowlist estrita e expurgo periódico de credenciais efêmeras.
 * **Transferência Internacional (Art. 33, IX):** Amparo formal para infraestrutura de banco de dados nos EUA (Supabase us-west-2 / Oregon) com criptografia TLS 1.3 e repouso AES-256.
-
+
+## 5. Experiência Android TV Modal-First & Eliminação de Atalhos Superficiais
+> 📄 **Especificação Técnica:** [specs/SPEC-023-tv-modal-first-clean-flow.md](specs/SPEC-023-tv-modal-first-clean-flow.md)  
+Otimização para controle remoto D-Pad em telas de TV: eliminação de botões rápidos aninhados nos cards de biblioteca que causavam armadilhas de foco (*focus traps*) e acionamentos acidentais de exclusão ou alteração de status. O fluxo estabelece que o clique sobre qualquer banner ou card abre diretamente o modal centralizado de detalhes (MediaDetailsModal), onde o ciclo de vida completo da obra (Começar a Assistir, Concluir, Avaliar e Remover) é operado com segurança e fidelidade visual absoluta ao design do Akasha.
