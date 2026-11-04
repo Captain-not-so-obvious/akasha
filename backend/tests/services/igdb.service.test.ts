@@ -9,17 +9,21 @@ import {
 } from '../../src/services/igdb.service.js';
 
 describe('IGDB Service: Proteção de Produção, Zero Mocks e Tendências da Twitch', () => {
-  const originalEnv = process.env;
+  const originalEnv = { ...process.env };
   const originalFetch = globalThis.fetch;
 
   beforeEach(() => {
     vi.clearAllMocks();
     _clearTwitchTokenCacheForTesting();
-    process.env = { ...originalEnv };
   });
 
   afterEach(() => {
-    process.env = originalEnv;
+    for (const key of Object.keys(process.env)) {
+      if (!(key in originalEnv)) {
+        delete process.env[key];
+      }
+    }
+    Object.assign(process.env, originalEnv);
     globalThis.fetch = originalFetch;
   });
 

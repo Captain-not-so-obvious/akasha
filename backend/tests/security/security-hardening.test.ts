@@ -20,12 +20,12 @@ vi.mock('../../src/lib/prisma.js', () => ({
     oAuthCode: {
       create: vi.fn(),
       findUnique: vi.fn(),
-      update: vi.fn(),
+      update: vi.fn().mockResolvedValue({}),
     },
     mcpGrant: {
       create: vi.fn(),
       findFirst: vi.fn(),
-      update: vi.fn(),
+      update: vi.fn().mockResolvedValue({}),
     },
   },
 }));

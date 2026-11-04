@@ -83,13 +83,18 @@ export async function verifyMcpToken(token: string): Promise<string | null> {
       return null;
     }
 
-    // Atualiza timestamp de uso em background
-    prisma.mcpGrant
-      .update({
+    // Atualiza timestamp de uso em background de forma resiliente
+    try {
+      const updatePromise = prisma.mcpGrant.update({
         where: { id: grant.id },
         data: { lastUsedAt: new Date() },
-      })
-      .catch(() => {});
+      });
+      if (updatePromise && typeof updatePromise.catch === 'function') {
+        updatePromise.catch(() => {});
+      }
+    } catch {
+      // Ignora falhas de telemetria secundária
+    }
 
     return payload.sub;
   } catch {
